@@ -1,6 +1,6 @@
 {
   "name": "solid-sfc",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "types": "dist/types/index.d.ts",
   "main": "dist/cjs/production/index.js",
   "module": "dist/esm/production/index.js",
@@ -49,8 +49,8 @@
   ],
   "devDependencies": {
     "@types/jest": "^27.0.2",
-    "@types/node": "^16.11.7",
     "@types/mustache": "^4.1.2",
+    "@types/node": "^16.11.7",
     "eslint": "^7.32.0",
     "eslint-config-lxsmnsyc": "^0.3.0",
     "pridepack": "1.0.3",
@@ -59,15 +59,15 @@
     "typescript": "^4.4.4"
   },
   "dependencies": {
+    "@babel/core": "^7.16.0",
+    "@babel/preset-typescript": "^7.16.0",
+    "@babel/types": "^7.16.0",
     "babel-plugin-solid-labels": "^0.9.4",
     "babel-preset-solid": "^1.2.5",
-    "@babel/preset-typescript": "^7.16.0",
-    "htmlparser2": "^7.2.0",
-    "domhandler": "^4.2.2",
     "dom-serializer": "^1.3.2",
-    "mustache": "^4.2.0",
-    "@babel/types": "^7.16.0",
-    "@babel/core": "^7.16.0"
+    "domhandler": "^4.2.2",
+    "htmlparser2": "^7.2.0",
+    "mustache": "^4.2.0"
   },
   "private": false,
   "description": "SFC for Solid",
