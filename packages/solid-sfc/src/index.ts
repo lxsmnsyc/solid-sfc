@@ -13,8 +13,9 @@ export interface BabelOptions {
 }
 
 const SOLID_SETUP = 'solid:setup';
-const SOLID_RENDER = 'solid:render';
+const SOLID_FRAGMENT = 'solid:fragment';
 const SOLID_SLOT = 'solid:slot';
+const SOLID_CHILDREN = 'solid:children';
 
 const REPLACEMENTS: Record<string, string> = {
   'solid:for': 'For',
@@ -34,11 +35,17 @@ const REPLACEMENTS: Record<string, string> = {
 function transformToJSX(nodes: domhandler.Node[], fragment = true): string {
   function transformNode(node: domhandler.Node): string {
     if (domhandler.isTag(node)) {
-      if (node.name === SOLID_SLOT && fragment) {
-        throw new Error(`Unexpected <${SOLID_SLOT}> inside a fragment.`);
+      if (node.name === SOLID_FRAGMENT && fragment) {
+        throw new Error(`Unexpected <${SOLID_FRAGMENT}> inside a fragment.`);
       }
-      if (node.name === SOLID_SETUP || node.name === SOLID_RENDER) {
-        throw new Error(`Unexpected <${node.name}> inside <${SOLID_RENDER}>`);
+      if (node.name === SOLID_SLOT) {
+        if (!node.attribs.name) {
+          throw new Error(`Missing "name" from <${SOLID_SLOT}>`);
+        }
+        return `{props.${node.attribs.name}}`;
+      }
+      if (node.name === SOLID_CHILDREN) {
+        return `{props.children}`;
       }
       // Normalize attributes
       let attributes = [];
@@ -57,7 +64,7 @@ function transformToJSX(nodes: domhandler.Node[], fragment = true): string {
       for (let i = 0, len = node.children.length; i < len; i += 1) {
         const childNode = node.children[i];
         if (domhandler.isTag(childNode)) {
-          if (childNode.name === SOLID_SLOT) {
+          if (childNode.name === SOLID_FRAGMENT) {
             if (!childNode.attribs.name) {
               throw new Error(`Unexpected unnnamed slot`);
             }
@@ -71,9 +78,13 @@ function transformToJSX(nodes: domhandler.Node[], fragment = true): string {
         }
       }
 
-      const children = transformToJSX(normalNodes, false);
       const name = node.name in REPLACEMENTS ? REPLACEMENTS[node.name] : node.name;
-      return `<${name} ${attributes.join(' ')}>${children}</${name}>`;
+      const attrs = attributes.length ? ` ${attributes.join(' ')}` : '';
+      if (normalNodes.length) {
+        const children = transformToJSX(normalNodes, false);
+        return `<${name}${attrs}>${children}</${name}>`;
+      }
+      return `<${name}${attrs}/>`
     }
     if (domhandler.isText(node)) {
       return node.data;
@@ -108,28 +119,19 @@ export default async function transform(code: string, options?: TransformOptions
   });
 
   // Normalize children
-  let setupPart: domhandler.Element | undefined;
-  let renderPart: domhandler.Element | undefined;
+  let setupPart: domhandler.Element[] = [];
+  let renderPart: domhandler.Node[] = [];
 
   let node = doc.firstChild;
   while (node) {
     if (domhandler.isTag(node)) {
       switch (node.name) {
         case SOLID_SETUP: {
-          if (setupPart) {
-            throw new Error(`Unexpected <${SOLID_SETUP}>`);
-          }
-          setupPart = node;
-        }
-          break;
-        case SOLID_RENDER: {
-          if (renderPart) {
-            throw new Error(`Unexpected <${SOLID_RENDER}>`);
-          }
-          renderPart = node;
+          setupPart.push(node);
         }
           break;
         default:
+          renderPart.push(node);
           break;
       }
   
@@ -139,14 +141,13 @@ export default async function transform(code: string, options?: TransformOptions
 
   let outputCode = '';
 
-  if (setupPart) {
-    console.log(setupPart);
-    outputCode += render(setupPart.children, {
+  for (let i = 0, len = setupPart.length; i < len; i += 1) {
+    outputCode += render(setupPart[i].children, {
       decodeEntities: false,
     });
   }
-  if (renderPart) {
-    outputCode += `export default ${transformToJSX(renderPart.children)}`;
+  if (renderPart.length) {
+    outputCode += `export default ${transformToJSX(renderPart)}`;
   }
 
   const result = await babel.transformAsync(outputCode, {
