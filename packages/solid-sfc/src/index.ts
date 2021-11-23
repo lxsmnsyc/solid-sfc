@@ -21,6 +21,7 @@ const SOLID_CHILDREN = 'solid:children';
 const REPLACEMENTS: Record<string, string> = {
   'solid:for': 'For',
   'solid:switch': 'Switch',
+  'solid:match': 'Match',
   'solid:show': 'Show',
   'solid:index': 'Index',
   'solid:error-boundary': 'ErrorBoundary',

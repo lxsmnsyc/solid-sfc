@@ -2,18 +2,11 @@ const parser = require('./dist/cjs/production');
 
 parser.default(`
 <solid:setup>
-  const [data] = $resource(source, fetchData);
-
-  function example(el) {
-    console.log(el);
-  }
+  let array = [1, 2, 3];
 </solid:setup>
-<solid:suspense>
-  <solid:fragment name="fallback">
-    <h1 use:example>Loading...</h1>
-  </solid:fragment>
-  <Profile data={data()} />
-</solid:suspense>
+<solid:for each={array}>
+  {(item) => <h1>Count: {item}</h1>}
+</solid:for>
 `, {
-  target: 'preserve',
+  target: 'ssr',
 }).then(console.log, console.error);
