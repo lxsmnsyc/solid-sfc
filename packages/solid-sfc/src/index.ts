@@ -102,7 +102,7 @@ function transformToJSX(nodes: domhandler.Node[], fragment = true): string {
     output += transformNode(nodes[i]);
   }
 
-  if (nodes.length > 1 && fragment) {
+  if (nodes.length > 1 || fragment) {
     return `<>${output}</>`
   }
 
