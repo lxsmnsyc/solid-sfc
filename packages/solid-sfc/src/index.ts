@@ -110,8 +110,8 @@ function transformToJSX(nodes: domhandler.Node[], fragment = true): string {
 }
 
 export interface TransformOptions {
-  filename: string;
-  target: 'ssr' | 'dom' | 'preserve';
+  filename?: string;
+  target?: 'ssr' | 'dom' | 'preserve';
   babel?: BabelOptions;
 }
 
