@@ -112,6 +112,8 @@ function transformToJSX(nodes: domhandler.Node[], fragment = true): string {
 export interface TransformOptions {
   filename?: string;
   target?: 'ssr' | 'dom' | 'preserve';
+  dev?: boolean;
+  hmr?: 'esm' | 'standard';
   babel?: BabelOptions;
 }
 
@@ -154,21 +156,32 @@ export default async function transform(code: string, options?: TransformOptions
     outputCode += `export default ${transformToJSX(renderPart)}`;
   }
 
+  const presets = [
+    [typescript, {}],
+  ];
+
+  const plugins = [
+    [solidSFCPlugin, { dev: options?.dev, hmr: options?.hmr }],
+    [solidReactivityPlugin, { dev: options?.dev }],
+  ];
+
+  if (options?.target === 'preserve') {
+    plugins.push([jsxPlugin, {}]);
+  } else {
+    presets.push([
+      solid,
+      { generate: options?.target ?? 'dom', hydratable: options?.target === 'ssr' },
+    ]);
+  }
+
   const result = await babel.transformAsync(outputCode, {
     filename: options?.filename ?? 'index.js',
     presets: [
-      ...(
-        options?.target !== 'preserve'
-          ? [[solid, { generate: options?.target ?? 'dom', hydratable: options?.target === 'ssr' }]]
-          : []
-      ),
-      [typescript, {}],
+      ...presets,
       ...(options?.babel?.presets ?? []),
     ],
     plugins: [
-      [solidSFCPlugin, {}],
-      [solidReactivityPlugin, {}],
-      ...(options?.target === 'preserve' ? [[jsxPlugin, {}]] : []),
+      ...plugins,
       ...(options?.babel?.plugins ?? []),
     ],
   });

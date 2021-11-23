@@ -1,12 +1,12 @@
 const parser = require('./dist/cjs/production');
 
 parser.default(`
-<solid:setup>
+<$:setup>
   let array = [1, 2, 3];
-</solid:setup>
-<solid:for each={array}>
-  {(item) => <h1>Count: {item}</h1>}
-</solid:for>
+</$:setup>
+<$:slot name="example" />
 `, {
-  target: 'ssr',
+  target: 'dom',
+  dev: true,
+  hmr: 'esm',
 }).then(console.log, console.error);
