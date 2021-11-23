@@ -1,22 +1,72 @@
-import * as htmlparser2 from 'htmlparser2';
+import * as htmlparser from 'node-html-parser';
 import * as babel from '@babel/core';
-import * as domhandler from 'domhandler';
-import render from 'dom-serializer';
+import { SourceNode } from 'source-map';
 import solidReactivityPlugin from 'babel-plugin-solid-labels';
 import jsxPlugin from '@babel/plugin-syntax-jsx';
 import solid from 'babel-preset-solid';
 import typescript from '@babel/preset-typescript';
 import solidSFCPlugin from './babel-sfc';
 
-export interface BabelOptions {
-  plugins?: babel.PluginItem[];
-  presets?: babel.PluginItem[];
+function createSourceMapBase(code: string): string[] {
+  return code.split('\n');
 }
+
+interface Position {
+  line: number;
+  column: number;
+}
+
+interface SourceRange {
+  start: Position;
+  end: Position;
+}
+
+function mapRangeToSource(source: string[], start: number, end: number): SourceRange {
+  let size = 0;
+
+  let startPos: Position | undefined;
+  let endPos: Position | undefined;
+
+  for (let i = 0, len = source.length; i < len; i += 1) {
+    const chunk = source[i].length + 1;
+    // Check if index is within the chunk
+    if (start < size + chunk && !startPos) {
+      startPos = {
+        line: i + 1,
+        column: start - size,
+      };
+    }
+    if (end < size + chunk && !endPos) {
+      endPos = {
+        line: i + 1,
+        column: end - size,
+      };
+    }
+
+    size += chunk;
+  }
+
+  if (!startPos || !endPos) {
+    throw new Error('Unexpected missing range');
+  }
+
+  return {
+    start: startPos,
+    end: endPos,
+  };
+}
+
+interface Source {
+  code: string[];
+  name: string;
+}
+
 
 const SOLID_SETUP = 'solid:setup';
 const SOLID_FRAGMENT = 'solid:fragment';
 const SOLID_SLOT = 'solid:slot';
 const SOLID_CHILDREN = 'solid:children';
+const SOLID_SPREAD = 'solid:spread';
 
 const REPLACEMENTS: Record<string, string> = {
   'solid:for': 'For',
@@ -34,26 +84,42 @@ const REPLACEMENTS: Record<string, string> = {
   'solid:no-hydration': 'NoHydration',
 };
 
-function transformToJSX(nodes: domhandler.Node[], fragment = true): string {
-  function transformNode(node: domhandler.Node): string {
-    if (domhandler.isTag(node)) {
-      if (node.name === SOLID_FRAGMENT && fragment) {
+function transformToJSX(source: Source, nodes: htmlparser.Node[], fragment = true): (SourceNode | string)[] {
+  function transformNode(node: htmlparser.Node): SourceNode {
+    if (node instanceof htmlparser.HTMLElement) {
+      if ((node.rawTagName === SOLID_FRAGMENT || node.rawTagName === SOLID_SPREAD) && fragment) {
         throw new Error(`Unexpected <${SOLID_FRAGMENT}> inside a fragment.`);
       }
-      if (node.name === SOLID_SLOT) {
-        if (!node.attribs.name) {
+      if (node.rawTagName === SOLID_SLOT) {
+        if (!node.attrs.name) {
           throw new Error(`Missing "name" from <${SOLID_SLOT}>`);
         }
-        return `{props.${node.attribs.name}}`;
+        const range = node.range;
+        const mappedPosition = mapRangeToSource(source.code, ...range);
+        return new SourceNode(
+          mappedPosition.start.line,
+          mappedPosition.start.column,
+          source.name,
+          `{props.${node.attrs.name}}`,
+        );
       }
-      if (node.name === SOLID_CHILDREN) {
-        return `{props.children}`;
+      if (node.rawTagName === SOLID_CHILDREN) {
+        const range = node.range;
+        const mappedPosition = mapRangeToSource(source.code, ...range);
+        return new SourceNode(
+          mappedPosition.start.line,
+          mappedPosition.start.column,
+          source.name,
+          `{props.children}`,
+        );
       }
       // Normalize attributes
-      let attributes = [];
-      for (let i = 0, len = node.attributes.length; i < len; i += 1) {
-        const attribute = node.attributes[i];
-        const { value, name } = attribute;
+      const attributes: (string | SourceNode)[] = [];
+      const current = node.attributes;
+      const keys = Object.keys(current);
+      for (let i = 0, len = keys.length; i < len; i += 1) {
+        const name = keys[i];
+        const value = current[name];
         if (/^{(.*)}$/.test(value)) {
           attributes.push(`${name}=${value}`);
         } else if (value !== '') {
@@ -64,16 +130,35 @@ function transformToJSX(nodes: domhandler.Node[], fragment = true): string {
       }
 
       // find slots
-      let normalNodes: domhandler.Node[] = [];
-      for (let i = 0, len = node.children.length; i < len; i += 1) {
-        const childNode = node.children[i];
-        if (domhandler.isTag(childNode)) {
-          if (childNode.name === SOLID_FRAGMENT) {
-            if (!childNode.attribs.name) {
-              throw new Error(`Unexpected unnnamed slot`);
+      let normalNodes: htmlparser.Node[] = [];
+      for (let i = 0, len = node.childNodes.length; i < len; i += 1) {
+        const childNode = node.childNodes[i];
+        if (childNode instanceof htmlparser.HTMLElement) {
+          if (childNode.rawTagName === SOLID_FRAGMENT) {
+            if (!childNode.attrs.name) {
+              throw new Error(`Unexpected unnnamed <${SOLID_FRAGMENT}>`);
             }
-            const result = transformToJSX(childNode.children);
-            attributes.push(`${childNode.attribs.name}={${result}}`);
+            const result = transformToJSX(source, childNode.childNodes);
+            const range = childNode.range;
+            const mappedPosition = mapRangeToSource(source.code, ...range);
+            attributes.push(new SourceNode(
+              mappedPosition.start.line,
+              mappedPosition.start.column,
+              source.name,
+              [`${childNode.attrs.name}={`, ...result, '}'],
+            ));
+          } else if (childNode.rawTagName === SOLID_SPREAD) {
+            if (!childNode.attrs.from) {
+              throw new Error(`Unexpected unnnamed <${SOLID_SPREAD}>`);
+            }
+            const range = childNode.range;
+            const mappedPosition = mapRangeToSource(source.code, ...range);
+            attributes.push(new SourceNode(
+              mappedPosition.start.line,
+              mappedPosition.start.column,
+              source.name,
+              `{...${childNode.attrs.from}}`,
+            ));
           } else {
             normalNodes.push(childNode);
           }
@@ -82,56 +167,94 @@ function transformToJSX(nodes: domhandler.Node[], fragment = true): string {
         }
       }
 
-      const name = node.name in REPLACEMENTS ? REPLACEMENTS[node.name] : node.name;
-      const attrs = attributes.length ? ` ${attributes.join(' ')}` : '';
+      const name = node.rawTagName in REPLACEMENTS ? REPLACEMENTS[node.rawTagName] : node.rawTagName;
+      const range = node.range;
+      const mappedPosition = mapRangeToSource(source.code, ...range);
       if (normalNodes.length) {
-        const children = transformToJSX(normalNodes, false);
-        return `<${name}${attrs}>${children}</${name}>`;
+        const children = transformToJSX(source, normalNodes, false);
+        return new SourceNode(
+          mappedPosition.start.line,
+          mappedPosition.start.column,
+          source.name,
+          [`<${name} `, ...attributes, '>', ...children, `</${name}>`],
+        );
       }
-      return `<${name}${attrs}/>`
+      return new SourceNode(
+        mappedPosition.start.line,
+        mappedPosition.start.column,
+        source.name,
+        [`<${name} `, ...attributes, '/>'],
+      );
     }
-    if (domhandler.isText(node)) {
-      return node.data;
+    if (node instanceof htmlparser.TextNode) {
+      const range = node.range;
+      const mappedPosition = mapRangeToSource(source.code, ...range);
+      return new SourceNode(
+        mappedPosition.start.line,
+        mappedPosition.start.column,
+        source.name,
+        node.text,
+      );
     }
-    return '';
+    return new SourceNode();
   }
 
-  let output = '';
+  const output: SourceNode[] = [];
 
   for (let i = 0, len = nodes.length; i < len; i += 1) {
-    output += transformNode(nodes[i]);
+    output.push(transformNode(nodes[i]));
   }
 
   if (nodes.length > 1 || fragment) {
-    return `<>${output}</>`
+    return ['<>', ...output, '</>'];
   }
 
   return output;
+}
+
+export interface BabelOptions {
+  plugins?: babel.PluginItem[];
+  presets?: babel.PluginItem[];
 }
 
 export interface TransformOptions {
   filename?: string;
   target?: 'ssr' | 'dom' | 'preserve';
   dev?: boolean;
+  sourcemap?: boolean;
   hmr?: 'esm' | 'standard';
   babel?: BabelOptions;
 }
 
-export default async function transform(code: string, options?: TransformOptions) {
-  const doc = htmlparser2.parseDocument(code, {
-    lowerCaseAttributeNames: false,
-    lowerCaseTags: false,
-    recognizeSelfClosing: true,
+
+export interface SourceMap {
+	file?: string;
+	mappings: string;
+	names: string[];
+	sourceRoot?: string;
+	sources: string[];
+	sourcesContent?: string[];
+	version: number;
+}
+
+export interface Output {
+  code: string;
+  map?: SourceMap;
+}
+
+export default async function transform(code: string, options?: TransformOptions): Promise<Output> {
+  const doc = htmlparser.parse(code, {
+    
   });
 
   // Normalize children
-  let setupPart: domhandler.Element[] = [];
-  let renderPart: domhandler.Node[] = [];
+  let setupPart: htmlparser.HTMLElement[] = [];
+  let renderPart: htmlparser.Node[] = [];
 
-  let node = doc.firstChild;
-  while (node) {
-    if (domhandler.isTag(node)) {
-      switch (node.name) {
+  for (let i = 0, len = doc.childNodes.length; i < len; i += 1) {
+    const node = doc.childNodes[i];
+    if (node instanceof htmlparser.HTMLElement) {
+      switch (node.rawTagName) {
         case SOLID_SETUP: {
           setupPart.push(node);
         }
@@ -140,20 +263,28 @@ export default async function transform(code: string, options?: TransformOptions
           renderPart.push(node);
           break;
       }
-  
     }
-    node = node.nextSibling;
   }
 
-  let outputCode = '';
+  const source: Source = {
+    name: options?.filename ?? 'index.js',
+    code: createSourceMapBase(code),
+  };
+  const root = new SourceNode();
 
   for (let i = 0, len = setupPart.length; i < len; i += 1) {
-    outputCode += render(setupPart[i].children, {
-      decodeEntities: false,
-    });
+    const range = setupPart[i].range;
+    const mappedPosition = mapRangeToSource(source.code, ...range);
+    root.add(new SourceNode(
+      mappedPosition.start.line,
+      mappedPosition.start.column,
+      source.name,
+      setupPart[i].text,
+    ));
   }
   if (renderPart.length) {
-    outputCode += `export default ${transformToJSX(renderPart)}`;
+    root.add('export default');
+    root.add(transformToJSX(source, renderPart));
   }
 
   const presets = [
@@ -174,7 +305,9 @@ export default async function transform(code: string, options?: TransformOptions
     ]);
   }
 
-  const result = await babel.transformAsync(outputCode, {
+  const output = root.toStringWithSourceMap();
+  const result = await babel.transformAsync(output.code, {
+    sourceMaps: options?.sourcemap || options?.dev,
     filename: options?.filename ?? 'index.js',
     presets: [
       ...presets,
@@ -184,7 +317,11 @@ export default async function transform(code: string, options?: TransformOptions
       ...plugins,
       ...(options?.babel?.plugins ?? []),
     ],
+    inputSourceMap: output.map.toJSON(),
   });
 
-  return result?.code ?? '';
+  return {
+    code: result?.code ?? '',
+    map: result?.map ?? undefined,
+  };
 }

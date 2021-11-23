@@ -17,9 +17,23 @@ export default function solidSFCPlugin(options?: Options): Plugin {
       return null;
     },
     async load(id) {
-      const file = await fs.readFile(id, { encoding: 'utf-8' });
+      if (id.startsWith('\0')) {
+        return null;
+      }
+      if (!/\.solid$/.test(id)) {
+        return null;
+      }
+      return fs.readFile(id, { encoding: 'utf-8' });
+    },
+    async transform(code, id) {
+      if (id.startsWith('\0')) {
+        return null;
+      }
+      if (!/\.solid$/.test(id)) {
+        return null;
+      }
       const name = path.basename(id);
-      const result = await solidSFC(file, {
+      const result = await solidSFC(code, {
         filename: name,
         target: options?.target,
         babel: options?.babel,

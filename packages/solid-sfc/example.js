@@ -2,11 +2,18 @@ const parser = require('./dist/cjs/production');
 
 parser.default(`
 <solid:setup>
-  let array = [1, 2, 3];
+  import Counter from './Counter';
+
+  let count = $signal(0);
 </solid:setup>
-<solid:slot name="example" />
+<Counter count={count}>
+  <solid:spread from="props" />
+</Counter>
 `, {
   target: 'dom',
   dev: true,
   hmr: 'esm',
-}).then(console.log, console.error);
+}).then((result) => {
+  console.log(result.map);
+  console.log(result.code + '\n//# sourceMappingURL=data:application/json;base64,' + btoa(JSON.stringify(result.map)))
+}, console.error);

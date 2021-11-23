@@ -1,0 +1,28 @@
+{
+  "name": "counter",
+  "version": "0.10.10",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "serve": "vite preview"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.3.7",
+    "babel-preset-solid": "^1.2.1",
+    "eslint": "^7.32.0",
+    "eslint-config-lxsmnsyc": "^0.3.0",
+    "postcss": "^8.3.11",
+    "typescript": "^4.4.4",
+    "vite": "^2.6.13",
+    "solid-sfc": "^0.0.1",
+    "rollup-plugin-solid-sfc": "^0.0.1"
+  },
+  "dependencies": {
+    "solid-js": "^1.2.1",
+    "tailwindcss": "^2.2.17"
+  },
+  "private": true,
+  "publishConfig": {
+    "access": "restricted"
+  }
+}
