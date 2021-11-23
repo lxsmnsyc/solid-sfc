@@ -3,6 +3,7 @@ import * as babel from '@babel/core';
 import * as domhandler from 'domhandler';
 import render from 'dom-serializer';
 import solidReactivityPlugin from 'babel-plugin-solid-labels';
+import jsxPlugin from '@babel/plugin-syntax-jsx';
 import solid from 'babel-preset-solid';
 import typescript from '@babel/preset-typescript';
 import solidSFCPlugin from './babel-sfc';
@@ -54,8 +55,10 @@ function transformToJSX(nodes: domhandler.Node[], fragment = true): string {
         const { value, name } = attribute;
         if (/^{(.*)}$/.test(value)) {
           attributes.push(`${name}=${value}`);
-        } else {
+        } else if (value !== '') {
           attributes.push(`${name}="${value}"`);
+        } else {
+          attributes.push(name);
         }
       }
 
@@ -107,7 +110,7 @@ function transformToJSX(nodes: domhandler.Node[], fragment = true): string {
 
 export interface TransformOptions {
   filename: string;
-  target: 'server' | 'client' | 'preserve';
+  target: 'ssr' | 'dom' | 'preserve';
   babel?: BabelOptions;
 }
 
@@ -153,12 +156,19 @@ export default async function transform(code: string, options?: TransformOptions
   const result = await babel.transformAsync(outputCode, {
     filename: options?.filename ?? 'index.js',
     presets: [
-      [solid, {}],
+      ...(
+        options?.target !== 'preserve'
+          ? [[solid, { generate: options?.target ?? 'dom', hydratable: options?.target === 'ssr' }]]
+          : []
+      ),
       [typescript, {}],
+      ...(options?.babel?.presets ?? []),
     ],
     plugins: [
       [solidSFCPlugin, {}],
       [solidReactivityPlugin, {}],
+      ...(options?.target === 'preserve' ? [[jsxPlugin, {}]] : []),
+      ...(options?.babel?.plugins ?? []),
     ],
   });
 
