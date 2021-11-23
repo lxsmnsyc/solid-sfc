@@ -67,7 +67,7 @@ const SOLID_FRAGMENT = 'solid:fragment';
 const SOLID_SLOT = 'solid:slot';
 const SOLID_CHILDREN = 'solid:children';
 
-const SPREAD = ':spread';
+const SPREAD = '@spread';
 
 const REPLACEMENTS: Record<string, string> = {
   'solid:for': 'For',
@@ -121,7 +121,7 @@ function transformToJSX(source: Source, nodes: htmlparser.Node[], fragment = tru
       for (let i = 0, len = keys.length; i < len; i += 1) {
         const name = keys[i];
         const value = current[name];
-        if (name !== SPREAD) {
+        if (name === SPREAD) {
           if (/^{(.*)}$/.test(value)) {
             attributes.push(`{...${value.substring(1, value.length - 1)}}`);
           } else {
@@ -239,7 +239,13 @@ export interface Output {
 
 export default async function transform(code: string, options?: TransformOptions): Promise<Output> {
   const doc = htmlparser.parse(code, {
-    
+    blockTextElements: {
+      'solid:setup': true,
+      script: true,
+      noscript: true,
+      style: true,
+      pre: true,
+    },
   });
 
   // Normalize children
