@@ -37,6 +37,9 @@ export default function solidSFCPlugin(options?: Options): Plugin {
         filename: name,
         target: options?.target,
         babel: options?.babel,
+        dev: options?.dev,
+        hmr: options?.hmr,
+        sourcemap: options?.sourcemap,
       });
       return result;
     },

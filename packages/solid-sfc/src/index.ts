@@ -66,7 +66,8 @@ const SOLID_SETUP = 'solid:setup';
 const SOLID_FRAGMENT = 'solid:fragment';
 const SOLID_SLOT = 'solid:slot';
 const SOLID_CHILDREN = 'solid:children';
-const SOLID_SPREAD = 'solid:spread';
+
+const SPREAD = ':spread';
 
 const REPLACEMENTS: Record<string, string> = {
   'solid:for': 'For',
@@ -87,7 +88,7 @@ const REPLACEMENTS: Record<string, string> = {
 function transformToJSX(source: Source, nodes: htmlparser.Node[], fragment = true): (SourceNode | string)[] {
   function transformNode(node: htmlparser.Node): SourceNode {
     if (node instanceof htmlparser.HTMLElement) {
-      if ((node.rawTagName === SOLID_FRAGMENT || node.rawTagName === SOLID_SPREAD) && fragment) {
+      if (node.rawTagName === SOLID_FRAGMENT && fragment) {
         throw new Error(`Unexpected <${SOLID_FRAGMENT}> inside a fragment.`);
       }
       if (node.rawTagName === SOLID_SLOT) {
@@ -120,7 +121,13 @@ function transformToJSX(source: Source, nodes: htmlparser.Node[], fragment = tru
       for (let i = 0, len = keys.length; i < len; i += 1) {
         const name = keys[i];
         const value = current[name];
-        if (/^{(.*)}$/.test(value)) {
+        if (name !== SPREAD) {
+          if (/^{(.*)}$/.test(value)) {
+            attributes.push(`{...${value.substring(1, value.length - 1)}}`);
+          } else {
+            throw new Error(`Unexpected ${SPREAD}`);
+          }
+        } else if (/^{(.*)}$/.test(value)) {
           attributes.push(`${name}=${value}`);
         } else if (value !== '') {
           attributes.push(`${name}="${value}"`);
@@ -146,18 +153,6 @@ function transformToJSX(source: Source, nodes: htmlparser.Node[], fragment = tru
               mappedPosition.start.column,
               source.name,
               [`${childNode.attrs.name}={`, ...result, '}'],
-            ));
-          } else if (childNode.rawTagName === SOLID_SPREAD) {
-            if (!childNode.attrs.from) {
-              throw new Error(`Unexpected unnnamed <${SOLID_SPREAD}>`);
-            }
-            const range = childNode.range;
-            const mappedPosition = mapRangeToSource(source.code, ...range);
-            attributes.push(new SourceNode(
-              mappedPosition.start.line,
-              mappedPosition.start.column,
-              source.name,
-              `{...${childNode.attrs.from}}`,
             ));
           } else {
             normalNodes.push(childNode);
@@ -291,23 +286,27 @@ export default async function transform(code: string, options?: TransformOptions
     [typescript, {}],
   ];
 
+  const dev = options?.dev;
+  const hmr = options?.hmr ?? 'esm';
+  const target = options?.target ?? 'dom';
+
   const plugins = [
-    [solidSFCPlugin, { dev: options?.dev, hmr: options?.hmr }],
-    [solidReactivityPlugin, { dev: options?.dev }],
+    [solidSFCPlugin, { dev: dev && target !== 'preserve', hmr }],
+    [solidReactivityPlugin, { dev }],
   ];
 
-  if (options?.target === 'preserve') {
+  if (target === 'preserve') {
     plugins.push([jsxPlugin, {}]);
   } else {
     presets.push([
       solid,
-      { generate: options?.target ?? 'dom', hydratable: options?.target === 'ssr' },
+      { generate: target ?? 'dom', hydratable: target === 'ssr' },
     ]);
   }
 
   const output = root.toStringWithSourceMap();
   const result = await babel.transformAsync(output.code, {
-    sourceMaps: options?.sourcemap || options?.dev,
+    sourceMaps: options?.sourcemap || dev,
     filename: options?.filename ?? 'index.js',
     presets: [
       ...presets,
