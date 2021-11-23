@@ -14,7 +14,7 @@ export default function solidSFCPlugin(): PluginObj<State> {
   return {
     visitor: {
       Program(path, { opts }) {
-        if (opts.dev) {
+        if (opts.dev && opts.hmr) {
           const comments = path.hub.file.ast.comments;
           for (let i = 0; i < comments.length; i++) {
             const comment = comments[i];
@@ -81,7 +81,7 @@ export default function solidSFCPlugin(): PluginObj<State> {
         ];
       },
       ExportDefaultDeclaration(path, { opts }) {
-        if (!opts.dev) {
+        if (!opts.dev || !opts.hmr) {
           return;
         }
         if (path.hub.file.metadata.processedHot) return;

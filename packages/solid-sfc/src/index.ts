@@ -293,7 +293,7 @@ export default async function transform(code: string, options?: TransformOptions
   ];
 
   const dev = options?.dev;
-  const hmr = options?.hmr ?? 'esm';
+  const hmr = options?.hmr;
   const target = options?.target ?? 'dom';
 
   const plugins = [
