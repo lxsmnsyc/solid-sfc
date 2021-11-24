@@ -38,10 +38,10 @@ effect: {
 
 ### Suspense and fragments
 
-```xml
+```jsx
 ---
-  const [data] = $resource(source, fetchData);
-</solid:setup>
+const [data] = $resource(source, fetchData);
+---
 <solid:suspense>
   <solid:fragment name="fallback">
     <h1>Loading...</h1>
