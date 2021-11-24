@@ -1,7 +1,9 @@
 const parser = require('./dist/cjs/production');
 
 parser.default(`
-<A.B @spread={props} />
+---
+let count = 0;
+---
 `, {
   target: 'dom',
   dev: true,

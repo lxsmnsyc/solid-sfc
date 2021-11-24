@@ -1,13 +1,13 @@
-<solid:setup>
-  let count = $signal(0);
+---
+let count = $signal(0);
 
-  function increment() {
-    count++;
-  }
-  function decrement() {
-    count--;
-  }
-</solid:setup>
+function increment() {
+  count++;
+}
+function decrement() {
+  count--;
+}
+---
 <div class="flex items-center justify-center space-x-2 text-white p-2 rounded-lg bg-gray-900 bg-opacity-10">
   <button onClick={increment} class="p-2 rounded-lg bg-gray-900 bg-opacity-10">
     Increment

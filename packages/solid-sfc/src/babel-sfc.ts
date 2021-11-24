@@ -15,40 +15,39 @@ export default function solidSFCPlugin(): PluginObj<State> {
     visitor: {
       Program(path, { opts }) {
         if (opts.dev && opts.hmr) {
-          const comments = path.hub.file.ast.comments;
+          const { comments } = path.hub.file.ast;
           for (let i = 0; i < comments.length; i++) {
             const comment = comments[i];
-            const index = comment.value.indexOf("@refresh");
+            const index = comment.value.indexOf('@refresh');
             if (index > -1) {
-              if (comment.value.slice(index).includes("skip")) {
+              if (comment.value.slice(index).includes('skip')) {
                 path.hub.file.metadata.processedHot = true;
                 break;
               }
-              if (comment.value.slice(index).includes("reload")) {
+              if (comment.value.slice(index).includes('reload')) {
                 path.hub.file.metadata.processedHot = true;
-                const pathToHot =
-                  opts.hmr !== "esm"
-                    ? t.memberExpression(t.identifier("module"), t.identifier("hot"))
-                    : t.memberExpression(
-                        t.memberExpression(t.identifier("import"), t.identifier("meta")),
-                        t.identifier("hot")
-                      );
+                const pathToHot = opts.hmr !== 'esm'
+                  ? t.memberExpression(t.identifier('module'), t.identifier('hot'))
+                  : t.memberExpression(
+                    t.memberExpression(t.identifier('import'), t.identifier('meta')),
+                    t.identifier('hot'),
+                  );
                 path.pushContainer(
-                  "body",
+                  'body',
                   t.ifStatement(
                     pathToHot,
                     t.expressionStatement(
-                      t.callExpression(t.memberExpression(pathToHot, t.identifier("decline")), [])
-                    )
-                  )
+                      t.callExpression(t.memberExpression(pathToHot, t.identifier('decline')), []),
+                    ),
+                  ),
                 );
                 break;
               }
             }
           }
         }
-        let imports: t.ImportDeclaration[] = [];
-        let statements: t.Statement[] = [];
+        const imports: t.ImportDeclaration[] = [];
+        const statements: t.Statement[] = [];
         let exportDefaults: t.Expression | undefined;
 
         for (let i = 0, len = path.node.body.length; i < len; i += 1) {
@@ -77,7 +76,7 @@ export default function solidSFCPlugin(): PluginObj<State> {
                 ),
               ]),
             ),
-          )
+          ),
         ];
       },
       ExportDefaultDeclaration(path, { opts }) {
@@ -87,71 +86,70 @@ export default function solidSFCPlugin(): PluginObj<State> {
         if (path.hub.file.metadata.processedHot) return;
         path.hub.file.metadata.processedHot = true;
         const decl = path.node.declaration;
-        const HotComponent = t.identifier("$HotComponent");
-        const HotImport = t.identifier("_$hot");
-        const pathToHot =
-          opts.hmr !== "esm"
-            ? t.memberExpression(t.identifier("module"), t.identifier("hot"))
-            : t.memberExpression(
-                t.memberExpression(t.identifier("import"), t.identifier("meta")),
-                t.identifier("hot")
-              );
+        const HotComponent = t.identifier('$HotComponent');
+        const HotImport = t.identifier('_$hot');
+        const pathToHot = opts.hmr !== 'esm'
+          ? t.memberExpression(t.identifier('module'), t.identifier('hot'))
+          : t.memberExpression(
+            t.memberExpression(t.identifier('import'), t.identifier('meta')),
+            t.identifier('hot'),
+          );
         if (!(t.isFunctionDeclaration(decl) || t.isExpression(decl))) {
           throw new Error('Unexpected export default');
         }
-        const rename = t.variableDeclaration("const", [
+        const rename = t.variableDeclaration('const', [
           t.variableDeclarator(
             HotComponent,
             t.isFunctionDeclaration(decl)
               ? t.functionExpression(decl.id, decl.params, decl.body)
-              : decl
-          )
+              : decl,
+          ),
         ]);
         let replacement;
-        if (opts.hmr === "esm") {
-          const handlerId = t.identifier("_$handler");
-          const componentId = t.identifier("_$Component");
+        if (opts.hmr === 'esm') {
+          const handlerId = t.identifier('_$handler');
+          const componentId = t.identifier('_$Component');
           replacement = [
             t.importDeclaration(
-              [t.importSpecifier(HotImport, t.identifier(opts.hmr || "standard"))],
-              t.stringLiteral("solid-refresh")
+              [t.importSpecifier(HotImport, t.identifier(opts.hmr || 'standard'))],
+              t.stringLiteral('solid-refresh'),
             ),
             t.exportNamedDeclaration(rename),
-            t.variableDeclaration("const", [
+            t.variableDeclaration('const', [
               t.variableDeclarator(
                 t.objectPattern([
                   t.objectProperty(handlerId, handlerId, false, true),
-                  t.objectProperty(componentId, componentId, false, true)
+                  t.objectProperty(componentId, componentId, false, true),
                 ]),
                 t.callExpression(HotImport, [
                   HotComponent,
-                  t.unaryExpression("!", t.unaryExpression("!", pathToHot))
-                ])
-              )
+                  t.unaryExpression('!', t.unaryExpression('!', pathToHot)),
+                ]),
+              ),
             ]),
             t.ifStatement(
               pathToHot,
               t.expressionStatement(
-                t.callExpression(t.memberExpression(pathToHot, t.identifier("accept")), [handlerId])
-              )
+                t.callExpression(t.memberExpression(pathToHot, t.identifier('accept')), [handlerId]),
+              ),
             ),
-            t.exportDefaultDeclaration(componentId)
+            t.exportDefaultDeclaration(componentId),
           ];
         } else {
           replacement = [
             t.importDeclaration(
-              [t.importSpecifier(HotImport, t.identifier(opts.hmr || "standard"))],
-              t.stringLiteral("solid-refresh")
+              [t.importSpecifier(HotImport, t.identifier(opts.hmr || 'standard'))],
+              t.stringLiteral('solid-refresh'),
             ),
             rename,
-            t.exportDefaultDeclaration(t.callExpression(HotImport, [HotComponent, pathToHot]))
+            t.exportDefaultDeclaration(t.callExpression(HotImport, [HotComponent, pathToHot])),
           ];
         }
 
         path
           .replaceWithMultiple(replacement)
-          .forEach(declaration => path.scope.registerDeclaration(declaration));
-      }
+          .forEach((declaration) => path.scope.registerDeclaration(declaration));
+      },
     },
   };
 }

@@ -24,22 +24,22 @@ pnpm add solid-sfc
 
 ### Basic example
 
-```xml
-<solid:setup>
-  let count = $signal(0);
-  let message = $memo(`Count: ${count}`);
+```jsx
+---
+let count = $signal(0);
+let message = $memo(`Count: ${count}`);
 
-  effect: {
-    console.log(message);
-  }
-</solid:setup>
+effect: {
+  console.log(message);
+}
+---
 <h1>{message}</h1>
 ```
 
 ### Suspense and fragments
 
 ```xml
-<solid:setup>
+---
   const [data] = $resource(source, fetchData);
 </solid:setup>
 <solid:suspense>
@@ -52,54 +52,40 @@ pnpm add solid-sfc
 
 ## Syntax
 
-`solid-sfc` follows an HTML format. All tags, except `<solid:setup>` and other Solid-namespaced elements, are included into the components render result.
+`solid-sfc` follows the JSX format. All tags and other Solid-namespaced elements are included into the components render result.
 
-### `<solid:setup>`
+### Setup code
 
-Defines the component's JS code. The code defined is local to the component's function scope (except the import definitions) so you can declare signals and effects in the top-level.
+`---` defines the component's JS code. The code needs to be enclosed between two `---` and the code is local to the component's function scope (except the import definitions) so you can declare signals and effects in the top-level.
 
-```html
-<solid:setup>
-  import { createSignal } from 'solid-js';
+```jsx
+---
+import { createSignal } from 'solid-js';
 
-  const [count, setCount] = createSignal(0);
-</solid:setup>
+const [count, setCount] = createSignal(0);
+---
 ```
 
 You can also use [solid-labels](https://github.com/lxsmnsyc/babel-plugin-solid-labels).
 
-```html
-<solid:setup>
-  let count = $signal(0);
+```jsx
+---
+let count = $signal(0);
 
-  effect: {
-    console.log(count);
-  }
-</solid:setup>
-```
-
-### Attributes
-
-Attributes, by default, are interpreted as strings. You can use other data types or any kind of valid JS expressions by wrapping the attributes' value with curly braces (quotes are optional). By omitting the value, the attribute is treated as a boolean.
-
-```html
-<Example
-  stringProp="This is a string property"
-  numberProp={Math.PI}
-  booleanProp
-  someFunction="{() => runCode()}"
-  someCall="{thisIsAFunctionCall()}"
-/>
+effect: {
+  console.log(count);
+}
+---
 ```
 
 Local identifiers are inferred from the component's setup code.
 
-```html
-<solid:setup>
-  import Counter from './Counter';
+```jsx
+---
+import Counter from './Counter';
 
-  let count = $signal(0);
-</solid:setup>
+let count = $signal(0);
+---
 <Counter count={count} />
 ```
 
@@ -107,10 +93,10 @@ Local identifiers are inferred from the component's setup code.
 
 Much like attributes, you can use curly braces in any part of the `solid-sfc` to evaluate JS expressions.
 
-```html
-<solid:setup>
-  let count = $signal(0);
-</solid:setup>
+```jsx
+---
+let count = $signal(0);
+---
 <h1>Count: {count}</h1>
 ```
 
@@ -118,7 +104,7 @@ Much like attributes, you can use curly braces in any part of the `solid-sfc` to
 
 If a component accepts a property that renders an element, you can use `<solid:fragment>` to render that property's element for the component to receive. `<solid:fragment>` has a single attribute, `name` which is used to define the fragment's key in the props of that component.
 
-```html
+```jsx
 <solid:suspense>
   <solid:fragment name="fallback">
     <h1>Loading...</h1>
@@ -137,14 +123,14 @@ Which is equivalent to
 
 You can use `<solid:slot>` to render the received fragment on the component's side. `<solid:slot>` also has the `name` attribute to pick from the props.
 
-```html
-<!-- Example.solid -->
+```jsx
+{/* Example.solid */}
 <solid:slot name="example" />
 
-<!-- ParentExample.solid -->
-<solid:setup>
-  import Example from './Example.solid';
-</solid:setup>
+{/* ParentExample.solid */}
+---
+import Example from './Example.solid';
+---
 <Example>
   <solid:fragment name="example">
     <h1>Hello World</h1>
