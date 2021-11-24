@@ -73,7 +73,7 @@ async function parse(name: string, code: string): Promise<SourceNode> {
       inSetup = !inSetup;
       startIndex = i + 1;
     } else {
-      buffer += lines[i];
+      buffer += `${lines[i]}\n`;
     }
   }
   codes.push({
@@ -87,47 +87,43 @@ async function parse(name: string, code: string): Promise<SourceNode> {
 
   for (let i = 0, len = codes.length; i < len; i += 1) {
     const node = codes[i];
-    if (node.type === 'setup') {
-      setup.add(new SourceNode(
-        node.line + 1,
-        0,
-        name,
-        node.code,
-      ));
-    } else if (/\S/.test(node.code)) {
-      // eslint-disable-next-line no-await-in-loop
-      const result = await babel.transformAsync(`<>${node.code}</>`, {
-        sourceMaps: true,
-        plugins: [
-          [jsxPlugin, {}],
-          [solidSFCJSXPlugin, {}],
-        ],
-        parserOpts: {
-          sourceFilename: name,
-          startLine: node.line + 1,
-        },
-      });
-
-      if (result && result.code && result.map) {
-        const codeNode = SourceNode.fromStringWithSourceMap(
-          result.code,
-          // eslint-disable-next-line no-await-in-loop
-          await new SourceMapConsumer(result.map),
-        );
-        const renderNode = new SourceNode(
+    if (/\S/.test(node.code)) {
+      if (node.type === 'setup') {
+        setup.add(new SourceNode(
           node.line + 1,
           0,
           name,
-          ['{(()=>{return ', codeNode, '})()}'],
-        );
-        render.add(renderNode);
+          node.code,
+        ));
+      } else {
+        // eslint-disable-next-line no-await-in-loop
+        const result = await babel.transformAsync(`<>${node.code}</>`, {
+          sourceMaps: true,
+          plugins: [
+            [jsxPlugin, {}],
+            [solidSFCJSXPlugin, {}],
+          ],
+          parserOpts: {
+            sourceFilename: name,
+            startLine: node.line + 1,
+          },
+        });
+
+        if (result && result.code && result.map) {
+          const codeNode = SourceNode.fromStringWithSourceMap(
+            result.code,
+            // eslint-disable-next-line no-await-in-loop
+            await new SourceMapConsumer(result.map),
+          );
+          render.add(['{(()=>{return ', codeNode, '})()}']);
+        }
       }
     }
   }
 
   const root = new SourceNode(
-    1,
-    0,
+    null,
+    null,
     name,
     [],
   );
@@ -168,7 +164,7 @@ export default async function transform(code: string, options?: TransformOptions
   const output = root.toStringWithSourceMap();
   const result = await babel.transformAsync(output.code, {
     sourceMaps: options?.sourcemap || dev,
-    filename: options?.filename ?? 'index.js',
+    filename: name,
     presets: [
       ...presets,
       ...(options?.babel?.presets ?? []),
