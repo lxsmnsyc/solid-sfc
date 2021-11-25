@@ -9,6 +9,14 @@ import solidSFCJSXPlugin from './solid-sfc-jsx';
 
 const TERMINATOR = '---';
 
+function trimSemiColon(str: string): string {
+  const index = str.lastIndexOf(';');
+  if (index > 0) {
+    return `${str.substring(0, index)}${str.substring(index + 1)}`;
+  }
+  return str;
+}
+
 export interface BabelOptions {
   plugins?: babel.PluginItem[];
   presets?: babel.PluginItem[];
@@ -38,89 +46,26 @@ export interface Output {
   map?: SourceMap;
 }
 
-interface SetupCode {
-  type: 'setup';
-  code: string;
-  line: number;
-}
-
-interface RenderCode {
-  type: 'render';
-  code: string;
-  line: number;
-}
-
-type SolidCode = SetupCode | RenderCode;
-
 async function parse(name: string, code: string): Promise<SourceNode> {
   const lines = code.split('\n');
-
-  let buffer = '';
-  let startIndex = 0;
-
-  const codes: SolidCode[] = [];
-
-  // group lines of code
-  let inSetup = false;
-  for (let i = 0, len = lines.length; i < len; i += 1) {
-    if (lines[i].trim() === TERMINATOR) {
-      codes.push({
-        type: inSetup ? 'setup' : 'render',
-        code: buffer,
-        line: startIndex,
-      });
-      buffer = '';
-      inSetup = !inSetup;
-      startIndex = i + 1;
-    } else {
-      buffer += `${lines[i]}\n`;
-    }
-  }
-  codes.push({
-    type: inSetup ? 'setup' : 'render',
-    code: buffer,
-    line: startIndex,
-  });
 
   const setup = new SourceNode();
   const render = new SourceNode();
 
-  for (let i = 0, len = codes.length; i < len; i += 1) {
-    const node = codes[i];
-    if (/\S/.test(node.code)) {
-      if (node.type === 'setup') {
-        setup.add(new SourceNode(
-          node.line + 1,
-          0,
-          name,
-          node.code,
-        ));
-      } else {
-        // eslint-disable-next-line no-await-in-loop
-        const result = await babel.transformAsync(`<>${node.code}</>`, {
-          sourceMaps: true,
-          plugins: [
-            [jsxPlugin, {}],
-            [solidSFCJSXPlugin, {}],
-          ],
-          parserOpts: {
-            sourceFilename: name,
-            startLine: node.line + 1,
-          },
-        });
+  let inSetup = false;
 
-        if (result && result.code && result.map) {
-          const codeNode = SourceNode.fromStringWithSourceMap(
-            result.code,
-            // eslint-disable-next-line no-await-in-loop
-            await new SourceMapConsumer(result.map),
-          );
-          render.add(['{(()=>{return ', codeNode, '})()}']);
-        }
-      }
+  for (let i = 0, len = lines.length; i < len; i += 1) {
+    if (lines[i].trim() === TERMINATOR) {
+      inSetup = !inSetup;
+    } else {
+      (inSetup ? setup : render).add(new SourceNode(
+        i + 1,
+        0,
+        name,
+        `${lines[i]}\n`,
+      ));
     }
   }
-
   const root = new SourceNode(
     null,
     null,
@@ -128,9 +73,24 @@ async function parse(name: string, code: string): Promise<SourceNode> {
     [],
   );
   root.add(setup);
-  root.add('export default <>');
-  root.add(render);
-  root.add('</>');
+  const renderCode = render.toStringWithSourceMap();
+  const renderResult = await babel.transformAsync(`<>${renderCode.code}</>`, {
+    sourceMaps: true,
+    plugins: [
+      [jsxPlugin, {}],
+      [solidSFCJSXPlugin, {}],
+    ],
+    inputSourceMap: renderCode.map.toJSON(),
+  });
+
+  if (renderResult && renderResult.code && renderResult.map) {
+    const codeNode = SourceNode.fromStringWithSourceMap(
+      trimSemiColon(renderResult.code),
+      // eslint-disable-next-line no-await-in-loop
+      await new SourceMapConsumer(renderResult.map),
+    );
+    root.add(['export default <>', codeNode, '</>']);
+  }
   return root;
 }
 
