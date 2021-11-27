@@ -9,14 +9,6 @@ import solidSFCJSXPlugin from './solid-sfc-jsx';
 
 const TERMINATOR = '---';
 
-function trimSemiColon(str: string): string {
-  const index = str.lastIndexOf(';');
-  if (index > 0) {
-    return `${str.substring(0, index)}${str.substring(index + 1)}`;
-  }
-  return str;
-}
-
 export interface BabelOptions {
   plugins?: babel.PluginItem[];
   presets?: babel.PluginItem[];
@@ -46,24 +38,44 @@ export interface Output {
   map?: SourceMap;
 }
 
+async function precompile(name: string, base: string, offset = 1): Promise<SourceNode> {
+  const result = await babel.transformAsync(base, {
+    sourceMaps: true,
+    plugins: [
+      [jsxPlugin, {}],
+      [solidSFCJSXPlugin, {}],
+    ],
+    parserOpts: {
+      sourceFilename: name,
+      startLine: offset,
+    },
+  });
+
+  if (result && result.code && result.map) {
+    return SourceNode.fromStringWithSourceMap(
+      result.code,
+      await new SourceMapConsumer(result.map),
+    );
+  }
+  return new SourceNode();
+}
+
 async function parse(name: string, code: string): Promise<SourceNode> {
   const lines = code.split('\n');
 
-  const setup = new SourceNode();
-  const render = new SourceNode();
+  let setup = '';
+  let render = '';
 
   let inSetup = false;
 
   for (let i = 0, len = lines.length; i < len; i += 1) {
     if (lines[i].trim() === TERMINATOR) {
       inSetup = !inSetup;
+      setup += '\n';
+      render += '\n';
     } else {
-      (inSetup ? setup : render).add(new SourceNode(
-        i + 1,
-        0,
-        name,
-        `${lines[i]}\n`,
-      ));
+      setup += inSetup ? `${lines[i]}\n` : '\n';
+      render += inSetup ? '\n' : `${lines[i]}\n`;
     }
   }
   const root = new SourceNode(
@@ -72,25 +84,13 @@ async function parse(name: string, code: string): Promise<SourceNode> {
     name,
     [],
   );
-  root.add(setup);
-  const renderCode = render.toStringWithSourceMap();
-  const renderResult = await babel.transformAsync(`<>${renderCode.code}</>`, {
-    sourceMaps: true,
-    plugins: [
-      [jsxPlugin, {}],
-      [solidSFCJSXPlugin, {}],
-    ],
-    inputSourceMap: renderCode.map.toJSON(),
-  });
-
-  if (renderResult && renderResult.code && renderResult.map) {
-    const codeNode = SourceNode.fromStringWithSourceMap(
-      trimSemiColon(renderResult.code),
-      // eslint-disable-next-line no-await-in-loop
-      await new SourceMapConsumer(renderResult.map),
-    );
-    root.add(['export default <>', codeNode, '</>']);
-  }
+  const setupNode = await precompile(name, setup);
+  root.add(setupNode);
+  root.add('export default ');
+  root.add(await precompile(
+    name,
+    `<>${render}</>`,
+  ));
   return root;
 }
 

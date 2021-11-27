@@ -20,7 +20,6 @@ function decrement() {
     Decrement
   </button>
 </div>
-<solid:slot name="fallback" />
 `, {
   target: 'dom',
   dev: true,
