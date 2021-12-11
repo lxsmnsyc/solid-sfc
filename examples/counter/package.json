@@ -1,6 +1,6 @@
 {
   "name": "counter",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -12,8 +12,8 @@
     "eslint": "^7.32.0",
     "eslint-config-lxsmnsyc": "^0.3.0",
     "postcss": "^8.3.11",
-    "rollup-plugin-solid-sfc": "0.0.4",
-    "solid-sfc": "0.0.4",
+    "rollup-plugin-solid-sfc": "0.0.5",
+    "solid-sfc": "0.0.5",
     "typescript": "^4.4.4",
     "vite": "^2.6.13"
   },
