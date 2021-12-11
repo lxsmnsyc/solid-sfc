@@ -14,7 +14,7 @@ export default function solidSFCPlugin(options?: Options): Plugin {
     setup(build) {
       build.onResolve({ filter: /.solid$/ }, (args) => ({
         namespace: 'solid-sfc',
-        path: path.join(args.resolveDir, args.path.substring(0, args.path.length - 4)),
+        path: path.join(args.resolveDir, args.path),
       }));
 
       build.onLoad({ filter: /.*/, namespace: 'solid-sfc' }, async (args) => {
