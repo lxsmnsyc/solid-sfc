@@ -36,6 +36,7 @@ export default function solidSFCPlugin(options?: Options): Plugin {
       const result = await solidSFC(code, {
         filename: name,
         target: options?.target,
+        hydratable: options?.hydratable,
         babel: options?.babel,
         dev: options?.dev,
         sourcemap: options?.sourcemap,
