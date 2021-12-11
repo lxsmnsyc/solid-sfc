@@ -61,7 +61,6 @@
   "dependencies": {
     "@babel/core": "^7.16.0",
     "@babel/preset-typescript": "^7.16.0",
-    "@babel/plugin-syntax-jsx": "^7.16.0",
     "@babel/generator": "^7.16.0",
     "@babel/types": "^7.16.0",
     "@babel/parser": "7.16.4",

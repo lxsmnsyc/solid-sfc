@@ -22,6 +22,4 @@ function decrement() {
 </div>
 `, {
   target: 'dom',
-  dev: true,
-  hmr: 'esm',
 }).then(console.log, console.error);

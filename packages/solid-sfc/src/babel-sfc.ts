@@ -1,51 +1,10 @@
-import { PluginObj, PluginPass } from '@babel/core';
+import { PluginObj } from '@babel/core';
 import * as t from '@babel/types';
 
-interface Options {
-  dev?: boolean;
-  hmr?: 'esm' | 'standard';
-}
-
-interface State extends PluginPass {
-  opts: Options;
-}
-
-export default function solidSFCPlugin(): PluginObj<State> {
+export default function solidSFCPlugin(): PluginObj {
   return {
     visitor: {
-      Program(path, { opts }) {
-        if (opts.dev && opts.hmr) {
-          const { comments } = path.hub.file.ast;
-          for (let i = 0; i < comments.length; i++) {
-            const comment = comments[i];
-            const index = comment.value.indexOf('@refresh');
-            if (index > -1) {
-              if (comment.value.slice(index).includes('skip')) {
-                path.hub.file.metadata.processedHot = true;
-                break;
-              }
-              if (comment.value.slice(index).includes('reload')) {
-                path.hub.file.metadata.processedHot = true;
-                const pathToHot = opts.hmr !== 'esm'
-                  ? t.memberExpression(t.identifier('module'), t.identifier('hot'))
-                  : t.memberExpression(
-                    t.memberExpression(t.identifier('import'), t.identifier('meta')),
-                    t.identifier('hot'),
-                  );
-                path.pushContainer(
-                  'body',
-                  t.ifStatement(
-                    pathToHot,
-                    t.expressionStatement(
-                      t.callExpression(t.memberExpression(pathToHot, t.identifier('decline')), []),
-                    ),
-                  ),
-                );
-                break;
-              }
-            }
-          }
-        }
+      Program(path) {
         const imports: t.ImportDeclaration[] = [];
         const statements: t.Statement[] = [];
         let exportDefaults: t.Expression | undefined;
@@ -78,77 +37,6 @@ export default function solidSFCPlugin(): PluginObj<State> {
             ),
           ),
         ];
-      },
-      ExportDefaultDeclaration(path, { opts }) {
-        if (!opts.dev || !opts.hmr) {
-          return;
-        }
-        if (path.hub.file.metadata.processedHot) return;
-        path.hub.file.metadata.processedHot = true;
-        const decl = path.node.declaration;
-        const HotComponent = t.identifier('$HotComponent');
-        const HotImport = t.identifier('_$hot');
-        const pathToHot = opts.hmr !== 'esm'
-          ? t.memberExpression(t.identifier('module'), t.identifier('hot'))
-          : t.memberExpression(
-            t.memberExpression(t.identifier('import'), t.identifier('meta')),
-            t.identifier('hot'),
-          );
-        if (!(t.isFunctionDeclaration(decl) || t.isExpression(decl))) {
-          throw new Error('Unexpected export default');
-        }
-        const rename = t.variableDeclaration('const', [
-          t.variableDeclarator(
-            HotComponent,
-            t.isFunctionDeclaration(decl)
-              ? t.functionExpression(decl.id, decl.params, decl.body)
-              : decl,
-          ),
-        ]);
-        let replacement;
-        if (opts.hmr === 'esm') {
-          const handlerId = t.identifier('_$handler');
-          const componentId = t.identifier('_$Component');
-          replacement = [
-            t.importDeclaration(
-              [t.importSpecifier(HotImport, t.identifier(opts.hmr || 'standard'))],
-              t.stringLiteral('solid-refresh'),
-            ),
-            t.exportNamedDeclaration(rename),
-            t.variableDeclaration('const', [
-              t.variableDeclarator(
-                t.objectPattern([
-                  t.objectProperty(handlerId, handlerId, false, true),
-                  t.objectProperty(componentId, componentId, false, true),
-                ]),
-                t.callExpression(HotImport, [
-                  HotComponent,
-                  t.unaryExpression('!', t.unaryExpression('!', pathToHot)),
-                ]),
-              ),
-            ]),
-            t.ifStatement(
-              pathToHot,
-              t.expressionStatement(
-                t.callExpression(t.memberExpression(pathToHot, t.identifier('accept')), [handlerId]),
-              ),
-            ),
-            t.exportDefaultDeclaration(componentId),
-          ];
-        } else {
-          replacement = [
-            t.importDeclaration(
-              [t.importSpecifier(HotImport, t.identifier(opts.hmr || 'standard'))],
-              t.stringLiteral('solid-refresh'),
-            ),
-            rename,
-            t.exportDefaultDeclaration(t.callExpression(HotImport, [HotComponent, pathToHot])),
-          ];
-        }
-
-        path
-          .replaceWithMultiple(replacement)
-          .forEach((declaration) => path.scope.registerDeclaration(declaration));
       },
     },
   };

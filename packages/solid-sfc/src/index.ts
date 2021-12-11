@@ -17,9 +17,9 @@ export interface BabelOptions {
 export interface TransformOptions {
   filename?: string;
   target?: 'ssr' | 'dom' | 'preserve';
+  hydratable?: boolean;
   dev?: boolean;
   sourcemap?: boolean;
-  hmr?: 'esm' | 'standard';
   babel?: BabelOptions;
 }
 
@@ -104,11 +104,10 @@ export default async function transform(code: string, options?: TransformOptions
   ];
 
   const dev = options?.dev;
-  const hmr = options?.hmr;
   const target = options?.target ?? 'dom';
 
   const plugins = [
-    [solidSFCPlugin, { dev: dev && target !== 'preserve', hmr }],
+    [solidSFCPlugin, { }],
     [solidReactivityPlugin, { dev }],
   ];
 
@@ -117,7 +116,7 @@ export default async function transform(code: string, options?: TransformOptions
   } else {
     presets.push([
       solid,
-      { generate: target ?? 'dom', hydratable: target === 'ssr' },
+      { generate: target ?? 'dom', hydratable: options?.hydratable },
     ]);
   }
 
