@@ -18,16 +18,15 @@ export default function solidSFCPlugin(options?: Options): Plugin {
       }));
 
       build.onLoad({ filter: /.*/, namespace: 'solid-sfc' }, async (args) => {
-        const { name, dir } = path.parse(args.path);
         const result = await solidSFC(await fs.readFile(args.path, { encoding: 'utf-8' }), {
-          filename: name,
+          filename: args.path,
           target: options?.target,
           babel: options?.babel,
           dev: options?.dev,
           sourcemap: options?.sourcemap,
         });
         return {
-          resolveDir: dir,
+          resolveDir: path.dirname(args.path),
           contents: result.map
             ? `${result.code}\n//# sourceMappingURL=data:application/json;charset=utf8;base64,${btoa(JSON.stringify(result.map))}`
             : result.code,
