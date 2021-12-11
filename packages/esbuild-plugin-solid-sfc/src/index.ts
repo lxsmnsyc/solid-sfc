@@ -4,7 +4,7 @@ import solidSFC from 'solid-sfc';
 import path from 'path';
 import fs from 'fs/promises';
 
-export interface Options extends Omit<TransformOptions, 'filename'> {
+export interface Options extends Omit<TransformOptions, 'filename' | 'sourcemap'> {
   //
 }
 
@@ -23,13 +23,11 @@ export default function solidSFCPlugin(options?: Options): Plugin {
           target: options?.target,
           babel: options?.babel,
           dev: options?.dev,
-          sourcemap: options?.sourcemap,
+          sourcemap: options?.dev ? 'inline' : false,
         });
         return {
           resolveDir: path.dirname(args.path),
-          contents: result.map
-            ? `${result.code}\n//# sourceMappingURL=data:application/json;charset=utf8;base64,${btoa(JSON.stringify(result.map))}`
-            : result.code,
+          contents: result.code,
           loader: options?.target === 'preserve' ? 'jsx' : 'js',
         };
       });

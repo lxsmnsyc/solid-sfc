@@ -19,7 +19,7 @@ export interface TransformOptions {
   target?: 'ssr' | 'dom' | 'preserve';
   hydratable?: boolean;
   dev?: boolean;
-  sourcemap?: boolean;
+  sourcemap?: 'inline' | boolean;
   babel?: BabelOptions;
 }
 
