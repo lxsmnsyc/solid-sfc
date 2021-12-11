@@ -1,6 +1,6 @@
 {
   "name": "solid-sfc",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "types": "dist/types/index.d.ts",
   "main": "dist/cjs/production/index.js",
   "module": "dist/esm/production/index.js",
@@ -60,10 +60,10 @@
   },
   "dependencies": {
     "@babel/core": "^7.16.0",
-    "@babel/preset-typescript": "^7.16.0",
     "@babel/generator": "^7.16.0",
-    "@babel/types": "^7.16.0",
     "@babel/parser": "7.16.4",
+    "@babel/preset-typescript": "^7.16.0",
+    "@babel/types": "^7.16.0",
     "babel-plugin-solid-labels": "^0.9.4",
     "babel-preset-solid": "^1.2.5",
     "solid-refresh": "^0.2.2",
