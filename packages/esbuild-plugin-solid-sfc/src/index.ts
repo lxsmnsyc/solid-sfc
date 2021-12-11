@@ -1,5 +1,8 @@
 import { Plugin } from 'esbuild';
 import { TransformOptions } from 'solid-sfc';
+import solidSFC from 'solid-sfc';
+import path from 'path';
+import fs from 'fs/promises';
 
 export interface Options extends Omit<TransformOptions, 'filename'> {
   //
@@ -8,10 +11,7 @@ export interface Options extends Omit<TransformOptions, 'filename'> {
 export default function solidSFCPlugin(options?: Options): Plugin {
   return {
     name: 'solid-sfc',
-    async setup(build) {
-      const solidSFC = (await import('solid-sfc')).default;
-      const path = await import('path');
-      const fs = await import('fs/promises');
+    setup(build) {
 
       build.onResolve({ filter: /.solid$/ }, (args) => ({
         namespace: 'solid-sfc',
