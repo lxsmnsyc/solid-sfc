@@ -18,7 +18,7 @@ export default function solidSFCPlugin(options?: Options): Plugin {
       }));
 
       build.onLoad({ filter: /.*/, namespace: 'solid-sfc' }, async (args) => {
-        const name = path.basename(args.path);
+        const { name, dir } = path.parse(args.path);
         const result = await solidSFC(await fs.readFile(args.path, { encoding: 'utf-8' }), {
           filename: name,
           target: options?.target,
@@ -27,6 +27,7 @@ export default function solidSFCPlugin(options?: Options): Plugin {
           sourcemap: options?.sourcemap,
         });
         return {
+          resolveDir: dir,
           contents: result.map
             ? `${result.code}\n//# sourceMappingURL=data:application/json;charset=utf8;base64,${JSON.stringify(result.map)}`
             : result.code,
