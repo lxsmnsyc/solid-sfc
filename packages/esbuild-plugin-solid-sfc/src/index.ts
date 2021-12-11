@@ -29,7 +29,7 @@ export default function solidSFCPlugin(options?: Options): Plugin {
         return {
           resolveDir: dir,
           contents: result.map
-            ? `${result.code}\n//# sourceMappingURL=data:application/json;charset=utf8;base64,${JSON.stringify(result.map)}`
+            ? `${result.code}\n//# sourceMappingURL=data:application/json;charset=utf8;base64,${btoa(JSON.stringify(result.map))}`
             : result.code,
           loader: options?.target === 'preserve' ? 'jsx' : 'js',
         };
