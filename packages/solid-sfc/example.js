@@ -22,4 +22,5 @@ function decrement() {
 </div>
 `, {
   target: 'dom',
-}).then(console.log, console.error);
+  sourcemap: 'inline'
+}).then((result) => console.log(result.code), console.error);

@@ -84,6 +84,7 @@ async function parse(name: string, code: string): Promise<SourceNode> {
     name,
     [],
   );
+  root.setSourceContent(name, code);
   const setupNode = await precompile(name, setup);
   root.add(setupNode);
   root.add('export default ');
