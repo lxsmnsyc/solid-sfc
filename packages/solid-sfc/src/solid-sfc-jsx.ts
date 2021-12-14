@@ -70,14 +70,11 @@ export default function solidSFCPlugin(): PluginObj {
             const expr = t.isJSXExpressionContainer(nameAttr.value)
               ? nameAttr.value.expression
               : nameAttr.value;
-            if (t.isJSXEmptyExpression(expr)) {
-              throw new Error('Unexpected JSXEmptyExpression');
-            }
             path.replaceWith(
               t.jsxExpressionContainer(
                 t.memberExpression(
                   t.identifier('props'),
-                  expr,
+                  t.isJSXEmptyExpression(expr) ? t.booleanLiteral(true) : expr,
                   true,
                 ),
               ),
