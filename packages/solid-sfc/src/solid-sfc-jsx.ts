@@ -6,6 +6,8 @@ const NAMESPACE = 'solid';
 const SOLID_FRAGMENT = 'fragment';
 const SOLID_SLOT = 'slot';
 const SOLID_CHILDREN = 'children';
+const SOLID_PROPERTY = 'property';
+const SOLID_SELF = 'self';
 
 const REPLACEMENTS: Record<string, string> = {
   for: 'For',
@@ -111,6 +113,74 @@ export default function solidSFCPlugin(): PluginObj {
               ),
             );
             path.remove();
+          }
+          if (id.name.name === SOLID_PROPERTY) {
+            let { scope } = path;
+
+            while (!t.isProgram(scope.path.node)) {
+              scope = scope.parent;
+            }
+            const params: t.Expression[] = [];
+            let properties: (t.ObjectProperty | t.SpreadElement)[] = [];
+            const attrs = openingElement.attributes;
+            for (let i = 0, len = attrs.length; i < len; i += 1) {
+              const attr = attrs[i];
+              if (t.isJSXAttribute(attr) && t.isJSXIdentifier(attr.name)) {
+                const value = t.isJSXExpressionContainer(attr.value)
+                  ? attr.value.expression
+                  : attr.value;
+                properties.push(
+                  t.objectProperty(
+                    t.identifier(attr.name.name),
+                    (t.isJSXEmptyExpression(value) ? null : value) ?? t.booleanLiteral(true),
+                  ),
+                );
+              }
+              if (t.isJSXSpreadAttribute(attr)) {
+                if (properties.length) {
+                  params.push(
+                    t.objectExpression(
+                      properties,
+                    ),
+                  );
+                  properties = [];
+                }
+                params.push(attr.argument);
+              }
+            }
+            if (properties.length) {
+              params.push(
+                t.objectExpression(
+                  properties,
+                ),
+              );
+              properties = [];
+            }
+            scope.path.node.body.push(
+              t.addComment(
+                t.expressionStatement(
+                  t.callExpression(
+                    t.memberExpression(
+                      t.identifier('Object'),
+                      t.identifier('assign'),
+                    ),
+                    [
+                      t.identifier('$$Component'),
+                      ...params,
+                    ],
+                  ),
+                ),
+                'leading',
+                '@solid-sfc after',
+              ),
+            );
+            path.remove();
+          }
+          if (id.name.name === SOLID_SELF) {
+            path.node.openingElement.name = t.jSXIdentifier('$$Component');
+            if (path.node.closingElement) {
+              path.node.closingElement.name = t.jSXIdentifier('$$Component');
+            }
           }
         }
       },
