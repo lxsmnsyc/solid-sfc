@@ -14,11 +14,11 @@
     "postcss": "^8.3.11",
     "rollup-plugin-solid-sfc": "0.0.10",
     "solid-sfc": "0.0.10",
-    "typescript": "^4.4.4",
+    "typescript": "^4.5.4",
     "vite": "^2.6.13"
   },
   "dependencies": {
-    "solid-js": "^1.2.1",
+    "solid-js": "^1.2.6",
     "tailwindcss": "^2.2.17"
   },
   "private": true,
