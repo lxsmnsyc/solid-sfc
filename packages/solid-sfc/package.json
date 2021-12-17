@@ -64,9 +64,12 @@
     "@babel/parser": "7.16.6",
     "@babel/preset-typescript": "^7.16.0",
     "@babel/types": "^7.16.0",
-    "babel-plugin-solid-labels": "^0.9.5",
+    "babel-plugin-solid-labels": "^0.9.6",
     "babel-preset-solid": "^1.2.6",
     "source-map": "^0.7.3"
+  },
+  "peerDependencies": {
+    "solid-js": "^1.2"
   },
   "private": false,
   "description": "SFC for Solid",

@@ -8,14 +8,14 @@
   },
   "devDependencies": {
     "autoprefixer": "^10.3.7",
-    "babel-preset-solid": "^1.2.1",
+    "babel-preset-solid": "^1.2.6",
     "eslint": "^7.32.0",
     "eslint-config-lxsmnsyc": "^0.3.0",
     "postcss": "^8.3.11",
     "rollup-plugin-solid-sfc": "0.0.11",
     "solid-sfc": "0.0.11",
     "typescript": "^4.5.4",
-    "vite": "^2.6.13"
+    "vite": "^2.7.3"
   },
   "dependencies": {
     "solid-js": "^1.2.6",
