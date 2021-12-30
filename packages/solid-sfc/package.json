@@ -66,6 +66,7 @@
     "@babel/types": "^7.16.0",
     "babel-plugin-solid-labels": "^0.9.6",
     "babel-preset-solid": "^1.2.6",
+    "solid-refresh": "^0.3.3",
     "source-map": "^0.7.3"
   },
   "peerDependencies": {

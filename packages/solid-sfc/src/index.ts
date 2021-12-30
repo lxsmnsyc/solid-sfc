@@ -4,6 +4,7 @@ import solidReactivityPlugin from 'babel-plugin-solid-labels';
 import jsxPlugin from '@babel/plugin-syntax-jsx';
 import solid from 'babel-preset-solid';
 import typescript from '@babel/preset-typescript';
+import solidRefresh from 'solid-refresh/babel';
 import solidSFCPlugin from './babel-sfc';
 import solidSFCJSXPlugin from './solid-sfc-jsx';
 
