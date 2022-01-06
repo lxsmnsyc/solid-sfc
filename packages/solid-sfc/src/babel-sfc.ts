@@ -49,7 +49,7 @@ export default function solidSFCPlugin(): PluginObj {
           ...imports,
           ...before,
           t.functionDeclaration(
-            t.identifier('$$Component'),
+            t.identifier('Component$$'),
             [
               t.identifier('props'),
             ],
@@ -62,7 +62,7 @@ export default function solidSFCPlugin(): PluginObj {
           ),
           ...after,
           t.exportDefaultDeclaration(
-            t.identifier('$$Component'),
+            t.identifier('Component$$'),
           ),
         ];
       },

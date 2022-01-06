@@ -162,7 +162,7 @@ export default function solidSFCPlugin(): PluginObj {
                       t.identifier('assign'),
                     ),
                     [
-                      t.identifier('$$Component'),
+                      t.identifier('Component$$'),
                       ...params,
                     ],
                   ),
@@ -174,9 +174,9 @@ export default function solidSFCPlugin(): PluginObj {
             path.remove();
           }
           if (id.name.name === SOLID_SELF) {
-            path.node.openingElement.name = t.jSXIdentifier('$$Component');
+            path.node.openingElement.name = t.jSXIdentifier('Component$$');
             if (path.node.closingElement) {
-              path.node.closingElement.name = t.jSXIdentifier('$$Component');
+              path.node.closingElement.name = t.jSXIdentifier('Component$$');
             }
           }
         }
