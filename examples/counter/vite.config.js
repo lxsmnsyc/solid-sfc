@@ -1,14 +1,19 @@
 import { defineConfig } from 'vite';
-import solidSFCPlugin from 'rollup-plugin-solid-sfc';
+import solidPlugin from 'vite-plugin-solid';
+import solidRefresh from 'solid-refresh/babel.js';
+import solidLabels from 'babel-plugin-solid-labels';
+import solidSFC from 'babel-plugin-solid-sfc';
 
 export default defineConfig({
   plugins: [
-    {
-      enforce: 'pre',
-      ...solidSFCPlugin({
-        dev: true,
-        hmr: 'esm',
-      })
-    }
+    solidPlugin({
+      babel: {
+        plugins: [
+          solidLabels,
+          solidSFC,
+          [solidRefresh, { bundler: 'vite'}],
+        ],
+      },
+    }),
   ],
 });

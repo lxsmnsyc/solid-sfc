@@ -1,2 +1,3 @@
 /// <reference types="vite/client" />
-/// <reference types="solid-sfc/env" />
+/// <reference types="babel-plugin-solid-sfc" />
+/// <reference types="babel-plugin-solid-labels" />

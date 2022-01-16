@@ -1,5 +1,5 @@
 {
-  "name": "rollup-plugin-solid-sfc",
+  "name": "babel-plugin-solid-sfc",
   "version": "0.0.12",
   "types": "dist/types/index.d.ts",
   "main": "dist/cjs/production/index.js",
@@ -38,7 +38,8 @@
   },
   "files": [
     "dist",
-    "src"
+    "src",
+    "env.d.ts"
   ],
   "engines": {
     "node": ">=10"
@@ -48,20 +49,17 @@
     "pridepack"
   ],
   "devDependencies": {
-    "@types/jest": "^27.0.3",
+    "@babel/core": "^7.16.7",
     "@types/node": "^17.0.0",
-    "eslint": "^7.32.0",
-    "eslint-config-lxsmnsyc": "^0.3.0",
+    "eslint": "^8.6.0",
+    "eslint-config-lxsmnsyc": "^0.4.0",
     "pridepack": "1.0.4",
-    "rollup": "^2.61.1",
-    "solid-sfc": "0.0.12",
-    "ts-jest": "^27.1.1",
     "tslib": "^2.3.1",
     "typescript": "^4.5.4"
   },
   "peerDependencies": {
-    "rollup": "^2.60",
-    "solid-sfc": "^0.0"
+    "@babel/core": "^7.16",
+    "solid-js": "^1.2"
   },
   "private": false,
   "description": "SFC for Solid",
@@ -69,14 +67,14 @@
     "url": "https://github.com/lxsmnsyc/solid-sfc.git",
     "type": "git"
   },
-  "homepage": "https://github.com/lxsmnsyc/solid-sfc/tree/main/packages/rollup-plugin-solid-sfc",
+  "homepage": "https://github.com/lxsmnsyc/solid-sfc/tree/main/packages/babel-plugin-solid-sfc",
   "bugs": {
     "url": "https://github.com/lxsmnsyc/solid-sfc/issues"
   },
-  "author": "Alexis Munsayac",
   "publishConfig": {
     "access": "public"
   },
+  "author": "Alexis Munsayac",
   "scripts": {
     "prepublishOnly": "pridepack clean && pridepack build",
     "build": "pridepack build",
@@ -87,5 +85,9 @@
     "watch": "pridepack watch",
     "start": "pridepack start",
     "dev": "pridepack dev"
+  },
+  "dependencies": {
+    "@babel/traverse": "^7.16.8",
+    "@babel/types": "^7.16.8"
   }
 }
