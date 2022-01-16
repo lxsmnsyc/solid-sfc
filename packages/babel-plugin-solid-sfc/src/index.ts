@@ -210,6 +210,8 @@ export default function solidSFCPlugin(): PluginObj {
               componentId,
             ),
           ];
+
+          path.scope.crawl();
         }
       },
     },

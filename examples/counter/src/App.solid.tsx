@@ -1,6 +1,5 @@
 // @refresh granular
 import Message from './Message.solid';
-import OtherMessage from './OtherMessage';
 
 let count = $signal(0);
 const message = $memo(`Count: ${count}`);
@@ -19,7 +18,6 @@ export default $view((
       Increment
     </button>
     <Message message={message} />
-    <OtherMessage message={message} />
     <button type="button" onClick={decrement} class="p-2 rounded-lg bg-gray-900 bg-opacity-10">
       Decrement
     </button>

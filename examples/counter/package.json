@@ -8,7 +8,7 @@
   },
   "devDependencies": {
     "autoprefixer": "^10.3.7",
-    "babel-plugin-solid-labels": "^0.10.0",
+    "babel-plugin-solid-labels": "^0.10.1",
     "babel-plugin-solid-sfc": "0.0.12",
     "eslint": "^8.6.0",
     "eslint-config-lxsmnsyc": "^0.4.0",
@@ -16,7 +16,7 @@
     "solid-refresh": "^0.4.0",
     "typescript": "^4.5.4",
     "vite": "^2.7.12",
-    "vite-plugin-solid": "^2.2.0"
+    "vite-plugin-solid": "^2.2.3"
   },
   "dependencies": {
     "solid-js": "^1.3.3",
