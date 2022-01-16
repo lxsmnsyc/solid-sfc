@@ -4,7 +4,7 @@ const plugin = require('./dist/cjs/development');
 babel.transformAsync(`
 'use solid-sfc';
 
-const props = $defineProps();
+const props = $props();
 
 export default $view(
   <solid:show when={props.visible}>

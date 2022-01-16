@@ -2,7 +2,7 @@ import * as solid from 'solid-js';
 import * as solidWeb from 'solid-js/web';
 
 declare global {
-  function $defineProps<T>(): T;
+  function $props<T>(): T;
   function $view<T>(value: solid.JSX.Element): solid.Component<T>
 }
 

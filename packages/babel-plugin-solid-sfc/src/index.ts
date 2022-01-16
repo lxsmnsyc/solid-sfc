@@ -4,6 +4,9 @@
 import { PluginObj, Visitor } from '@babel/core';
 import * as t from '@babel/types';
 
+const VIEW = '$view';
+const PROPS = '$props';
+
 const NAMESPACE = 'solid';
 const SOLID_FRAGMENT = 'fragment';
 const SOLID_SLOT = 'slot';
@@ -165,7 +168,7 @@ export default function solidSFCPlugin(): PluginObj {
           if (exportDefaults) {
             path.traverse({
               CallExpression(childPath) {
-                if (t.isIdentifier(childPath.node.callee) && childPath.node.callee.name === '$defineProps') {
+                if (t.isIdentifier(childPath.node.callee) && childPath.node.callee.name === PROPS) {
                   childPath.replaceWith(propsId);
                 }
               },
@@ -180,7 +183,7 @@ export default function solidSFCPlugin(): PluginObj {
           if (
             t.isCallExpression(exportDefaults)
             && t.isIdentifier(exportDefaults.callee)
-            && exportDefaults.callee.name === '$view'
+            && exportDefaults.callee.name === VIEW
             && t.isExpression(exportDefaults.arguments[0])
           ) {
             const argument = exportDefaults.arguments[0];

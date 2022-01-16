@@ -77,10 +77,10 @@ Which is equivalent to
 You can use `<solid:slot>` to render the received fragment on the component's side. `<solid:slot>` also has the `name` attribute to pick from the props.
 
 ```jsx
-/* Example.solid */
+/* Example.solid.jsx */
 export default <solid:slot name="example" />
 
-/* ParentExample.solid */
+/* ParentExample.solid.jsx */
 import Example from './Example.solid';
 
 export default (
@@ -106,6 +106,48 @@ export default (
 - `<solid:assets>`: `<Assets>`
 - `<solid:hydration-script>`: `<HydrationScript>`
 - `<solid:no-hydration>`: `<NoHydration>`
+
+### `$props`
+
+`$props` is a compile-time function that provides access to the component's props.
+
+```jsx
+const props = $props();
+
+export default <h1>{props.message}</h1>;
+```
+
+For Typescript, you can pass a type for the generic parameter:
+
+```tsx
+interface Props {
+  message: string;
+}
+
+const props = $props<Props>();
+
+export default <h1>{props.message}</h1>;
+```
+
+### `$view`
+
+For TypeScript to infer SFCs correctly, you can `$view` on the render part of the code.
+
+```tsx
+// Message.solid.tsx
+interface Props {
+  message: string;
+}
+
+const props = $props<Props>();
+
+export default $view<Props>(<h1>{props.message}</h1>);
+
+// App.solid.tsx
+import Message from './Message.solid';
+
+export default <Message message="Hello World" />
+```
 
 ## Tooling
 
