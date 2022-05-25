@@ -123,7 +123,7 @@ export default <Message message="Hello World" />
 ### TypeScript
 
 ```ts
-/// <reference types="solid-sfc" />
+/// <reference types="babel-plugin-solid-sfc" />
 ```
 
 ## License
