@@ -1,6 +1,6 @@
 {
   "name": "counter",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -8,7 +8,7 @@
   },
   "devDependencies": {
     "autoprefixer": "^10.4.7",
-    "babel-plugin-solid-sfc": "0.1.1",
+    "babel-plugin-solid-sfc": "0.2.0",
     "eslint": "^8.16.0",
     "eslint-config-lxsmnsyc": "^0.4.0",
     "postcss": "^8.4.14",
