@@ -7,9 +7,12 @@ babel.transformAsync(`
 const props = $props();
 
 export default $view(
-  <solid:show when={props.visible}>
-    <h1>{props.message}</h1>
-  </solid:show>
+  <solid:suspense>
+    <solid:fragment name="fallback">
+      <h1>Loading...</h1>
+    </solid:fragment>
+    <Profile />
+  </solid:suspense>
 );
 `, {
   plugins: [

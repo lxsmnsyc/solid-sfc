@@ -8,7 +8,6 @@
   },
   "devDependencies": {
     "autoprefixer": "^10.4.7",
-    "babel-plugin-solid-labels": "^0.10.1",
     "babel-plugin-solid-sfc": "0.1.1",
     "eslint": "^8.16.0",
     "eslint-config-lxsmnsyc": "^0.4.0",

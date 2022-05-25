@@ -82,7 +82,6 @@
     "build": "pridepack build",
     "type-check": "pridepack check",
     "lint": "pridepack lint",
-    "test": "pridepack test --passWithNoTests",
     "clean": "pridepack clean",
     "watch": "pridepack watch",
     "start": "pridepack start",
@@ -90,6 +89,7 @@
   },
   "dependencies": {
     "@babel/traverse": "^7.18.0",
-    "@babel/types": "^7.18.0"
+    "@babel/types": "^7.18.0",
+    "babel-plugin-solid-labels": "^0.12.0"
   }
 }

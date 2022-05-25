@@ -1,6 +1,6 @@
 # solid-sfc
 
-> An experimental SFC compiler for SolidJS
+> An experimental SFC syntax for SolidJS, extends [`solid-labels`](https://github.com/lxsmnsyc/solid-labels)
 
 [![NPM](https://img.shields.io/npm/v/solid-sfc.svg)](https://www.npmjs.com/package/solid-sfc) [![JavaScript Style Guide](https://badgen.net/badge/code%20style/airbnb/ff5a5f?icon=airbnb)](https://github.com/airbnb/javascript)
 
@@ -18,86 +18,23 @@ yarn add solid-sfc
 pnpm add solid-sfc
 ```
 
-## Features
-
 ## Usage
 
 ### Basic example
 
 ```jsx
----
+// Required for files that do not end in `.solid.(t|j)sx?`
+'use solid-sfc';
+
 let count = $signal(0);
 let message = $memo(`Count: ${count}`);
 
 effect: {
   console.log(message);
-}
----
-<h1>{message}</h1>
-```
+};
 
-### Suspense and fragments
-
-```jsx
----
-const [data] = $resource(source, fetchData);
----
-<solid:suspense>
-  <solid:fragment name="fallback">
-    <h1>Loading...</h1>
-  </solid:fragment>
-  <Profile data={data()} />
-</solid:suspense>
-```
-
-## Syntax
-
-`solid-sfc` follows the JSX format. All tags and other Solid-namespaced elements are included into the components render result.
-
-### Setup code
-
-`---` defines the component's JS code. The code needs to be enclosed between two `---` and the code is local to the component's function scope (except the import definitions) so you can declare signals and effects in the top-level.
-
-```jsx
----
-import { createSignal } from 'solid-js';
-
-const [count, setCount] = createSignal(0);
----
-```
-
-You can also use [solid-labels](https://github.com/lxsmnsyc/babel-plugin-solid-labels).
-
-```jsx
----
-let count = $signal(0);
-
-effect: {
-  console.log(count);
-}
----
-```
-
-Local identifiers are inferred from the component's setup code.
-
-```jsx
----
-import Counter from './Counter';
-
-let count = $signal(0);
----
-<Counter count={count} />
-```
-
-### Templating
-
-Much like attributes, you can use curly braces in any part of the `solid-sfc` to evaluate JS expressions.
-
-```jsx
----
-let count = $signal(0);
----
-<h1>Count: {count}</h1>
+// Export default is synonymous to "return".
+export default <h1>{message}</h1>;
 ```
 
 ### `<solid:fragment>`, `<solid:slot>` and `<solid:children>`
@@ -124,38 +61,70 @@ Which is equivalent to
 You can use `<solid:slot>` to render the received fragment on the component's side. `<solid:slot>` also has the `name` attribute to pick from the props.
 
 ```jsx
-{/* Example.solid */}
-<solid:slot name="example" />
+/* Example.solid.jsx */
+export default <solid:slot name="example" />
 
-{/* ParentExample.solid */}
----
+/* ParentExample.solid.jsx */
 import Example from './Example.solid';
----
-<Example>
-  <solid:fragment name="example">
-    <h1>Hello World</h1>
-  </solid:fragment>
-</Example>
+
+export default (
+  <Example>
+    <solid:fragment name="example">
+      <h1>Hello World</h1>
+    </solid:fragment>
+  </Example>
+);
 ```
 
-### Other namespaced elements
+### `$props`
 
-- `<solid:for>`: `<For>`
-- `<solid:switch>`: `<Switch>`
-- `<solid:show>`: `<Show>`
-- `<solid:index>`: `<Index>`
-- `<solid:error-boundary>`: `<ErrorBoundary>`
-- `<solid:suspense>`: `<Suspense>`
-- `<solid:suspense-list>`: `<SuspenseList>`
-- `<solid:dynamic>`: `<Dynamic>`
-- `<solid:portal>`: `<Portal>`
-- `<solid:assets>`: `<Assets>`
-- `<solid:hydration-script>`: `<HydrationScript>`
-- `<solid:no-hydration>`: `<NoHydration>`
+`$props` is a compile-time function that provides access to the component's props.
+
+```jsx
+const props = $props();
+
+export default <h1>{props.message}</h1>;
+```
+
+For Typescript, you can pass a type for the generic parameter:
+
+```tsx
+interface Props {
+  message: string;
+}
+
+const props = $props<Props>();
+
+export default <h1>{props.message}</h1>;
+```
+
+### `$view`
+
+For TypeScript to infer SFCs correctly, you can `$view` on the render part of the code.
+
+```tsx
+// Message.solid.tsx
+interface Props {
+  message: string;
+}
+
+const props = $props<Props>();
+
+export default $view<Props>(<h1>{props.message}</h1>);
+
+// App.solid.tsx
+import Message from './Message.solid';
+
+export default <Message message="Hello World" />
+```
 
 ## Tooling
 
-SOON
+### TypeScript
+
+```ts
+/// <reference types="solid-sfc" />
+```
 
 ## License
 

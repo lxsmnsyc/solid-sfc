@@ -1,8 +1,34 @@
-// eslint-disable-next-line @typescript-eslint/triple-slash-reference
-/// <reference path="env.d.ts" />
-
-import { PluginObj, Visitor } from '@babel/core';
+import * as solid from 'solid-js';
+import { NodePath, PluginObj, Visitor } from '@babel/core';
 import * as t from '@babel/types';
+import solidLabelsPlugin from 'babel-plugin-solid-labels';
+
+declare global {
+  function $props<T>(): T;
+  function $view<T>(value: solid.JSX.Element): solid.Component<T>
+}
+
+declare module 'solid-js' {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
+  namespace JSX {
+    interface IntrinsicElements {
+      'solid:fragment': { name: string, children: solid.JSX.Element };
+      'solid:slot': { name: string };
+      'solid:children': unknown;
+      'solid:self': unknown;
+    }
+  }
+}
+
+function findValidParentElement(path: NodePath<t.Node>): t.JSXElement {
+  if (path.parentPath) {
+    if (t.isJSXElement(path.parentPath.node)) {
+      return path.parentPath.node;
+    }
+    return findValidParentElement(path.parentPath);
+  }
+  throw new Error('Missing parent JSXElement');
+}
 
 const VIEW = '$view';
 const PROPS = '$props';
@@ -13,39 +39,15 @@ const SOLID_SLOT = 'slot';
 const SOLID_CHILDREN = 'children';
 const SOLID_SELF = 'self';
 
-const REPLACEMENTS: Record<string, string> = {
-  for: 'For',
-  switch: 'Switch',
-  match: 'Match',
-  show: 'Show',
-  index: 'Index',
-  'error-boundary': 'ErrorBoundary',
-  suspense: 'Suspense',
-  'suspense-list': 'SuspenseList',
-  dynamic: 'Dynamic',
-  portal: 'Portal',
-  assets: 'Assets',
-  'hydration-script': 'HydrationScript',
-  'no-hydration': 'NoHydration',
-};
-
 function replaceNamespacedElements(
   propsId: t.Identifier,
   componentId: t.Identifier,
 ): Visitor {
   return {
     JSXElement(path) {
-      const { openingElement, closingElement } = path.node;
+      const { openingElement } = path.node;
       const id = openingElement.name;
       if (t.isJSXNamespacedName(id) && id.namespace.name === NAMESPACE) {
-        if (id.name.name in REPLACEMENTS) {
-          const replacement = t.jsxIdentifier(REPLACEMENTS[id.name.name]);
-          openingElement.name = replacement;
-          if (closingElement) {
-            closingElement.name = replacement;
-          }
-          return;
-        }
         if (id.name.name === SOLID_CHILDREN) {
           path.replaceWith(
             t.jsxExpressionContainer(
@@ -77,16 +79,23 @@ function replaceNamespacedElements(
             ? nameAttr.value.expression
             : nameAttr.value;
           path.replaceWith(
-            t.jsxExpressionContainer(
-              t.memberExpression(
-                propsId,
-                t.isJSXEmptyExpression(expr) ? t.booleanLiteral(true) : expr,
-                true,
-              ),
+            t.jsxFragment(
+              t.jsxOpeningFragment(),
+              t.jsxClosingFragment(),
+              [
+                t.jsxExpressionContainer(
+                  t.memberExpression(
+                    propsId,
+                    t.isJSXEmptyExpression(expr) ? t.booleanLiteral(true) : expr,
+                    true,
+                  ),
+                ),
+              ],
             ),
           );
         }
         if (id.name.name === SOLID_FRAGMENT) {
+          const validParent = findValidParentElement(path);
           const attrs = openingElement.attributes;
           let nameAttr: t.JSXAttribute | undefined;
           for (let i = 0, len = attrs.length; i < len; i += 1) {
@@ -105,7 +114,7 @@ function replaceNamespacedElements(
           if (!t.isStringLiteral(nameAttr.value)) {
             throw new Error('Expected StringLiteral');
           }
-          attrs.push(
+          validParent.openingElement.attributes.push(
             t.jsxAttribute(
               t.jsxIdentifier(nameAttr.value.value),
               t.jsxFragment(
@@ -141,6 +150,7 @@ function checkSolidSFCDirective(node: t.Program): boolean {
 export default function solidSFCPlugin(): PluginObj {
   return {
     name: 'solid-sfc',
+    inherits: solidLabelsPlugin,
     visitor: {
       Program(path, context) {
         const isValidName = context.filename != null && /\.solid\.((t|j)sx?)$/.test(context.filename);

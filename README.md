@@ -1,6 +1,6 @@
 # solid-sfc
 
-> An experimental SFC compiler for SolidJS
+> An experimental SFC syntax for SolidJS, extends [`solid-labels`](https://github.com/lxsmnsyc/solid-labels)
 
 [![NPM](https://img.shields.io/npm/v/solid-sfc.svg)](https://www.npmjs.com/package/solid-sfc) [![JavaScript Style Guide](https://badgen.net/badge/code%20style/airbnb/ff5a5f?icon=airbnb)](https://github.com/airbnb/javascript)
 
@@ -26,31 +26,15 @@ pnpm add solid-sfc
 // Required for files that do not end in `.solid.(t|j)sx?`
 'use solid-sfc';
 
-import { createSignal, createMemo, createEffect } from 'solid-js';
+let count = $signal(0);
+let message = $memo(`Count: ${count}`);
 
-const [count, setCount] = createSignal(0);
-const message = createMemo(() => `Count: ${count()}`);
-
-createEffect(() => {
-  console.log(message());
-});
+effect: {
+  console.log(message);
+};
 
 // Export default is synonymous to "return".
-export default <h1>{message()}</h1>;
-```
-
-### Suspense and fragments
-
-```jsx
-const [data] = createResource(source, fetchData);
-export default (
-  <solid:suspense>
-    <solid:fragment name="fallback">
-      <h1>Loading...</h1>
-    </solid:fragment>
-    <Profile data={data()} />
-  </solid:suspense>
-);
+export default <h1>{message}</h1>;
 ```
 
 ### `<solid:fragment>`, `<solid:slot>` and `<solid:children>`
@@ -91,21 +75,6 @@ export default (
   </Example>
 );
 ```
-
-### Other namespaced elements
-
-- `<solid:for>`: `<For>`
-- `<solid:switch>`: `<Switch>`
-- `<solid:show>`: `<Show>`
-- `<solid:index>`: `<Index>`
-- `<solid:error-boundary>`: `<ErrorBoundary>`
-- `<solid:suspense>`: `<Suspense>`
-- `<solid:suspense-list>`: `<SuspenseList>`
-- `<solid:dynamic>`: `<Dynamic>`
-- `<solid:portal>`: `<Portal>`
-- `<solid:assets>`: `<Assets>`
-- `<solid:hydration-script>`: `<HydrationScript>`
-- `<solid:no-hydration>`: `<NoHydration>`
 
 ### `$props`
 
