@@ -13,7 +13,7 @@ type Props<T> = T extends (props: infer P) => solid.JSX.Element
 declare module 'solid-js' {
   namespace JSX {
     interface IntrinsicElements {
-      'solid:fragment': { name: string, children: JSX.Element };
+      'solid:fragment': { name: string, children: solid.JSX.Element };
       'solid:slot': { name: string };
       'solid:children': unknown;
       'solid:self': unknown;

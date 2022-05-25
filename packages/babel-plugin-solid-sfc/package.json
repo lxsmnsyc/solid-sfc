@@ -49,13 +49,15 @@
     "pridepack"
   ],
   "devDependencies": {
-    "@babel/core": "^7.16.7",
-    "@types/node": "^17.0.0",
-    "eslint": "^8.6.0",
+    "@babel/core": "^7.18.0",
+    "@types/babel__core": "^7.1.19",
+    "@types/node": "^17.0.35",
+    "eslint": "^8.16.0",
     "eslint-config-lxsmnsyc": "^0.4.0",
-    "pridepack": "1.0.4",
-    "tslib": "^2.3.1",
-    "typescript": "^4.5.4"
+    "pridepack": "1.1.1",
+    "solid-js": "^1.4.2",
+    "tslib": "^2.4.0",
+    "typescript": "^4.6.4"
   },
   "peerDependencies": {
     "@babel/core": "^7.16",
@@ -87,7 +89,7 @@
     "dev": "pridepack dev"
   },
   "dependencies": {
-    "@babel/traverse": "^7.16.8",
-    "@babel/types": "^7.16.8"
+    "@babel/traverse": "^7.18.0",
+    "@babel/types": "^7.18.0"
   }
 }
