@@ -4,7 +4,7 @@
 
 A `.solid` file holds one component. It has three parts:
 
-- A `<script>` block with the component code. It supports [`solid-labels`](https://github.com/lxsmnsyc/solid-labels).
+- A `<script>` block with the component code. It supports compile-time functions such as `$signal`.
 - `<style>` blocks. They are scoped to the component.
 - Markup. It is JSX with a shorter attribute syntax.
 
@@ -31,7 +31,7 @@ A `.solid` file holds one component. It has three parts:
 
 ```bash
 pnpm add solid-js solid-sfc
-pnpm add -D solid-labels vite vite-plugin-solid @babel/core
+pnpm add -D vite vite-plugin-solid
 ```
 
 ## Setup
@@ -76,6 +76,77 @@ The `<script>` block becomes the body of the component function.
   export const MAX = 10;
 </script>
 ```
+
+## Compile-time functions
+
+Compile-time functions are global functions that the compiler replaces with SolidJS calls. They are based on the compile-time functions of [`solid-labels`](https://github.com/lxsmnsyc/solid-labels/blob/main/docs/ctf.md). They work in `<script>`, `<script module>`, `<style>` interpolations and markup expressions.
+
+### Reactive variables
+
+These functions declare a variable. Reading the variable reads its current value, so the reads are tracked.
+
+```html
+<script>
+  let count = $signal(0);
+  const double = $memo(count * 2);
+
+  function increment() {
+    count += 1;
+  }
+</script>
+
+<button onClick=increment>{count} * 2 = {double}</button>
+```
+
+- `$signal(value, options?)` uses `createSignal`. Assigning to the variable calls the setter.
+- `$memo(value, options?)` and `$(value)` use `createMemo`.
+- `$deferred(value, options?)` uses `createDeferred`.
+- `$mapArray(list, fn)` and `$indexArray(list, fn)` use `mapArray` and `indexArray`.
+- `$children(value)` uses `children`.
+- `$from(observable)` uses `from`.
+- `$derefSignal([get, set])` and `$derefMemo(get)` turn an existing signal or accessor into a variable.
+- `$destructure(object)` destructures an object into reactive variables. Default values and rest elements are supported.
+
+Only `$signal` and `$derefSignal` variables can be assigned. The others are read-only.
+
+Destructuring `$props()` keeps the props reactive:
+
+```html
+<script lang="ts">
+  const { label = 'Click', ...rest } = $props<{ label?: string }>();
+</script>
+
+<button {...rest}>{label}</button>
+```
+
+### References
+
+- `$get(variable)` returns the accessor of a reactive variable.
+- `$set(variable)` returns the setter of a signal.
+- `$refSignal(variable)` returns `[accessor, setter]`.
+- `$refMemo(variable)` returns the accessor.
+- `$getter(variable)`, `$setter(variable)` and `$property(variable)` turn an object property into a getter, a setter, or both.
+
+### Other functions
+
+These take a value instead of a function, and the compiler adds the arrow function:
+
+- `$untrack(value)` and `$batch(value)`.
+- `$selector(source)`, `$on(deps, fn)`, `$observable(value)` and `$lazy(import('./Component.solid'))`.
+- `$root(value)`. A function argument is passed as is.
+- `$(expression)` as a statement creates an effect.
+
+These are renamed to the SolidJS function:
+
+- `$effect`, `$computed` and `$renderEffect`.
+- `$mount`, `$cleanup`, `$error` and `$catchError`.
+- `$merge`, `$uid`, `$createContext`, `$useContext`, `$resource` and `$reaction`.
+- `$startTransition`, `$useTransition`, `$owner` and `$runWithOwner`.
+- `$store`, `$mutable`, `$produce`, `$reconcile` and `$unwrap` from `solid-js/store`.
+
+`For`, `Show`, `Switch`, `Match`, `Index`, `ErrorBoundary`, `Suspense`, `SuspenseList`, `Dynamic`, `Portal`, `Assets`, `HydrationScript` and `NoHydration` are imported when they are used without an import.
+
+The labels and comments of `solid-labels` are not supported. A label such as `effect:` is a compile error.
 
 ## Style
 
@@ -149,7 +220,7 @@ Other changes:
 
 ## Compiler API
 
-`compile` turns a `.solid` file into TSX and CSS. The TSX still uses `solid-labels`, so it needs the `solid-labels` Babel plugin. It imports `solid-sfc/runtime` when a `style` attribute is merged with CSS variables.
+`compile` turns a `.solid` file into TSX and CSS. The TSX needs the SolidJS JSX compiler. It imports `solid-sfc/runtime` when a `style` attribute is merged with CSS variables.
 
 ```ts
 import { compile } from 'solid-sfc';

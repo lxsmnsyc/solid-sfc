@@ -1,5 +1,8 @@
+import remapping from '@jridgewell/remapping';
+import { TraceMap, originalPositionFor } from '@jridgewell/trace-mapping';
 import { Bundle, MagicString } from 'magic-string';
-import { SFCError } from './error.ts';
+import { transformCTF } from './ctf.ts';
+import { SFCError, getLocation } from './error.ts';
 import { PROPS_IDENTIFIER, analyzeInstanceScript, analyzeModuleScript } from './script.ts';
 import type { SourceMap } from './style.ts';
 import { getScopeAttribute, getVariableName, hash, processStyles } from './style.ts';
@@ -19,7 +22,7 @@ export interface CompileOptions {
 }
 
 export interface CompileResult {
-  /** TSX code. It still uses `solid-labels` syntax. */
+  /** TSX code. Compile-time functions are already replaced. */
   code: string;
   map: SourceMap;
   /** The stylesheet of the component, if it has `<style>` blocks. */
@@ -91,7 +94,8 @@ export function compile(source: string, options: CompileOptions = {}): CompileRe
   const addRange = (start: number, end: number, edit?: (snip: MagicString) => void): void => {
     const snip = output.snip(start, end);
     edit?.(snip);
-    bundle.addSource({ filename, content: snip });
+    // Sources without a name get no mappings.
+    bundle.addSource({ filename: filename ?? 'component.solid', content: snip });
   };
   const addText = (text: string): void => {
     bundle.addSource({ content: new MagicString(text) });
@@ -163,9 +167,37 @@ export function compile(source: string, options: CompileOptions = {}): CompileRe
   }
   addText('</>);\n}');
 
+  const structure = bundle.toString();
+  const structureMap = bundle.generateMap({ hires: true, includeContent: true, file: filename });
+
+  // Compile-time functions are replaced on the generated TSX, because the
+  // markup expressions are only valid JavaScript after the first step.
+  const ctf = transformCTF(structure, {
+    props: PROPS_IDENTIFIER,
+    fail(message, offset) {
+      const { line, column } = getLocation(structure, offset);
+      const original = originalPositionFor(new TraceMap(structureMap as never), {
+        line,
+        column: column - 1,
+      });
+      if (original.line === null) {
+        return fail(message, 0);
+      }
+      const lines = source.split('\n').slice(0, original.line - 1);
+      return fail(
+        message,
+        lines.reduce((total, current) => total + current.length + 1, 0) + original.column,
+      );
+    },
+  });
+  const ctfMap = ctf.generateMap({ hires: true, source: 'structure.tsx' });
+  const map = remapping(ctfMap as never, (file) =>
+    file === 'structure.tsx' ? (structureMap as never) : null,
+  );
+
   return {
-    code: bundle.toString(),
-    map: bundle.generateMap({ hires: true, includeContent: true, file: filename }) as SourceMap,
+    code: ctf.toString(),
+    map: { ...map, version: 3, file: filename } as SourceMap,
     css: css && { code: css.code, map: css.map },
   };
 }

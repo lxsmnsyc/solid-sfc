@@ -13,5 +13,13 @@
   "env": {
     "builtin": true
   },
-  "ignorePatterns": ["**/dist/**", "**/node_modules/**"]
+  "ignorePatterns": ["**/dist/**", "**/node_modules/**"],
+  "overrides": [
+    {
+      "files": ["**/*.d.ts"],
+      "rules": {
+        "typescript/consistent-type-imports": "off"
+      }
+    }
+  ]
 }

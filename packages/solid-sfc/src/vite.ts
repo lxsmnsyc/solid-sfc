@@ -1,7 +1,5 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
-import type { TransformOptions } from '@babel/core';
-import solidLabels from 'solid-labels/babel';
 import { transformWithOxc } from 'vite';
 import type { Plugin } from 'vite';
 import solidPlugin from 'vite-plugin-solid';
@@ -28,19 +26,6 @@ function splitId(id: string): { file: string; query: string } {
 function isSFC(id: string): boolean {
   const { file, query } = splitId(id);
   return file.endsWith(EXTENSION) && !query.includes('solid-sfc');
-}
-
-async function getUserBabelOptions(
-  options: Partial<SolidPluginOptions>,
-  source: string,
-  id: string,
-  ssr: boolean,
-): Promise<TransformOptions> {
-  const { babel } = options;
-  if (typeof babel === 'function') {
-    return babel(source, id, ssr);
-  }
-  return babel ?? {};
 }
 
 /**
@@ -111,16 +96,6 @@ export default function solidSFC(options: SolidSFCOptions = {}): Plugin[] {
     solidPlugin({
       ...solidOptions,
       extensions: [...(solidOptions.extensions ?? []), [EXTENSION, { typescript: true }]],
-      async babel(source, id, ssr) {
-        const babelOptions = await getUserBabelOptions(solidOptions, source, id, ssr);
-        if (!isSFC(id)) {
-          return babelOptions;
-        }
-        return {
-          ...babelOptions,
-          plugins: [solidLabels, ...(babelOptions.plugins ?? [])],
-        };
-      },
     }),
   ];
 }
