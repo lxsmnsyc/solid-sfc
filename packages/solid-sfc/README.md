@@ -1,6 +1,6 @@
 # solid-sfc
 
-> Single-file components for SolidJS.
+> Single-file components for SolidJS 2.0.
 
 A `.solid` file holds one component. It has three parts:
 
@@ -30,13 +30,13 @@ A `.solid` file holds one component. It has three parts:
 ## Install
 
 ```bash
-pnpm add solid-js solid-sfc
-pnpm add -D vite vite-plugin-solid
+pnpm add solid-js @solidjs/web solid-sfc
+pnpm add -D vite @solidjs/vite-plugin
 ```
 
 ## Setup
 
-Add the Vite plugin. It includes `vite-plugin-solid`, so do not add that plugin again.
+Add the Vite plugin. It includes `@solidjs/vite-plugin`, so do not add that plugin again.
 
 ```ts
 // vite.config.ts
@@ -60,7 +60,7 @@ Add the types to `tsconfig.json`:
 
 ### Options
 
-- `solid` is passed to `vite-plugin-solid`.
+- `solid` is passed to `@solidjs/vite-plugin`.
 
 ## Script
 
@@ -79,16 +79,16 @@ The `<script>` block becomes the body of the component function.
 
 ## Compile-time functions
 
-Compile-time functions are global functions that the compiler replaces with SolidJS calls. They are based on the compile-time functions of [`solid-labels`](https://github.com/lxsmnsyc/solid-labels/blob/main/docs/ctf.md). They work in `<script>`, `<script module>`, `<style>` interpolations and markup expressions.
-
-### Reactive variables
-
-These functions declare a variable. Reading the variable reads its current value, so the reads are tracked.
+Compile-time functions are global functions that the compiler replaces with Solid 2.0 calls. They are the compile-time functions of [`solid-labels` 1.0](https://github.com/lxsmnsyc/solid-labels/blob/1.0/docs/ctf.md), and they work in `<script>`, `<script module>`, `<style>` interpolations and markup expressions.
 
 ```html
 <script>
   let count = $signal(0);
   const double = $memo(count * 2);
+
+  $effect(() => {
+    console.log(count, double);
+  });
 
   function increment() {
     count += 1;
@@ -98,16 +98,14 @@ These functions declare a variable. Reading the variable reads its current value
 <button onClick=increment>{count} * 2 = {double}</button>
 ```
 
-- `$signal(value, options?)` uses `createSignal`. Assigning to the variable calls the setter.
-- `$memo(value, options?)` and `$(value)` use `createMemo`.
-- `$deferred(value, options?)` uses `createDeferred`.
-- `$mapArray(list, fn)` and `$indexArray(list, fn)` use `mapArray` and `indexArray`.
-- `$children(value)` uses `children`.
-- `$from(observable)` uses `from`.
-- `$derefSignal([get, set])` and `$derefMemo(get)` turn an existing signal or accessor into a variable.
-- `$destructure(object)` destructures an object into reactive variables. Default values and rest elements are supported.
+- `$signal`, `$memo` and `$` declare reactive variables. Reads become accessor calls, and writes to a signal become setter calls.
+- `$effect` and `$renderEffect` take one callback. The compiler builds the tracked compute phase from the variables that the callback reads.
+- `$destructure` keeps destructured values reactive. Rest elements use `omit`.
+- `$get`, `$set`, `$refSignal`, `$refMemo`, `$derefSignal`, `$derefMemo`, `$getter`, `$setter` and `$property` convert between reactive variables and accessors.
+- Other compile-time functions are renamed to the Solid 2.0 function and imported, for example `$settled` to `onSettled` and `$store` to `createStore`.
+- `For`, `Show`, `Switch`, `Match`, `Repeat`, `Errored`, `Loading`, `Reveal`, `Dynamic` and `Portal` are imported when they are used without an import.
 
-Only `$signal` and `$derefSignal` variables can be assigned. The others are read-only.
+See the [`solid-labels` documentation](https://github.com/lxsmnsyc/solid-labels/blob/1.0/docs/ctf.md) for the full list.
 
 Destructuring `$props()` keeps the props reactive:
 
@@ -119,34 +117,40 @@ Destructuring `$props()` keeps the props reactive:
 <button {...rest}>{label}</button>
 ```
 
-### References
+## Control flow
 
-- `$get(variable)` returns the accessor of a reactive variable.
-- `$set(variable)` returns the setter of a signal.
-- `$refSignal(variable)` returns `[accessor, setter]`.
-- `$refMemo(variable)` returns the accessor.
-- `$getter(variable)`, `$setter(variable)` and `$property(variable)` turn an object property into a getter, a setter, or both.
+Control flow blocks start with `#` and a keyword. The block body is markup in `{ }`.
 
-### Other functions
+```html
+#if (user) {
+  <p>Hi {user.name}</p>
+} #else if (loading) {
+  <Spinner />
+} #else {
+  <Login />
+}
 
-These take a value instead of a function, and the compiler adds the arrow function:
+#for (item, index of items) {
+  <li>{index}: {item.name}</li>
+} #else {
+  <p>No items</p>
+}
+```
 
-- `$untrack(value)` and `$batch(value)`.
-- `$selector(source)`, `$on(deps, fn)`, `$observable(value)` and `$lazy(import('./Component.solid'))`.
-- `$root(value)`. A function argument is passed as is.
-- `$(expression)` as a statement creates an effect.
+| Block                                        | Compiles to                                                                    |
+| -------------------------------------------- | ------------------------------------------------------------------------------ |
+| `#if (a) { } #else if (b) { } #else { }`     | A conditional expression. TypeScript narrows the condition inside each branch. |
+| `#for (item, index of list) { } #else { }`   | `<For each={list} fallback>`. `index` is read without a call.                  |
+| `#index (item, index of list) { } #else { }` | `<For each={list} keyed={false} fallback>`. `item` is read without a call.     |
+| `#repeat (index of count) { } #else { }`     | `<Repeat count={count} fallback>`                                              |
+| `#switch { #case (a) { } #default { } }`     | `<Switch>` and `<Match>`. `#default` must be last.                             |
+| `#try { } #catch (error, reset) { }`         | `<Errored fallback>`. `error` is read without a call.                          |
+| `#loading { } #fallback { }`                 | `<Loading fallback>`                                                           |
+| `#key (value) { }`                           | Renders the body again when `value` changes.                                   |
 
-These are renamed to the SolidJS function:
+Blocks can be nested, and they work inside elements and inside JSX in expressions.
 
-- `$effect`, `$computed` and `$renderEffect`.
-- `$mount`, `$cleanup`, `$error` and `$catchError`.
-- `$merge`, `$uid`, `$createContext`, `$useContext`, `$resource` and `$reaction`.
-- `$startTransition`, `$useTransition`, `$owner` and `$runWithOwner`.
-- `$store`, `$mutable`, `$produce`, `$reconcile` and `$unwrap` from `solid-js/store`.
-
-`For`, `Show`, `Switch`, `Match`, `Index`, `ErrorBoundary`, `Suspense`, `SuspenseList`, `Dynamic`, `Portal`, `Assets`, `HydrationScript` and `NoHydration` are imported when they are used without an import.
-
-The labels and comments of `solid-labels` are not supported. A label such as `effect:` is a compile error.
+`#` only starts a block when it is followed by a keyword and then `(` or `{`, and when it does not come right after a letter or digit. Other text, such as `#hashtag` or `C#`, stays text. Write `{'#'}` to show a `#` that would start a block.
 
 ## Style
 

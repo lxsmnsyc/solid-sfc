@@ -3,11 +3,16 @@ import type { Range } from './template.ts';
 
 export const PROPS_IDENTIFIER = '$$props';
 
+export interface PropsCall extends Range {
+  /** True if the call is destructured, as in `const { a } = $props()`. */
+  destructured: boolean;
+}
+
 export interface InstanceScript {
   /** Top-level imports and type declarations, moved out of the component. */
   hoisted: Range[];
   /** `$props()` calls, replaced with the props parameter. */
-  propsCalls: Range[];
+  propsCalls: PropsCall[];
   /** The source text of the first `$props<T>()` type argument. */
   propsType: string | undefined;
 }
@@ -69,7 +74,8 @@ export function analyzeModuleScript(code: string, offset: number, fail: Fail): v
 export function analyzeInstanceScript(code: string, offset: number, fail: Fail): InstanceScript {
   const program = parse(code, offset, fail);
   const hoisted: Range[] = [];
-  const propsCalls: Range[] = [];
+  const propsCalls: PropsCall[] = [];
+  const destructured = new Set<Node>();
   let propsType: string | undefined;
 
   for (const statement of program.body as unknown as Node[]) {
@@ -100,6 +106,14 @@ export function analyzeInstanceScript(code: string, offset: number, fail: Fail):
 
   walk(program as unknown as Node, (node) => {
     if (
+      node.type === 'VariableDeclarator' &&
+      isNode(node.id) &&
+      node.id.type === 'ObjectPattern' &&
+      isNode(node.init)
+    ) {
+      destructured.add(node.init);
+    }
+    if (
       node.type !== 'CallExpression' ||
       !isNode(node.callee) ||
       node.callee.type !== 'Identifier' ||
@@ -115,7 +129,11 @@ export function analyzeInstanceScript(code: string, offset: number, fail: Fail):
     if (type && propsType === undefined) {
       propsType = code.slice(type.start, type.end);
     }
-    propsCalls.push({ start: offset + node.start, end: offset + node.end });
+    propsCalls.push({
+      start: offset + node.start,
+      end: offset + node.end,
+      destructured: destructured.has(node),
+    });
   });
 
   return { hoisted, propsCalls, propsType };

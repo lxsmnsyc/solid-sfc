@@ -1,4 +1,4 @@
-import { render } from 'solid-js/web';
+import { render } from '@solidjs/web';
 import Root from './Root.solid';
 
 const app = document.getElementById('app');

@@ -1,8 +1,9 @@
 import remapping from '@jridgewell/remapping';
 import { TraceMap, originalPositionFor } from '@jridgewell/trace-mapping';
 import { Bundle, MagicString } from 'magic-string';
-import { transformCTF } from './ctf.ts';
-import { SFCError, getLocation } from './error.ts';
+import { KEY_IDENTIFIER } from './control.ts';
+import { SFCError } from './error.ts';
+import { CompileError, compile as compileLabels } from './labels/index.ts';
 import { PROPS_IDENTIFIER, analyzeInstanceScript, analyzeModuleScript } from './script.ts';
 import type { SourceMap } from './style.ts';
 import { getScopeAttribute, getVariableName, hash, processStyles } from './style.ts';
@@ -19,6 +20,8 @@ export interface CompileOptions {
    * across builds. Defaults to a hash of `filename`.
    */
   scope?: string;
+  /** Adds debug names to signals and memos. */
+  dev?: boolean;
 }
 
 export interface CompileResult {
@@ -88,7 +91,12 @@ export function compile(source: string, options: CompileOptions = {}): CompileRe
     : undefined;
 
   const output = new MagicString(source, { filename });
-  const { markup, mergesStyle } = new TemplateParser(source, output, fail, templateScope).parse();
+  const { markup, mergesStyle, usesKey } = new TemplateParser(
+    source,
+    output,
+    fail,
+    templateScope,
+  ).parse();
 
   const bundle = new Bundle({ separator: '\n' });
   const addRange = (start: number, end: number, edit?: (snip: MagicString) => void): void => {
@@ -120,7 +128,12 @@ export function compile(source: string, options: CompileOptions = {}): CompileRe
       fail,
     );
     for (const call of analysis.propsCalls) {
-      output.update(call.start, call.end, PROPS_IDENTIFIER);
+      // Destructured props stay reactive through `$destructure`.
+      output.update(
+        call.start,
+        call.end,
+        call.destructured ? `$destructure(${PROPS_IDENTIFIER})` : PROPS_IDENTIFIER,
+      );
     }
     hoisted = analysis.hoisted;
     for (const range of hoisted) {
@@ -135,6 +148,9 @@ export function compile(source: string, options: CompileOptions = {}): CompileRe
     }
   }
 
+  if (usesKey) {
+    addText(`import { key as ${KEY_IDENTIFIER} } from 'solid-sfc/runtime';`);
+  }
   if (mergesStyle) {
     addText(`import { mergeStyle as ${MERGE_STYLE_IDENTIFIER} } from 'solid-sfc/runtime';`);
   }
@@ -172,31 +188,34 @@ export function compile(source: string, options: CompileOptions = {}): CompileRe
 
   // Compile-time functions are replaced on the generated TSX, because the
   // markup expressions are only valid JavaScript after the first step.
-  const ctf = transformCTF(structure, {
-    props: PROPS_IDENTIFIER,
-    fail(message, offset) {
-      const { line, column } = getLocation(structure, offset);
-      const original = originalPositionFor(new TraceMap(structureMap as never), {
-        line,
-        column: column - 1,
-      });
-      if (original.line === null) {
-        return fail(message, 0);
-      }
-      const lines = source.split('\n').slice(0, original.line - 1);
-      return fail(
-        message,
-        lines.reduce((total, current) => total + current.length + 1, 0) + original.column,
-      );
-    },
-  });
-  const ctfMap = ctf.generateMap({ hires: true, source: 'structure.tsx' });
-  const map = remapping(ctfMap as never, (file) =>
+  let ctf: ReturnType<typeof compileLabels>;
+  try {
+    ctf = compileLabels('structure.tsx', structure, { dev: options.dev });
+  } catch (error) {
+    if (!(error instanceof CompileError)) {
+      throw error;
+    }
+    // Report the error at its location in the `.solid` file.
+    const original = originalPositionFor(new TraceMap(structureMap as never), {
+      line: error.line,
+      column: error.column - 1,
+    });
+    const message = error.message.replace(/ \(\d+:\d+\)$/, '');
+    if (original.line === null) {
+      return fail(message, 0);
+    }
+    const lines = source.split('\n').slice(0, original.line - 1);
+    return fail(
+      message,
+      lines.reduce((total, current) => total + current.length + 1, 0) + original.column,
+    );
+  }
+  const map = remapping(ctf.map as never, (file) =>
     file === 'structure.tsx' ? (structureMap as never) : null,
   );
 
   return {
-    code: ctf.toString(),
+    code: ctf.code,
     map: { ...map, version: 3, file: filename } as SourceMap,
     css: css && { code: css.code, map: css.map },
   };

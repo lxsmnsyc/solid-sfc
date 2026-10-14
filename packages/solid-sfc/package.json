@@ -20,7 +20,8 @@
   },
   "files": [
     "dist",
-    "client.d.ts"
+    "client.d.ts",
+    "globals.d.ts"
   ],
   "type": "module",
   "exports": {
@@ -55,30 +56,31 @@
     "@jridgewell/trace-mapping": "^0.3.31",
     "magic-string": "^1.4.3",
     "oxc-parser": "^0.154.0",
-    "oxc-walker": "^1.1.1",
     "postcss": "^8.5.30",
     "postcss-selector-parser": "^7.1.6"
   },
   "devDependencies": {
     "@oxc-project/types": "^0.154.0",
+    "@solidjs/vite-plugin": "3.0.0-next.35",
+    "@solidjs/web": "2.0.0-rc.15",
     "@types/node": "^24.0.0",
-    "solid-js": "^1.9.17",
+    "solid-js": "2.0.0-rc.15",
     "tsdown": "^0.23.1",
     "typescript": "^7.0.2",
     "vite": "^8.3.4",
-    "vite-plugin-solid": "^2.11.14",
     "vitest": "^5.0.4"
   },
   "peerDependencies": {
-    "solid-js": "^1.9.0",
-    "vite": "^8.0.0",
-    "vite-plugin-solid": "^2.11.0"
+    "@solidjs/vite-plugin": "^3.0.0-next.35",
+    "@solidjs/web": "^2.0.0-rc.15",
+    "solid-js": "^2.0.0-rc.15",
+    "vite": "^8.0.0"
   },
   "peerDependenciesMeta": {
-    "vite": {
+    "@solidjs/vite-plugin": {
       "optional": true
     },
-    "vite-plugin-solid": {
+    "vite": {
       "optional": true
     }
   },

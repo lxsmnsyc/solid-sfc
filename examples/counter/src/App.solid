@@ -38,4 +38,7 @@
   <button type="button" onClick=increment>Increment</button>
   <Message (message) />
   <button type="button" onClick=decrement disabled=(count <= 0)>Decrement</button>
+  #if (count > 3) {
+    <span>That's a lot!</span>
+  }
 </div>

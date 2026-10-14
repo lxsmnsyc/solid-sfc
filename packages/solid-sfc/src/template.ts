@@ -1,4 +1,5 @@
 import type MagicString from 'magic-string';
+import { ControlFlowParser } from './control.ts';
 import { Scanner, isWhitespace } from './scanner.ts';
 
 export interface Block {
@@ -23,7 +24,12 @@ export interface TemplateResult {
   markup: Range[];
   /** True if a `style` attribute is merged with the CSS variables. */
   mergesStyle: boolean;
+  /** True if a `#key` block is used. */
+  usesKey: boolean;
 }
+
+/** Where children are parsed. Each mode ends at a different token. */
+type ChildrenMode = 'root' | 'element' | 'block';
 
 // HTML elements that never have children. They may be written without `/>`.
 const VOID_ELEMENTS = new Set([
@@ -80,6 +86,7 @@ export class TemplateParser {
   private readonly scanner: Scanner;
   private readonly fail: (message: string, offset: number) => never;
   private readonly scope: TemplateScope | undefined;
+  private readonly control: ControlFlowParser;
   private mergesStyle = false;
 
   constructor(
@@ -96,11 +103,18 @@ export class TemplateParser {
       error: fail,
       element: (offset) => this.parseElement(offset),
     });
+    this.control = new ControlFlowParser({
+      source,
+      output,
+      scanner: this.scanner,
+      fail,
+      parseBody: (offset) => this.parseChildren(offset, 'block'),
+    });
   }
 
   parse(): TemplateResult {
     const blocks: Block[] = [];
-    this.parseChildren(0, blocks);
+    this.parseChildren(0, 'root', blocks);
 
     const markup: Range[] = [];
     let start = 0;
@@ -113,15 +127,21 @@ export class TemplateParser {
     if (start < this.source.length) {
       markup.push({ start, end: this.source.length });
     }
-    return { blocks, markup, mergesStyle: this.mergesStyle };
+    return {
+      blocks,
+      markup,
+      mergesStyle: this.mergesStyle,
+      usesKey: this.control.usesKey,
+    };
   }
 
   /**
-   * Parses element children until a closing tag or the end of the file.
-   * Top-level blocks are only collected when `blocks` is given. Returns the
-   * offset of the closing tag.
+   * Parses children until the token that ends `mode`: the end of the file
+   * for `root`, a closing tag for `element`, and `}` for a control flow
+   * `block`. Top-level `<script>` and `<style>` blocks are collected into
+   * `blocks`. Returns the offset of the ending token.
    */
-  private parseChildren(offset: number, blocks?: Block[]): number {
+  private parseChildren(offset: number, mode: ChildrenMode, blocks?: Block[]): number {
     const { source } = this;
     let i = offset;
     while (i < source.length) {
@@ -130,8 +150,11 @@ export class TemplateParser {
         if (source.startsWith('<!--', i)) {
           i = this.removeComment(i);
         } else if (source[i + 1] === '/') {
-          if (blocks) {
-            this.fail('Unexpected closing tag', i);
+          if (mode !== 'element') {
+            this.fail(
+              mode === 'block' ? 'Expected "}" to close the block' : 'Unexpected closing tag',
+              i,
+            );
           }
           return i;
         } else if (blocks && /^<(script|style)[\s>]/.test(source.slice(i, i + 8))) {
@@ -143,12 +166,20 @@ export class TemplateParser {
         }
       } else if (char === '{') {
         i = this.scanner.scanExpression(i + 1, '}') + 1;
+      } else if (char === '}' && mode === 'block') {
+        return i;
+      } else if (char === '#') {
+        const keyword = this.control.match(i);
+        i = keyword ? this.control.parse(keyword) : i + 1;
       } else {
         i++;
       }
     }
-    if (!blocks) {
+    if (mode === 'element') {
       this.fail('Unexpected end of file, expected a closing tag', i);
+    }
+    if (mode === 'block') {
+      this.fail('Expected "}" to close the block', i);
     }
     return i;
   }
@@ -196,7 +227,7 @@ export class TemplateParser {
   private parseElement(offset: number): number {
     const { source } = this;
     if (source[offset + 1] === '>') {
-      const close = this.parseChildren(offset + 2);
+      const close = this.parseChildren(offset + 2, 'element');
       return this.parseClosingTag(close, '');
     }
     const name = matchAt(TAG_NAME, source, offset + 1);
@@ -219,7 +250,7 @@ export class TemplateParser {
       this.output.appendLeft(end - 1, '/');
       return end;
     }
-    const close = this.parseChildren(end);
+    const close = this.parseChildren(end, 'element');
     return this.parseClosingTag(close, name);
   }
 

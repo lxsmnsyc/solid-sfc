@@ -1,6 +1,6 @@
 # solid-sfc
 
-> Single-file components for SolidJS.
+> Single-file components for SolidJS 2.0.
 
 [![NPM](https://img.shields.io/npm/v/solid-sfc.svg)](https://www.npmjs.com/package/solid-sfc)
 

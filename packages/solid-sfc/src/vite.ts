@@ -2,14 +2,14 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { transformWithOxc } from 'vite';
 import type { Plugin } from 'vite';
-import solidPlugin from 'vite-plugin-solid';
-import type { Options as SolidPluginOptions } from 'vite-plugin-solid';
+import solidPlugin from '@solidjs/vite-plugin';
+import type { Options as SolidPluginOptions } from '@solidjs/vite-plugin';
 import { compile } from './compile.ts';
 import type { CompileResult } from './compile.ts';
 import { hash } from './style.ts';
 
 export interface SolidSFCOptions {
-  /** Options for `vite-plugin-solid`. */
+  /** Options for `@solidjs/vite-plugin`. */
   solid?: Partial<SolidPluginOptions>;
 }
 
@@ -29,16 +29,18 @@ function isSFC(id: string): boolean {
 }
 
 /**
- * Compiles `.solid` files. It includes `vite-plugin-solid`, so do not add it
+ * Compiles `.solid` files. It includes `@solidjs/vite-plugin`, so do not add it
  * again.
  */
 export default function solidSFC(options: SolidSFCOptions = {}): Plugin[] {
   const solidOptions = options.solid ?? {};
   let root = process.cwd();
+  let dev = false;
 
   const compileFile = (code: string, file: string): CompileResult =>
     compile(code, {
       filename: file,
+      dev,
       // The path from the root is the same on every machine.
       scope: hash(path.relative(root, file).split(path.sep).join('/')),
     });
@@ -49,6 +51,7 @@ export default function solidSFC(options: SolidSFCOptions = {}): Plugin[] {
       enforce: 'pre',
       configResolved(config) {
         root = config.root;
+        dev = !config.isProduction;
       },
       resolveId(source, importer) {
         if (importer && source.endsWith(STYLE_QUERY)) {
@@ -79,7 +82,7 @@ export default function solidSFC(options: SolidSFCOptions = {}): Plugin[] {
       },
     },
     {
-      // vite-plugin-solid parses TypeScript but does not remove types.
+      // The Solid JSX compiler does not remove TypeScript types.
       name: 'solid-sfc:typescript',
       enforce: 'pre',
       async transform(code, id) {
@@ -93,7 +96,7 @@ export default function solidSFC(options: SolidSFCOptions = {}): Plugin[] {
         return { code: result.code, map: result.map };
       },
     },
-    solidPlugin({
+    ...solidPlugin({
       ...solidOptions,
       extensions: [...(solidOptions.extensions ?? []), [EXTENSION, { typescript: true }]],
     }),

@@ -18,7 +18,17 @@
     {
       "files": ["**/*.d.ts"],
       "rules": {
-        "typescript/consistent-type-imports": "off"
+        "typescript/consistent-type-imports": "off",
+        "typescript/triple-slash-reference": "off"
+      }
+    },
+    {
+      "files": ["packages/solid-sfc/src/labels/**", "packages/solid-sfc/test/labels/**"],
+      "rules": {
+        "vitest/prefer-snapshot-hint": "off",
+        "import/no-named-as-default": "off",
+        "unicorn/consistent-function-scoping": "off",
+        "unicorn/no-array-sort": "off"
       }
     }
   ]

@@ -1,4 +1,6 @@
-import type { JSX } from 'solid-js';
+import type { JSX } from '@solidjs/web';
+import { createMemo, untrack } from 'solid-js';
+import type { Accessor, Element } from 'solid-js';
 
 type Style = JSX.CSSProperties | string | null | undefined;
 
@@ -14,4 +16,16 @@ export function mergeStyle(style: Style, variables: JSX.CSSProperties): Style {
     }
   }
   return result;
+}
+
+/**
+ * Renders `render` again whenever `source` changes. Used by `#key`.
+ * Equal values do not render again.
+ */
+export function key<T>(source: () => T, render: () => Element): Accessor<Element> {
+  const value = createMemo(source);
+  return createMemo(() => {
+    value();
+    return untrack(render);
+  });
 }

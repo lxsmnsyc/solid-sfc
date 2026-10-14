@@ -1,7 +1,7 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
 exports[`component > compiles a full component > code 1`] = `
-"import { createSignal as __createSignal } from 'solid-js';
+"import { createSignal as _createSignal } from "solid-js";
 
   export const version = 1;
 
@@ -16,7 +16,7 @@ export default function ItemList($$props: Props) {
   
   
   const props = $$props;
-  let [count, __set_count] = __createSignal(0);
+  let [count, setcount_1] = _createSignal(0);
 
 const __styleVariables = () => ({
 '--s-x-0': (
@@ -36,7 +36,7 @@ return (<>
 
 
 <For each={(props.items)}>
-  {(item: Item) => <li s-x onClick={(() => ((__value) => (__set_count(__value + 1), __value))(count()))} style={__styleVariables()}>{item}</li>}
+  {(item: Item) => <li s-x onClick={(() => setcount_1(current_1 => ++current_1))} style={__styleVariables()}>{item}</li>}
 </For>
 
 </>);

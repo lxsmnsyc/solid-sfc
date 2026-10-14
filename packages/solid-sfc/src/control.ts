@@ -1,0 +1,451 @@
+/**
+ * Control flow blocks in markup, such as `#if (a) { ... } #else { ... }`.
+ * They are rewritten in place into JSX expressions and SolidJS components.
+ */
+import type { MagicString } from 'magic-string';
+import type { Scanner } from './scanner.ts';
+import { isIdentifierPart, isWhitespace } from './scanner.ts';
+
+/** Helper from `solid-sfc/runtime` used by `#key`. */
+export const KEY_IDENTIFIER = '__key';
+
+const BLOCKS = new Set(['if', 'for', 'index', 'repeat', 'switch', 'try', 'loading', 'key']);
+const BRANCHES = new Set(['else', 'case', 'default', 'catch', 'fallback']);
+const KEYWORD = /#([a-z]+)/y;
+
+export interface ControlHost {
+  readonly source: string;
+  readonly output: MagicString;
+  readonly scanner: Scanner;
+  fail(message: string, offset: number): never;
+  /** Parses markup until the `}` that ends a block body. Returns its offset. */
+  parseBody(offset: number): number;
+}
+
+interface Body {
+  /** Offset of `{`. */
+  open: number;
+  start: number;
+  /** Offset of `}`. */
+  end: number;
+}
+
+interface Header {
+  /** Offset of `(`. */
+  open: number;
+  start: number;
+  /** Offset of `)`. */
+  end: number;
+}
+
+interface Keyword {
+  name: string;
+  /** Offset of `#`. */
+  start: number;
+  /** Offset after the keyword. */
+  end: number;
+}
+
+/** Splits `text` at `separator` characters outside brackets and strings. */
+function splitTopLevel(text: string, separator: string): string[] {
+  const parts: string[] = [];
+  let depth = 0;
+  let quote: string | undefined;
+  let start = 0;
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i]!;
+    if (quote) {
+      if (char === '\\') {
+        i++;
+      } else if (char === quote) {
+        quote = undefined;
+      }
+    } else if (char === '"' || char === "'" || char === '`') {
+      quote = char;
+    } else if ('([{'.includes(char)) {
+      depth++;
+    } else if (')]}'.includes(char)) {
+      depth--;
+    } else if (char === separator && depth === 0) {
+      parts.push(text.slice(start, i));
+      start = i + 1;
+    }
+  }
+  parts.push(text.slice(start));
+  return parts;
+}
+
+/** Finds ` of ` outside brackets and strings. Returns its offset in `text`. */
+function findOf(text: string): number {
+  let depth = 0;
+  let quote: string | undefined;
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i]!;
+    if (quote) {
+      if (char === '\\') {
+        i++;
+      } else if (char === quote) {
+        quote = undefined;
+      }
+    } else if (char === '"' || char === "'" || char === '`') {
+      quote = char;
+    } else if ('([{'.includes(char)) {
+      depth++;
+    } else if (')]}'.includes(char)) {
+      depth--;
+    } else if (
+      depth === 0 &&
+      text.startsWith('of', i) &&
+      isWhitespace(text[i - 1]) &&
+      isWhitespace(text[i + 2])
+    ) {
+      return i;
+    }
+  }
+  return -1;
+}
+
+export class ControlFlowParser {
+  private readonly host: ControlHost;
+  /** True if `#key` is used, so the runtime helper must be imported. */
+  usesKey = false;
+
+  constructor(host: ControlHost) {
+    this.host = host;
+  }
+
+  /**
+   * Returns the keyword if a control flow block starts at `offset`. A block is
+   * `#` and a known keyword, followed by `(` or `{`, and not right after a
+   * word character.
+   */
+  match(offset: number): Keyword | undefined {
+    const { source } = this.host;
+    if (source[offset] !== '#' || isIdentifierPart(source[offset - 1])) {
+      return undefined;
+    }
+    const keyword = this.readKeyword(offset);
+    if (!keyword) {
+      return undefined;
+    }
+    const next = source[this.host.scanner.skipWhitespace(keyword.end)];
+    if (next !== '(' && next !== '{') {
+      return undefined;
+    }
+    if (BRANCHES.has(keyword.name)) {
+      this.host.fail(`#${keyword.name} must follow its block`, offset);
+    }
+    return BLOCKS.has(keyword.name) ? keyword : undefined;
+  }
+
+  /** Parses the block that starts at `keyword` and returns the offset after it. */
+  parse(keyword: Keyword): number {
+    switch (keyword.name) {
+      case 'if':
+        return this.parseIf(keyword);
+      case 'for':
+      case 'index':
+      case 'repeat':
+        return this.parseLoop(keyword);
+      case 'switch':
+        return this.parseSwitch(keyword);
+      case 'try':
+        return this.parseBoundary(keyword, 'Errored', 'catch');
+      case 'loading':
+        return this.parseBoundary(keyword, 'Loading', 'fallback');
+      default:
+        return this.parseKey(keyword);
+    }
+  }
+
+  private readKeyword(offset: number): Keyword | undefined {
+    KEYWORD.lastIndex = offset;
+    const match = KEYWORD.exec(this.host.source);
+    if (!match || isIdentifierPart(this.host.source[offset + match[0].length])) {
+      return undefined;
+    }
+    return { name: match[1]!, start: offset, end: offset + match[0].length };
+  }
+
+  private parseHeader(offset: number, keyword: string): Header {
+    const { source, scanner } = this.host;
+    const open = scanner.skipWhitespace(offset);
+    if (source[open] !== '(') {
+      this.host.fail(`Expected "(" after #${keyword}`, open);
+    }
+    const end = scanner.scanExpression(open + 1, ')');
+    if (!source.slice(open + 1, end).trim()) {
+      this.host.fail(`Expected an expression after #${keyword}`, open);
+    }
+    return { open, start: open + 1, end };
+  }
+
+  private parseBody(offset: number, keyword: string): Body {
+    const { source, scanner } = this.host;
+    const open = scanner.skipWhitespace(offset);
+    if (source[open] !== '{') {
+      this.host.fail(`Expected "{" after #${keyword}`, open);
+    }
+    const end = this.host.parseBody(open + 1);
+    return { open, start: open + 1, end };
+  }
+
+  /** Skips whitespace and comments. */
+  private skipTrivia(offset: number): number {
+    const { source, scanner } = this.host;
+    let i = scanner.skipWhitespace(offset);
+    while (source.startsWith('<!--', i)) {
+      const end = source.indexOf('-->', i + 4);
+      if (end === -1) {
+        this.host.fail('Unterminated comment', i);
+      }
+      i = scanner.skipWhitespace(end + 3);
+    }
+    return i;
+  }
+
+  /** Returns the branch keyword after a block body, if it is one of `names`. */
+  private nextBranch(offset: number, names: string[]): Keyword | undefined {
+    const i = this.skipTrivia(offset);
+    if (this.host.source[i] !== '#') {
+      return undefined;
+    }
+    const keyword = this.readKeyword(i);
+    return keyword && names.includes(keyword.name) ? keyword : undefined;
+  }
+
+  private update(start: number, end: number, content: string): void {
+    if (end > start) {
+      this.host.output.update(start, end, content);
+    } else {
+      this.host.output.appendLeft(start, content);
+    }
+  }
+
+  /**
+   * Moves a branch body in front of `target`, wrapped in `before` and `after`.
+   * Used for fallbacks, which are written after the body but are props.
+   */
+  private moveBody(body: Body, target: number, before: string, after: string): void {
+    const { output } = this.host;
+    if (body.end === body.start) {
+      output.appendLeft(target, `${before}${after}`);
+      return;
+    }
+    output.prependRight(body.start, before);
+    output.appendLeft(body.end, after);
+    output.move(body.start, body.end, target);
+  }
+
+  /** `#if (a) { A } #else if (b) { B } #else { C }` becomes `{(a) ? <>A</> : (b) ? <>B</> : <>C</>}`. */
+  private parseIf(keyword: Keyword): number {
+    let header = this.parseHeader(keyword.end, 'if');
+    this.update(keyword.start, header.start, '{(');
+    let body = this.parseBody(header.end + 1, 'if');
+    this.update(header.end, body.start, ') ? <>');
+
+    while (true) {
+      const branch = this.nextBranch(body.end + 1, ['else']);
+      if (!branch) {
+        this.update(body.end, body.end + 1, '</> : null}');
+        return body.end + 1;
+      }
+      const next = this.host.scanner.skipWhitespace(branch.end);
+      const elseIf = this.readWord(next) === 'if';
+      if (!elseIf) {
+        const last = this.parseBody(branch.end, 'else');
+        this.update(body.end, last.start, '</> : <>');
+        this.update(last.end, last.end + 1, '</>}');
+        return last.end + 1;
+      }
+      header = this.parseHeader(next + 2, 'else if');
+      this.update(body.end, header.start, '</> : (');
+      body = this.parseBody(header.end + 1, 'else if');
+      this.update(header.end, body.start, ') ? <>');
+    }
+  }
+
+  private readWord(offset: number): string {
+    const { source } = this.host;
+    let end = offset;
+    while (isIdentifierPart(source[end])) {
+      end++;
+    }
+    return source.slice(offset, end);
+  }
+
+  /**
+   * `#for (item, index of list) { A } #else { B }` becomes
+   * `<For each={list} fallback={<>B</>}>{(item, index) => <>A</>}</For>`.
+   * `#index` uses `<For keyed={false}>`, and `#repeat (index of count)` uses
+   * `<Repeat>`. Parameters that Solid passes as accessors become reactive
+   * variables, so they are read without a call.
+   */
+  private parseLoop(keyword: Keyword): number {
+    const { source, fail } = this.bind();
+    const header = this.parseHeader(keyword.end, keyword.name);
+    const text = source.slice(header.start, header.end);
+    const of = findOf(text);
+    const expected =
+      keyword.name === 'repeat' ? '"index of count"' : '"item of list" or "item, index of list"';
+    if (of === -1) {
+      fail(`Expected ${expected} after #${keyword.name}`, header.start);
+    }
+    const params = splitTopLevel(text.slice(0, of), ',').map((param) => param.trim());
+    const maxParams = keyword.name === 'repeat' ? 1 : 2;
+    if (params.length > maxParams || params.some((param) => !param)) {
+      fail(`Expected ${expected} after #${keyword.name}`, header.start);
+    }
+    const listStart = this.host.scanner.skipWhitespace(header.start + of + 2);
+    let listEnd = header.end;
+    while (isWhitespace(source[listEnd - 1])) {
+      listEnd--;
+    }
+
+    // Which parameters Solid passes as accessors.
+    const accessors =
+      keyword.name === 'for' ? [false, true] : keyword.name === 'index' ? [true, false] : [false];
+    const names: string[] = [];
+    const derefs: string[] = [];
+    params.forEach((param, position) => {
+      if (!accessors[position]) {
+        names.push(param);
+        return;
+      }
+      if (!/^[A-Za-z_$][\w$]*$/.test(param)) {
+        fail(`#${keyword.name} needs an identifier for "${param}"`, header.start);
+      }
+      const parameter = `__${param}`;
+      names.push(parameter);
+      derefs.push(`const ${param} = $derefMemo(${parameter});`);
+    });
+    const callback = derefs.length
+      ? `{(${names.join(', ')}) => { ${derefs.join(' ')} return <>`
+      : `{(${names.join(', ')}) => <>`;
+    const tag = keyword.name === 'repeat' ? 'Repeat' : 'For';
+    const close = `</>${derefs.length ? '; }' : ''}}</${tag}>`;
+    const prop = keyword.name === 'repeat' ? 'count' : 'each';
+    const keyed = keyword.name === 'index' ? ' keyed={false}' : '';
+
+    this.update(keyword.start, listStart, `<${tag} ${prop}={`);
+    this.update(listEnd, header.end + 1, `}${keyed}`);
+    const body = this.parseBody(header.end + 1, keyword.name);
+    this.update(header.end + 1, body.start, `>${callback}`);
+
+    const branch = this.nextBranch(body.end + 1, ['else']);
+    if (!branch) {
+      this.update(body.end, body.end + 1, close);
+      return body.end + 1;
+    }
+    const fallback = this.parseBody(branch.end, 'else');
+    this.update(body.end, fallback.start, close);
+    this.update(fallback.end, fallback.end + 1, '');
+    this.moveBody(fallback, header.end + 1, ' fallback={<>', '</>}');
+    return fallback.end + 1;
+  }
+
+  /** `#switch { #case (a) { A } #default { B } }` becomes `<Switch>` and `<Match>`. */
+  private parseSwitch(keyword: Keyword): number {
+    const { source, fail } = this.bind();
+    const open = this.host.scanner.skipWhitespace(keyword.end);
+    if (source[open] !== '{') {
+      fail('Expected "{" after #switch', open);
+    }
+    this.update(keyword.start, open + 1, `<${'Switch'}>`);
+    const match = 'Match';
+    let cursor = open + 1;
+    let hasDefault = false;
+    while (true) {
+      const next = this.skipTrivia(cursor);
+      // Whitespace and comments between cases are dropped.
+      this.update(cursor, next, '');
+      if (source[next] === '}') {
+        this.update(next, next + 1, `</${'Switch'}>`);
+        return next + 1;
+      }
+      const branch = source[next] === '#' ? this.readKeyword(next) : undefined;
+      if (!branch || (branch.name !== 'case' && branch.name !== 'default')) {
+        return fail('Expected #case, #default or "}" in #switch', next);
+      }
+      if (hasDefault) {
+        fail('#default must be the last branch of #switch', next);
+      }
+      let body: Body;
+      if (branch.name === 'case') {
+        const header = this.parseHeader(branch.end, 'case');
+        this.update(branch.start, header.start, `<${match} when={`);
+        body = this.parseBody(header.end + 1, 'case');
+        this.update(header.end, body.start, '}><>');
+      } else {
+        hasDefault = true;
+        body = this.parseBody(branch.end, 'default');
+        this.update(branch.start, body.start, `<${match} when={true}><>`);
+      }
+      this.update(body.end, body.end + 1, `</></${match}>`);
+      cursor = body.end + 1;
+    }
+  }
+
+  /**
+   * `#try { A } #catch (error, reset) { B }` becomes
+   * `<Errored fallback={(error, reset) => <>B</>}>A</Errored>`.
+   * `#loading { A } #fallback { B }` becomes `<Loading fallback={<>B</>}>A</Loading>`.
+   */
+  private parseBoundary(
+    keyword: Keyword,
+    tag: 'Errored' | 'Loading',
+    fallbackKeyword: 'catch' | 'fallback',
+  ): number {
+    const { source, fail } = this.bind();
+    const body = this.parseBody(keyword.end, keyword.name);
+    this.update(keyword.start, body.open, `<${tag}`);
+    this.update(body.open, body.start, '>');
+
+    const branch = this.nextBranch(body.end + 1, [fallbackKeyword]);
+    if (!branch) {
+      if (tag === 'Errored') {
+        fail('#try needs a #catch block', body.end);
+      }
+      this.update(body.end, body.end + 1, `</${tag}>`);
+      return body.end + 1;
+    }
+    let before = ' fallback={<>';
+    let after = '</>}';
+    let next = branch.end;
+    if (fallbackKeyword === 'catch' && source[this.host.scanner.skipWhitespace(next)] === '(') {
+      const header = this.parseHeader(next, 'catch');
+      const [error, reset, ...rest] = splitTopLevel(
+        source.slice(header.start, header.end),
+        ',',
+      ).map((param) => param.trim());
+      if (!error || rest.length > 0 || !/^[A-Za-z_$][\w$]*$/.test(error)) {
+        fail('Expected "(error)" or "(error, reset)" after #catch', header.start);
+      }
+      // The error is an accessor, so it becomes a reactive variable.
+      before = ` fallback={(__${error}${reset ? `, ${reset}` : ''}) => { const ${error} = $derefMemo(__${error}); return <>`;
+      after = '</>; }}';
+      next = header.end + 1;
+    }
+    const fallback = this.parseBody(next, fallbackKeyword);
+    this.update(body.end, fallback.start, `</${tag}>`);
+    this.update(fallback.end, fallback.end + 1, '');
+    this.moveBody(fallback, body.open, before, after);
+    return fallback.end + 1;
+  }
+
+  /** `#key (value) { A }` renders `A` again when `value` changes. */
+  private parseKey(keyword: Keyword): number {
+    this.usesKey = true;
+    const header = this.parseHeader(keyword.end, 'key');
+    this.update(keyword.start, header.start, `{${KEY_IDENTIFIER}(() => (`);
+    const body = this.parseBody(header.end + 1, 'key');
+    this.update(header.end, body.start, '), () => <>');
+    this.update(body.end, body.end + 1, '</>)}');
+    return body.end + 1;
+  }
+
+  private bind(): { source: string; fail: (message: string, offset: number) => never } {
+    const { host } = this;
+    return { source: host.source, fail: (message, offset) => host.fail(message, offset) };
+  }
+}
