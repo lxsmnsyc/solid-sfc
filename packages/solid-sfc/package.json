@@ -32,6 +32,10 @@
       "types": "./dist/vite.d.ts",
       "default": "./dist/vite.js"
     },
+    "./runtime": {
+      "types": "./dist/runtime.d.ts",
+      "default": "./dist/runtime.js"
+    },
     "./client": {
       "types": "./client.d.ts"
     },
@@ -48,7 +52,9 @@
   },
   "dependencies": {
     "magic-string": "^1.4.3",
-    "oxc-parser": "^0.154.0"
+    "oxc-parser": "^0.154.0",
+    "postcss": "^8.5.30",
+    "postcss-selector-parser": "^7.1.6"
   },
   "devDependencies": {
     "@babel/core": "^7.28.0",
@@ -56,7 +62,6 @@
     "@types/node": "^24.0.0",
     "solid-js": "^1.9.17",
     "solid-labels": "^0.17.0",
-    "solid-styled": "^0.12.1",
     "tsdown": "^0.23.1",
     "typescript": "^7.0.2",
     "vite": "^8.3.4",
@@ -67,7 +72,6 @@
     "@babel/core": "^7.25.0",
     "solid-js": "^1.9.0",
     "solid-labels": "^0.17.0",
-    "solid-styled": "^0.12.0",
     "vite": "^8.0.0",
     "vite-plugin-solid": "^2.11.0"
   },
@@ -76,9 +80,6 @@
       "optional": true
     },
     "solid-labels": {
-      "optional": true
-    },
-    "solid-styled": {
       "optional": true
     },
     "vite": {

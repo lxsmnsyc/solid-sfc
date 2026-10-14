@@ -1,6 +1,6 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`component > compiles a full component 1`] = `
+exports[`component > compiles a full component > code 1`] = `
 "
   export const version = 1;
 
@@ -9,7 +9,6 @@ export interface Props {
     items: string[];
   }
 type Item = string;
-import { css as __css } from 'solid-styled';
 export default function ItemList($$props: Props) {
 
   
@@ -18,16 +17,11 @@ export default function ItemList($$props: Props) {
   const props = $$props;
   let count = $signal(0);
 
-__css\`
-
-  li { color: \${color}; content: "\\\\201C"; }
-
-\`;
-__css\`@global {
-
-  body { margin: 0 }
-
-}\`;
+const __styleVariables = () => ({
+'--s-x-0': (
+color
+),
+});
 return (<>
 
 
@@ -41,9 +35,16 @@ return (<>
 
 
 <For each={(props.items)}>
-  {(item: Item) => <li onClick={(() => count++)}>{item}</li>}
+  {(item: Item) => <li s-x onClick={(() => count++)} style={__styleVariables()}>{item}</li>}
 </For>
 
 </>);
 }"
+`;
+
+exports[`component > compiles a full component > css 1`] = `
+"li[s-x] { color: var(--s-x-0); content: "\\201C"; }
+
+body { margin: 0 }
+"
 `;

@@ -1,24 +1,33 @@
+import { readFile } from 'node:fs/promises';
+import path from 'node:path';
 import type { TransformOptions } from '@babel/core';
 import solidLabels from 'solid-labels/babel';
-import { compile as compileStyles } from 'solid-styled/compiler';
-import type { SolidStyledOptions } from 'solid-styled/compiler';
 import { transformWithOxc } from 'vite';
 import type { Plugin } from 'vite';
 import solidPlugin from 'vite-plugin-solid';
 import type { Options as SolidPluginOptions } from 'vite-plugin-solid';
 import { compile } from './compile.ts';
+import type { CompileResult } from './compile.ts';
+import { hash } from './style.ts';
 
 export interface SolidSFCOptions {
   /** Options for `vite-plugin-solid`. */
   solid?: Partial<SolidPluginOptions>;
-  /** Options for `solid-styled`. */
-  styled?: SolidStyledOptions;
 }
 
 const EXTENSION = '.solid';
+const STYLE_QUERY = '?solid-sfc&type=style&lang.css';
+
+function splitId(id: string): { file: string; query: string } {
+  const index = id.indexOf('?');
+  return index === -1
+    ? { file: id, query: '' }
+    : { file: id.slice(0, index), query: id.slice(index) };
+}
 
 function isSFC(id: string): boolean {
-  return id.split('?', 1)[0]!.endsWith(EXTENSION);
+  const { file, query } = splitId(id);
+  return file.endsWith(EXTENSION) && !query.includes('solid-sfc');
 }
 
 async function getUserBabelOptions(
@@ -40,33 +49,48 @@ async function getUserBabelOptions(
  */
 export default function solidSFC(options: SolidSFCOptions = {}): Plugin[] {
   const solidOptions = options.solid ?? {};
-  let mode: 'development' | 'production' = 'production';
+  let root = process.cwd();
+
+  const compileFile = (code: string, file: string): CompileResult =>
+    compile(code, {
+      filename: file,
+      // The path from the root is the same on every machine.
+      scope: hash(path.relative(root, file).split(path.sep).join('/')),
+    });
 
   return [
     {
       name: 'solid-sfc',
       enforce: 'pre',
       configResolved(config) {
-        mode = config.isProduction ? 'production' : 'development';
+        root = config.root;
+      },
+      resolveId(source, importer) {
+        if (importer && source.endsWith(STYLE_QUERY)) {
+          return path.resolve(path.dirname(splitId(importer).file), source);
+        }
+        return null;
+      },
+      async load(id) {
+        const { file, query } = splitId(id);
+        if (query !== STYLE_QUERY) {
+          return null;
+        }
+        // Compile again instead of caching, so the CSS always matches the file.
+        const { css } = compileFile(await readFile(file, 'utf8'), file);
+        return css ? { code: css.code, map: css.map } : '';
       },
       transform(code, id) {
         if (!isSFC(id)) {
           return null;
         }
-        const result = compile(code, { filename: id.split('?', 1)[0] });
-        return { code: result.code, map: result.map };
-      },
-    },
-    {
-      name: 'solid-sfc:styled',
-      enforce: 'pre',
-      async transform(code, id) {
-        if (!isSFC(id) || !code.includes("from 'solid-styled'")) {
-          return null;
+        const { file } = splitId(id);
+        const result = compileFile(code, file);
+        let output = result.code;
+        if (result.css) {
+          output += `\nimport ${JSON.stringify(`./${path.basename(file)}${STYLE_QUERY}`)};`;
         }
-        // solid-styled picks its parser from the file extension.
-        const result = await compileStyles(`${id}.tsx`, code, { env: mode, ...options.styled });
-        return { code: result.code, map: result.map };
+        return { code: output, map: result.map };
       },
     },
     {
@@ -77,7 +101,7 @@ export default function solidSFC(options: SolidSFCOptions = {}): Plugin[] {
         if (!isSFC(id)) {
           return null;
         }
-        const result = await transformWithOxc(code, `${id.split('?', 1)[0]}.tsx`, {
+        const result = await transformWithOxc(code, `${splitId(id).file}.tsx`, {
           lang: 'tsx',
           jsx: 'preserve',
         });

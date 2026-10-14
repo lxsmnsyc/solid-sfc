@@ -99,9 +99,9 @@ describe('component', () => {
   {(item: Item) => <li onClick=(() => count++)>{item}</li>}
 </For>
 `;
-    const { code, hasStyles } = compile(source, { filename: '/src/item-list.solid' });
-    expect(hasStyles).toBe(true);
-    expect(code).toMatchSnapshot();
+    const { code, css } = compile(source, { filename: '/src/item-list.solid', scope: 'x' });
+    expect(code).toMatchSnapshot('code');
+    expect(css?.code).toMatchSnapshot('css');
     expectValidTSX(code);
   });
 

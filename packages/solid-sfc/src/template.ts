@@ -21,6 +21,8 @@ export interface TemplateResult {
   blocks: Block[];
   /** The parts of the file that are markup, in source order. */
   markup: Range[];
+  /** True if a `style` attribute is merged with the CSS variables. */
+  mergesStyle: boolean;
 }
 
 // HTML elements that never have children. They may be written without `/>`.
@@ -51,6 +53,19 @@ function matchAt(pattern: RegExp, source: string, offset: number): string | unde
   return pattern.exec(source)?.[0];
 }
 
+/** Scoping applied to native elements when the component has scoped styles. */
+export interface TemplateScope {
+  /** Attribute added to every native element. */
+  attribute: string;
+  /** Function that returns the CSS variables, if the styles have any. */
+  variables: string | undefined;
+  /** Helper that merges a `style` value with the CSS variables. */
+  mergeStyle: string;
+}
+
+// Lowercase tags are native elements. Components and namespaced tags are not.
+const NATIVE_ELEMENT = /^[a-z][\w-]*$/;
+
 /** Where an attribute value ends up in the output. */
 type ValueContext = 'attribute' | 'expression';
 
@@ -64,15 +79,19 @@ export class TemplateParser {
   private readonly output: MagicString;
   private readonly scanner: Scanner;
   private readonly fail: (message: string, offset: number) => never;
+  private readonly scope: TemplateScope | undefined;
+  private mergesStyle = false;
 
   constructor(
     source: string,
     output: MagicString,
     fail: (message: string, offset: number) => never,
+    scope?: TemplateScope,
   ) {
     this.source = source;
     this.output = output;
     this.fail = fail;
+    this.scope = scope;
     this.scanner = new Scanner(source, {
       error: fail,
       element: (offset) => this.parseElement(offset),
@@ -94,7 +113,7 @@ export class TemplateParser {
     if (start < this.source.length) {
       markup.push({ start, end: this.source.length });
     }
-    return { blocks, markup };
+    return { blocks, markup, mergesStyle: this.mergesStyle };
   }
 
   /**
@@ -184,7 +203,15 @@ export class TemplateParser {
     if (!name) {
       return this.fail('Expected a tag name', offset + 1);
     }
-    const { end, selfClosing } = this.parseAttributes(offset + 1 + name.length);
+    const nameEnd = offset + 1 + name.length;
+    const scope = this.scope && NATIVE_ELEMENT.test(name) ? this.scope : undefined;
+    if (scope) {
+      this.output.appendLeft(nameEnd, ` ${scope.attribute}`);
+    }
+    const { end, attributesEnd, selfClosing, hasStyle } = this.parseAttributes(nameEnd, scope);
+    if (scope?.variables && !hasStyle) {
+      this.output.appendLeft(attributesEnd, ` style={${scope.variables}()}`);
+    }
     if (selfClosing) {
       return end;
     }
@@ -210,10 +237,18 @@ export class TemplateParser {
     return i + 1;
   }
 
-  private parseAttributes(offset: number): { end: number; selfClosing: boolean } {
+  private parseAttributes(
+    offset: number,
+    scope: TemplateScope | undefined,
+  ): { end: number; attributesEnd: number; selfClosing: boolean; hasStyle: boolean } {
     const { source, output } = this;
+    // The CSS variables are merged into the `style` attribute, if any.
+    const variables = scope?.variables;
+    const mergedStyle = `style={${scope?.mergeStyle}(style, ${variables}())}`;
+    let hasStyle = false;
     let i = offset;
     while (true) {
+      const attributesEnd = i;
       const start = this.scanner.skipWhitespace(i);
       if (start === i && i !== offset && !'/>'.includes(source[i] ?? '')) {
         this.fail('Expected whitespace between attributes', i);
@@ -224,17 +259,22 @@ export class TemplateParser {
         this.fail('Unexpected end of file inside a tag', offset);
       }
       if (char === '/' && source[i + 1] === '>') {
-        return { end: i + 2, selfClosing: true };
+        return { end: i + 2, attributesEnd, selfClosing: true, hasStyle };
       }
       if (char === '>') {
-        return { end: i + 1, selfClosing: false };
+        return { end: i + 1, attributesEnd, selfClosing: false, hasStyle };
       }
       if (char === '{') {
         // `{...spread}` is kept, `{name}` becomes `name={name}`.
         const close = this.scanner.scanExpression(i + 1, '}');
         const inner = source.slice(i + 1, close).trim();
-        if (IDENTIFIER.test(inner)) {
-          output.appendLeft(i, `${inner}=`);
+        if (variables && inner === 'style') {
+          output.update(i, close + 1, mergedStyle);
+          hasStyle = true;
+          this.mergesStyle = true;
+        } else if (IDENTIFIER.test(inner)) {
+          // The scope attribute may end right before this one.
+          output.appendLeft(i, `${start === offset ? ' ' : ''}${inner}=`);
         } else if (!inner.startsWith('...')) {
           this.fail('Expected a spread or a shorthand attribute', i);
         }
@@ -246,8 +286,14 @@ export class TemplateParser {
         if (!IDENTIFIER.test(inner)) {
           this.fail('Expected an identifier', i + 1);
         }
-        output.update(i, i + 1, `${inner}={`);
-        output.update(close, close + 1, '}');
+        if (variables && inner === 'style') {
+          output.update(i, close + 1, mergedStyle);
+          hasStyle = true;
+          this.mergesStyle = true;
+        } else {
+          output.update(i, i + 1, `${inner}={`);
+          output.update(close, close + 1, '}');
+        }
         i = close + 1;
       } else if (char === '[') {
         // `[name]=value` becomes `{...{ [name]: value }}`.
@@ -270,7 +316,14 @@ export class TemplateParser {
         }
         const nameEnd = i + name.length;
         const equals = this.scanner.skipWhitespace(nameEnd);
-        if (source[equals] === '=') {
+        if (source[equals] === '=' && variables && name === 'style') {
+          const valueStart = this.scanner.skipWhitespace(equals + 1);
+          output.appendLeft(valueStart, `{${scope.mergeStyle}(`);
+          i = this.parseValue(valueStart, 'expression');
+          output.appendLeft(i, `, ${variables}())}`);
+          hasStyle = true;
+          this.mergesStyle = true;
+        } else if (source[equals] === '=') {
           i = this.parseValue(this.scanner.skipWhitespace(equals + 1), 'attribute');
         } else {
           i = nameEnd;

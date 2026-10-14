@@ -1,24 +1,33 @@
 import { Bundle, MagicString } from 'magic-string';
 import { SFCError } from './error.ts';
-import { Scanner } from './scanner.ts';
 import { PROPS_IDENTIFIER, analyzeInstanceScript, analyzeModuleScript } from './script.ts';
-import type { Block, Range } from './template.ts';
+import type { SourceMap } from './style.ts';
+import { getScopeAttribute, getVariableName, hash, processStyles } from './style.ts';
+import type { Block, Range, TemplateScope } from './template.ts';
 import { TemplateParser } from './template.ts';
+
+export type { SourceMap };
 
 export interface CompileOptions {
   /** Used for error messages, the source map and the component name. */
   filename?: string;
+  /**
+   * Identifies the component in scoped styles. It must be unique and stable
+   * across builds. Defaults to a hash of `filename`.
+   */
+  scope?: string;
 }
 
 export interface CompileResult {
-  /** TSX code. It still uses `solid-labels` and `solid-styled` syntax. */
+  /** TSX code. It still uses `solid-labels` syntax. */
   code: string;
-  map: ReturnType<Bundle['generateMap']>;
-  /** True if the component has `<style>` blocks. */
-  hasStyles: boolean;
+  map: SourceMap;
+  /** The stylesheet of the component, if it has `<style>` blocks. */
+  css: { code: string; map: SourceMap } | undefined;
 }
 
-const CSS_IDENTIFIER = '__css';
+const VARIABLES_IDENTIFIER = '__styleVariables';
+const MERGE_STYLE_IDENTIFIER = '__mergeStyle';
 
 function getComponentName(filename: string | undefined): string {
   const base = filename?.split(/[\\/]/).pop()?.split('.')[0] ?? '';
@@ -33,26 +42,6 @@ function getComponentName(filename: string | undefined): string {
   return name;
 }
 
-/**
- * Escapes a `<style>` body so it can be placed in a template literal.
- * `${...}` interpolations are kept, so styles can use reactive values.
- */
-function escapeStyle(output: MagicString, scanner: Scanner, block: Block): void {
-  const { source } = scanner;
-  let i = block.contentStart;
-  while (i < block.contentEnd) {
-    const char = source[i];
-    if (char === '$' && source[i + 1] === '{') {
-      i = scanner.scanExpression(i + 2, '}') + 1;
-    } else {
-      if (char === '\\' || char === '`') {
-        output.prependRight(i, '\\');
-      }
-      i++;
-    }
-  }
-}
-
 /** Compiles a `.solid` file into a TSX module. */
 export function compile(source: string, options: CompileOptions = {}): CompileResult {
   const { filename } = options;
@@ -60,8 +49,8 @@ export function compile(source: string, options: CompileOptions = {}): CompileRe
     throw new SFCError(message, source, offset, filename);
   };
 
-  const output = new MagicString(source, { filename });
-  const { blocks, markup } = new TemplateParser(source, output, fail).parse();
+  // The first pass finds the blocks. Scoping the markup needs the styles.
+  const { blocks } = new TemplateParser(source, new MagicString(source), fail).parse();
 
   let instance: Block | undefined;
   let module: Block | undefined;
@@ -81,6 +70,22 @@ export function compile(source: string, options: CompileOptions = {}): CompileRe
       instance = block;
     }
   }
+
+  const scope = options.scope ?? hash(filename ?? source);
+  const css =
+    styles.length > 0
+      ? processStyles({ source, blocks: styles, scope, filename, fail })
+      : undefined;
+  const templateScope: TemplateScope | undefined = css?.scoped
+    ? {
+        attribute: getScopeAttribute(scope),
+        variables: css.variables.length > 0 ? VARIABLES_IDENTIFIER : undefined,
+        mergeStyle: MERGE_STYLE_IDENTIFIER,
+      }
+    : undefined;
+
+  const output = new MagicString(source, { filename });
+  const { markup, mergesStyle } = new TemplateParser(source, output, fail, templateScope).parse();
 
   const bundle = new Bundle({ separator: '\n' });
   const addRange = (start: number, end: number, edit?: (snip: MagicString) => void): void => {
@@ -126,8 +131,8 @@ export function compile(source: string, options: CompileOptions = {}): CompileRe
     }
   }
 
-  if (styles.length > 0) {
-    addText(`import { css as ${CSS_IDENTIFIER} } from 'solid-styled';`);
+  if (mergesStyle) {
+    addText(`import { mergeStyle as ${MERGE_STYLE_IDENTIFIER} } from 'solid-sfc/runtime';`);
   }
 
   addText(
@@ -142,16 +147,14 @@ export function compile(source: string, options: CompileOptions = {}): CompileRe
     });
   }
 
-  const scanner = new Scanner(source, {
-    error: fail,
-    element: (offset) => fail('Unexpected element in a style interpolation', offset),
-  });
-  for (const style of styles) {
-    escapeStyle(output, scanner, style);
-    const global = style.attributes.global === true;
-    addText(`${CSS_IDENTIFIER}\`${global ? '@global {' : ''}`);
-    addRange(style.contentStart, style.contentEnd);
-    addText(`${global ? '}' : ''}\`;`);
+  if (templateScope?.variables && css) {
+    addText(`const ${VARIABLES_IDENTIFIER} = () => ({`);
+    css.variables.forEach((range, index) => {
+      addText(`'${getVariableName(scope, index)}': (`);
+      addRange(range.start, range.end);
+      addText('),');
+    });
+    addText('});');
   }
 
   addText('return (<>');
@@ -162,7 +165,7 @@ export function compile(source: string, options: CompileOptions = {}): CompileRe
 
   return {
     code: bundle.toString(),
-    map: bundle.generateMap({ hires: true, includeContent: true, file: filename }),
-    hasStyles: styles.length > 0,
+    map: bundle.generateMap({ hires: true, includeContent: true, file: filename }) as SourceMap,
+    css: css && { code: css.code, map: css.map },
   };
 }
