@@ -1,28 +1,24 @@
 {
   "name": "counter",
-  "version": "0.2.0",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "serve": "vite preview"
-  },
-  "devDependencies": {
-    "autoprefixer": "^10.4.7",
-    "babel-plugin-solid-sfc": "0.2.0",
-    "eslint": "^8.16.0",
-    "eslint-config-lxsmnsyc": "^0.4.0",
-    "postcss": "^8.4.14",
-    "solid-refresh": "^0.4.0",
-    "typescript": "^4.6.4",
-    "vite": "^2.9.9",
-    "vite-plugin-solid": "^2.2.6"
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "solid-js": "^1.4.2",
-    "tailwindcss": "^3.0.24"
+    "solid-js": "^1.9.17",
+    "solid-styled": "^0.12.1"
   },
-  "private": true,
-  "publishConfig": {
-    "access": "restricted"
+  "devDependencies": {
+    "@babel/core": "^7.28.0",
+    "solid-labels": "^0.17.0",
+    "solid-sfc": "workspace:*",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.4",
+    "vite-plugin-solid": "^2.11.14"
   }
 }

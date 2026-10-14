@@ -1,0 +1,41 @@
+<script>
+  import Message from './Message.solid';
+
+  let count = $signal(0);
+  const message = $memo(`Count: ${count}`);
+
+  function increment() {
+    count += 1;
+  }
+
+  function decrement() {
+    count -= 1;
+  }
+</script>
+
+<style>
+  div {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    padding: 0.5rem;
+    border-radius: 0.5rem;
+    color: ${count > 3 ? 'gold' : 'white'};
+    background: rgb(17 24 39 / 10%);
+  }
+
+  button {
+    padding: 0.5rem;
+    border: none;
+    border-radius: 0.5rem;
+    color: inherit;
+    background: rgb(17 24 39 / 10%);
+  }
+</style>
+
+<div>
+  <!-- Optional braces: identifiers and literals need none. -->
+  <button type="button" onClick=increment>Increment</button>
+  <Message (message) />
+  <button type="button" onClick=decrement disabled=(count <= 0)>Decrement</button>
+</div>

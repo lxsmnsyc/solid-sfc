@@ -1,0 +1,49 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`component > compiles a full component 1`] = `
+"
+  export const version = 1;
+
+import { For } from 'solid-js';
+export interface Props {
+    items: string[];
+  }
+type Item = string;
+import { css as __css } from 'solid-styled';
+export default function ItemList($$props: Props) {
+
+  
+  
+  
+  const props = $$props;
+  let count = $signal(0);
+
+__css\`
+
+  li { color: \${color}; content: "\\\\201C"; }
+
+\`;
+__css\`@global {
+
+  body { margin: 0 }
+
+}\`;
+return (<>
+
+
+
+
+
+
+
+
+
+
+
+<For each={(props.items)}>
+  {(item: Item) => <li onClick={(() => count++)}>{item}</li>}
+</For>
+
+</>);
+}"
+`;
