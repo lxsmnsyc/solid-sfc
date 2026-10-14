@@ -1,0 +1,9 @@
+**
+!dist/*.cjs
+!dist/*.wasm
+!dist/lib.*.d.ts
+!syntaxes/**
+!language-configuration.json
+!package.json
+!README.md
+!LICENSE

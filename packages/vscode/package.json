@@ -1,0 +1,75 @@
+{
+  "name": "solid-sfc-vscode",
+  "displayName": "Solid SFC",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Language support for solid-sfc .solid files",
+  "categories": [
+    "Programming Languages"
+  ],
+  "keywords": [
+    "sfc",
+    "solid-js"
+  ],
+  "license": "MIT",
+  "author": "Alexis Munsayac",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lxsmnsyc/solid-sfc.git",
+    "directory": "packages/vscode"
+  },
+  "publisher": "lxsmnsyc",
+  "main": "./dist/extension.cjs",
+  "scripts": {
+    "build": "tsdown",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "package": "vsce package --no-dependencies"
+  },
+  "devDependencies": {
+    "@oxc-parser/binding-wasm32-wasip1": "0.154.0",
+    "@solid-sfc/language-server": "workspace:*",
+    "@types/node": "^24.0.0",
+    "@types/vscode": "~1.100.0",
+    "@volar/language-server": "2.4.28",
+    "@volar/vscode": "2.4.28",
+    "@vscode/vsce": "^4.0.0",
+    "tsdown": "^0.23.1",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.4",
+    "vscode-oniguruma": "^2.0.1",
+    "vscode-textmate": "^9.3.2"
+  },
+  "contributes": {
+    "languages": [
+      {
+        "id": "solid",
+        "aliases": [
+          "Solid SFC",
+          "solid"
+        ],
+        "extensions": [
+          ".solid"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "solid",
+        "scopeName": "source.solid",
+        "path": "./syntaxes/solid.tmLanguage.json",
+        "embeddedLanguages": {
+          "source.tsx": "typescriptreact",
+          "source.css": "css"
+        }
+      }
+    ]
+  },
+  "activationEvents": [
+    "onLanguage:solid"
+  ],
+  "engines": {
+    "vscode": "^1.100.0"
+  }
+}

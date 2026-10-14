@@ -32,6 +32,8 @@ export interface CompileResult {
   css: { code: string; map: SourceMap } | undefined;
 }
 
+export interface StructureResult extends CompileResult {}
+
 const VARIABLES_IDENTIFIER = '__styleVariables';
 const MERGE_STYLE_IDENTIFIER = '__mergeStyle';
 
@@ -48,12 +50,20 @@ function getComponentName(filename: string | undefined): string {
   return name;
 }
 
-/** Compiles a `.solid` file into a TSX module. */
-export function compile(source: string, options: CompileOptions = {}): CompileResult {
-  const { filename } = options;
-  const fail = (message: string, offset: number): never => {
+function createFail(source: string, filename: string | undefined) {
+  return (message: string, offset: number): never => {
     throw new SFCError(message, source, offset, filename);
   };
+}
+
+/**
+ * Compiles a `.solid` file into a TSX module, without replacing compile-time
+ * functions. Type-checking uses this code, because the global declarations
+ * of the compile-time functions already describe it.
+ */
+export function compileStructure(source: string, options: CompileOptions = {}): StructureResult {
+  const { filename } = options;
+  const fail = createFail(source, filename);
 
   // The first pass finds the blocks. Scoping the markup needs the styles.
   const { blocks } = new TemplateParser(source, new MagicString(source), fail).parse();
@@ -118,7 +128,7 @@ export function compile(source: string, options: CompileOptions = {}): CompileRe
     addRange(module.contentStart, module.contentEnd);
   }
 
-  let propsType = '{}';
+  let parameters = '';
   let generics = '';
   let hoisted: Range[] = [];
   if (instance) {
@@ -139,8 +149,9 @@ export function compile(source: string, options: CompileOptions = {}): CompileRe
     for (const range of hoisted) {
       addRange(range.start, range.end);
     }
+    // Unused props get no parameter, so `noUnusedParameters` does not report it.
     if (analysis.propsCalls.length > 0) {
-      propsType = analysis.propsType ?? 'Record<string, any>';
+      parameters = `${PROPS_IDENTIFIER}: ${analysis.propsType ?? 'Record<string, any>'}`;
     }
     const { generics: value } = instance.attributes;
     if (typeof value === 'string') {
@@ -155,9 +166,7 @@ export function compile(source: string, options: CompileOptions = {}): CompileRe
     addText(`import { mergeStyle as ${MERGE_STYLE_IDENTIFIER} } from 'solid-sfc/runtime';`);
   }
 
-  addText(
-    `export default function ${getComponentName(filename)}${generics}(${PROPS_IDENTIFIER}: ${propsType}) {`,
-  );
+  addText(`export default function ${getComponentName(filename)}${generics}(${parameters}) {`);
 
   if (instance) {
     addRange(instance.contentStart, instance.contentEnd, (snip) => {
@@ -183,8 +192,17 @@ export function compile(source: string, options: CompileOptions = {}): CompileRe
   }
   addText('</>);\n}');
 
-  const structure = bundle.toString();
-  const structureMap = bundle.generateMap({ hires: true, includeContent: true, file: filename });
+  return {
+    code: bundle.toString(),
+    map: bundle.generateMap({ hires: true, includeContent: true, file: filename }) as SourceMap,
+    css: css && { code: css.code, map: css.map },
+  };
+}
+
+/** Compiles a `.solid` file into a TSX module. */
+export function compile(source: string, options: CompileOptions = {}): CompileResult {
+  const fail = createFail(source, options.filename);
+  const { code: structure, map: structureMap, css } = compileStructure(source, options);
 
   // Compile-time functions are replaced on the generated TSX, because the
   // markup expressions are only valid JavaScript after the first step.
@@ -216,7 +234,7 @@ export function compile(source: string, options: CompileOptions = {}): CompileRe
 
   return {
     code: ctf.code,
-    map: { ...map, version: 3, file: filename } as SourceMap,
+    map: { ...map, version: 3, file: options.filename } as SourceMap,
     css: css && { code: css.code, map: css.map },
   };
 }

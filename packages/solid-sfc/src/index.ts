@@ -1,3 +1,3 @@
-export { compile } from './compile.ts';
-export type { CompileOptions, CompileResult } from './compile.ts';
+export { compile, compileStructure } from './compile.ts';
+export type { CompileOptions, CompileResult, SourceMap, StructureResult } from './compile.ts';
 export { SFCError } from './error.ts';

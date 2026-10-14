@@ -9,6 +9,10 @@ See the [package README](./packages/solid-sfc/README.md) for usage.
 ## Packages
 
 - [`solid-sfc`](./packages/solid-sfc) is the compiler and the Vite plugin.
+- [`@solid-sfc/language-core`](./packages/language-core) is the Volar language plugin.
+- [`@solid-sfc/tsc`](./packages/tsc) type-checks projects with `.solid` files.
+- [`@solid-sfc/language-server`](./packages/language-server) is the language server.
+- [`solid-sfc-vscode`](./packages/vscode) is the VS Code extension.
 
 ## Examples
 

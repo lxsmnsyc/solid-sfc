@@ -1,0 +1,615 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Solid SFC",
+  "scopeName": "source.solid",
+  "fileTypes": ["solid"],
+  "patterns": [
+    {
+      "include": "#comment"
+    },
+    {
+      "include": "#script"
+    },
+    {
+      "include": "#style"
+    },
+    {
+      "include": "#markup"
+    }
+  ],
+  "repository": {
+    "comment": {
+      "name": "comment.block.solid",
+      "begin": "<!--",
+      "end": "-->",
+      "captures": {
+        "0": {
+          "name": "punctuation.definition.comment.solid"
+        }
+      }
+    },
+    "script": {
+      "begin": "(<)(script)\\b(?=[^>]*>)",
+      "end": "(</)(script)\\s*(>)",
+      "beginCaptures": {
+        "1": {
+          "name": "punctuation.definition.tag.begin.solid"
+        },
+        "2": {
+          "name": "entity.name.tag.script.solid"
+        }
+      },
+      "endCaptures": {
+        "1": {
+          "name": "punctuation.definition.tag.begin.solid"
+        },
+        "2": {
+          "name": "entity.name.tag.script.solid"
+        },
+        "3": {
+          "name": "punctuation.definition.tag.end.solid"
+        }
+      },
+      "patterns": [
+        {
+          "include": "#block-attributes"
+        },
+        {
+          "begin": "(>)",
+          "beginCaptures": {
+            "1": {
+              "name": "punctuation.definition.tag.end.solid"
+            }
+          },
+          "end": "(?=</script\\s*>)",
+          "contentName": "source.tsx",
+          "patterns": [
+            {
+              "include": "source.tsx"
+            }
+          ]
+        }
+      ]
+    },
+    "style": {
+      "begin": "(<)(style)\\b(?=[^>]*>)",
+      "end": "(</)(style)\\s*(>)",
+      "beginCaptures": {
+        "1": {
+          "name": "punctuation.definition.tag.begin.solid"
+        },
+        "2": {
+          "name": "entity.name.tag.style.solid"
+        }
+      },
+      "endCaptures": {
+        "1": {
+          "name": "punctuation.definition.tag.begin.solid"
+        },
+        "2": {
+          "name": "entity.name.tag.style.solid"
+        },
+        "3": {
+          "name": "punctuation.definition.tag.end.solid"
+        }
+      },
+      "patterns": [
+        {
+          "include": "#block-attributes"
+        },
+        {
+          "begin": "(>)",
+          "beginCaptures": {
+            "1": {
+              "name": "punctuation.definition.tag.end.solid"
+            }
+          },
+          "end": "(?=</style\\s*>)",
+          "contentName": "source.css",
+          "patterns": [
+            {
+              "include": "#style-interpolation"
+            },
+            {
+              "include": "source.css"
+            }
+          ]
+        }
+      ]
+    },
+    "style-interpolation": {
+      "begin": "\\$\\{",
+      "end": "\\}",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.template-expression.begin.solid"
+        }
+      },
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.template-expression.end.solid"
+        }
+      },
+      "contentName": "meta.embedded.expression.tsx",
+      "patterns": [
+        {
+          "include": "#braces"
+        },
+        {
+          "include": "source.tsx"
+        }
+      ]
+    },
+    "block-attributes": {
+      "patterns": [
+        {
+          "match": "([A-Za-z_$][\\w$:-]*)(?:\\s*(=)\\s*(\"[^\"]*\"|'[^']*'))?",
+          "captures": {
+            "1": {
+              "name": "entity.other.attribute-name.solid"
+            },
+            "2": {
+              "name": "punctuation.separator.key-value.solid"
+            },
+            "3": {
+              "name": "string.quoted.solid"
+            }
+          }
+        }
+      ]
+    },
+    "markup": {
+      "patterns": [
+        {
+          "include": "#comment"
+        },
+        {
+          "include": "#control"
+        },
+        {
+          "include": "#block-end"
+        },
+        {
+          "include": "#closing-tag"
+        },
+        {
+          "include": "#tag"
+        },
+        {
+          "include": "#expression"
+        },
+        {
+          "include": "#entity"
+        }
+      ]
+    },
+    "control": {
+      "comment": "Each rule covers one keyword, its header and its body, and ends after the body's `}`.",
+      "patterns": [
+        {
+          "begin": "(?<![\\w$])(#)(for|index|repeat)\\b(?=\\s*\\()",
+          "end": "(?<=\\})",
+          "beginCaptures": {
+            "1": {
+              "name": "keyword.control.flow.solid"
+            },
+            "2": {
+              "name": "keyword.control.flow.solid"
+            }
+          },
+          "patterns": [
+            {
+              "begin": "\\(",
+              "end": "\\)",
+              "captures": {
+                "0": {
+                  "name": "meta.brace.round.solid"
+                }
+              },
+              "contentName": "meta.embedded.expression.tsx",
+              "patterns": [
+                {
+                  "match": "(?<=\\s)of(?=\\s)",
+                  "name": "keyword.operator.expression.of.solid"
+                },
+                {
+                  "include": "#parens"
+                },
+                {
+                  "include": "source.tsx"
+                }
+              ]
+            },
+            {
+              "begin": "\\{",
+              "end": "\\}",
+              "beginCaptures": {
+                "0": {
+                  "name": "punctuation.section.block.begin.solid"
+                }
+              },
+              "endCaptures": {
+                "0": {
+                  "name": "punctuation.section.block.end.solid"
+                }
+              },
+              "patterns": [
+                {
+                  "include": "#markup"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "begin": "(?<![\\w$])(#)(if|else\\s+if|case|catch|key)\\b(?=\\s*\\()",
+          "end": "(?<=\\})",
+          "beginCaptures": {
+            "1": {
+              "name": "keyword.control.flow.solid"
+            },
+            "2": {
+              "name": "keyword.control.flow.solid"
+            }
+          },
+          "patterns": [
+            {
+              "begin": "\\(",
+              "end": "\\)",
+              "captures": {
+                "0": {
+                  "name": "meta.brace.round.solid"
+                }
+              },
+              "contentName": "meta.embedded.expression.tsx",
+              "patterns": [
+                {
+                  "include": "#parens"
+                },
+                {
+                  "include": "source.tsx"
+                }
+              ]
+            },
+            {
+              "begin": "\\{",
+              "end": "\\}",
+              "beginCaptures": {
+                "0": {
+                  "name": "punctuation.section.block.begin.solid"
+                }
+              },
+              "endCaptures": {
+                "0": {
+                  "name": "punctuation.section.block.end.solid"
+                }
+              },
+              "patterns": [
+                {
+                  "include": "#markup"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "begin": "(?<![\\w$])(#)(else|switch|default|try|catch|loading|fallback)\\b(?=\\s*\\{)",
+          "end": "(?<=\\})",
+          "beginCaptures": {
+            "1": {
+              "name": "keyword.control.flow.solid"
+            },
+            "2": {
+              "name": "keyword.control.flow.solid"
+            }
+          },
+          "patterns": [
+            {
+              "begin": "\\{",
+              "end": "\\}",
+              "beginCaptures": {
+                "0": {
+                  "name": "punctuation.section.block.begin.solid"
+                }
+              },
+              "endCaptures": {
+                "0": {
+                  "name": "punctuation.section.block.end.solid"
+                }
+              },
+              "patterns": [
+                {
+                  "include": "#markup"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "block-end": {
+      "match": "\\}",
+      "name": "invalid.illegal.solid"
+    },
+    "closing-tag": {
+      "match": "(</)(?:([a-z][\\w-]*(?::[\\w-]+)?)|([A-Za-z_$][\\w$.:-]*))?\\s*(>)",
+      "captures": {
+        "1": {
+          "name": "punctuation.definition.tag.begin.solid"
+        },
+        "2": {
+          "name": "entity.name.tag.solid"
+        },
+        "3": {
+          "name": "support.class.component.solid"
+        },
+        "4": {
+          "name": "punctuation.definition.tag.end.solid"
+        }
+      }
+    },
+    "tag": {
+      "begin": "(<)(?:([a-z][\\w-]*(?::[\\w-]+)?)|([A-Za-z_$][\\w$.:-]*))?",
+      "end": "(/?>)",
+      "beginCaptures": {
+        "1": {
+          "name": "punctuation.definition.tag.begin.solid"
+        },
+        "2": {
+          "name": "entity.name.tag.solid"
+        },
+        "3": {
+          "name": "support.class.component.solid"
+        }
+      },
+      "endCaptures": {
+        "1": {
+          "name": "punctuation.definition.tag.end.solid"
+        }
+      },
+      "patterns": [
+        {
+          "include": "#attribute"
+        }
+      ]
+    },
+    "attribute": {
+      "patterns": [
+        {
+          "comment": "`{...spread}` and the `{name}` shorthand.",
+          "begin": "\\{",
+          "end": "\\}",
+          "captures": {
+            "0": {
+              "name": "punctuation.section.embedded.solid"
+            }
+          },
+          "contentName": "meta.embedded.expression.tsx",
+          "patterns": [
+            {
+              "include": "#braces"
+            },
+            {
+              "include": "source.tsx"
+            }
+          ]
+        },
+        {
+          "comment": "The `(name)` shorthand.",
+          "begin": "\\(",
+          "end": "\\)",
+          "captures": {
+            "0": {
+              "name": "meta.brace.round.solid"
+            }
+          },
+          "contentName": "meta.embedded.expression.tsx",
+          "patterns": [
+            {
+              "include": "#parens"
+            },
+            {
+              "include": "source.tsx"
+            }
+          ]
+        },
+        {
+          "comment": "A computed attribute name, `[name]`.",
+          "begin": "\\[",
+          "end": "\\]",
+          "captures": {
+            "0": {
+              "name": "meta.brace.square.solid"
+            }
+          },
+          "contentName": "meta.embedded.expression.tsx",
+          "patterns": [
+            {
+              "include": "#brackets"
+            },
+            {
+              "include": "source.tsx"
+            }
+          ]
+        },
+        {
+          "match": "[A-Za-z_$][\\w$-]*(?::[A-Za-z_$][\\w$-]*)?",
+          "name": "entity.other.attribute-name.solid"
+        },
+        {
+          "begin": "=",
+          "end": "(?<=[\"'`)}\\]>\\w$.])(?=[\\s/>])|(?=/?>)",
+          "beginCaptures": {
+            "0": {
+              "name": "punctuation.separator.key-value.solid"
+            }
+          },
+          "patterns": [
+            {
+              "include": "#attribute-value"
+            }
+          ]
+        }
+      ]
+    },
+    "attribute-value": {
+      "patterns": [
+        {
+          "match": "\"[^\"]*\"",
+          "name": "string.quoted.double.solid"
+        },
+        {
+          "match": "'[^']*'",
+          "name": "string.quoted.single.solid"
+        },
+        {
+          "comment": "Braces hold an object literal.",
+          "begin": "\\{",
+          "end": "\\}",
+          "captures": {
+            "0": {
+              "name": "punctuation.section.embedded.solid"
+            }
+          },
+          "contentName": "meta.embedded.expression.tsx",
+          "patterns": [
+            {
+              "include": "#braces"
+            },
+            {
+              "include": "source.tsx"
+            }
+          ]
+        },
+        {
+          "begin": "\\(",
+          "end": "\\)",
+          "captures": {
+            "0": {
+              "name": "meta.brace.round.solid"
+            }
+          },
+          "contentName": "meta.embedded.expression.tsx",
+          "patterns": [
+            {
+              "include": "#parens"
+            },
+            {
+              "include": "source.tsx"
+            }
+          ]
+        },
+        {
+          "begin": "\\[",
+          "end": "\\]",
+          "captures": {
+            "0": {
+              "name": "meta.brace.square.solid"
+            }
+          },
+          "contentName": "meta.embedded.expression.tsx",
+          "patterns": [
+            {
+              "include": "#brackets"
+            },
+            {
+              "include": "source.tsx"
+            }
+          ]
+        },
+        {
+          "begin": "`",
+          "end": "`",
+          "name": "string.template.solid",
+          "patterns": [
+            {
+              "include": "#style-interpolation"
+            }
+          ]
+        },
+        {
+          "include": "#tag"
+        },
+        {
+          "match": "(?:true|false|null|undefined)(?=[\\s/>])",
+          "name": "constant.language.solid"
+        },
+        {
+          "match": "-?[0-9][\\w.]*(?=[\\s/>])",
+          "name": "constant.numeric.solid"
+        },
+        {
+          "match": "/(?:\\\\.|[^/\\\\\\n])+/[a-z]*",
+          "name": "string.regexp.solid"
+        },
+        {
+          "match": "[A-Za-z_$][\\w$.]*(?=[\\s/>])",
+          "name": "variable.other.readwrite.solid"
+        }
+      ]
+    },
+    "expression": {
+      "begin": "\\{",
+      "end": "\\}",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.section.embedded.begin.solid"
+        }
+      },
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.section.embedded.end.solid"
+        }
+      },
+      "contentName": "meta.embedded.expression.tsx",
+      "patterns": [
+        {
+          "include": "#braces"
+        },
+        {
+          "include": "source.tsx"
+        }
+      ]
+    },
+    "braces": {
+      "begin": "\\{",
+      "end": "\\}",
+      "patterns": [
+        {
+          "include": "#braces"
+        },
+        {
+          "include": "source.tsx"
+        }
+      ]
+    },
+    "parens": {
+      "begin": "\\(",
+      "end": "\\)",
+      "patterns": [
+        {
+          "include": "#parens"
+        },
+        {
+          "include": "source.tsx"
+        }
+      ]
+    },
+    "brackets": {
+      "begin": "\\[",
+      "end": "\\]",
+      "patterns": [
+        {
+          "include": "#brackets"
+        },
+        {
+          "include": "source.tsx"
+        }
+      ]
+    },
+    "entity": {
+      "match": "&(?:[a-zA-Z0-9]+|#[0-9]+|#x[0-9a-fA-F]+);",
+      "name": "constant.character.entity.solid"
+    }
+  }
+}

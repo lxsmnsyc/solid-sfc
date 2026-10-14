@@ -239,9 +239,16 @@ const { code, map, css } = compile(source, {
 
 Syntax errors throw an `SFCError` with `line` and `column`.
 
+## Editor support
+
+- [VS Code extension](https://github.com/lxsmnsyc/solid-sfc/tree/main/packages/vscode): highlighting, type checking, hover, completion and go-to-definition.
+- [`@solid-sfc/tsc`](https://github.com/lxsmnsyc/solid-sfc/tree/main/packages/tsc): type-checks `.solid` files from the command line with `solid-tsc --noEmit`.
+- [`@solid-sfc/language-server`](https://github.com/lxsmnsyc/solid-sfc/tree/main/packages/language-server): the language server, for other editors.
+
+Without these tools, `tsc` types imports of `.solid` files as `Component<any>`.
+
 ## Limitations
 
-- Editors and `tsc` do not type-check `.solid` files yet. Imports of `.solid` files are typed as `Component<any>`.
 - Only Vite is supported.
 
 ## License
