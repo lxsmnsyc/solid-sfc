@@ -178,10 +178,13 @@ export function compileStructure(source: string, options: CompileOptions = {}): 
 
   if (templateScope?.variables && css) {
     addText(`const ${VARIABLES_IDENTIFIER} = () => ({`);
-    css.variables.forEach((range, index) => {
-      addText(`'${getVariableName(scope, index)}': (`);
-      addRange(range.start, range.end);
-      addText('),');
+    css.variables.forEach((variable, index) => {
+      // Text around the interpolation joins the value as a template literal.
+      // It only has CSS token characters, so it needs no escaping.
+      const joined = variable.prefix || variable.suffix;
+      addText(`'${getVariableName(scope, index)}': ${joined ? `\`${variable.prefix}\${` : ''}(`);
+      addRange(variable.start, variable.end);
+      addText(`)${joined ? `}${variable.suffix}\`` : ''},`);
     });
     addText('});');
   }

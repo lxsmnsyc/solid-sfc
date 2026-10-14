@@ -52,8 +52,18 @@ describe('selectors', () => {
 describe('variables', () => {
   it('replaces interpolations with CSS variables', () => {
     expect(css('a { color: ${color}; margin: ${size}px ${size * 2}px }')).toBe(
-      'a[s-x] { color: var(--s-x-0); margin: var(--s-x-1)px var(--s-x-2)px }',
+      'a[s-x] { color: var(--s-x-0); margin: var(--s-x-1) var(--s-x-2) }',
     );
+  });
+
+  it('moves the rest of the CSS token into the variable value', () => {
+    const { code } = compile(
+      '<style>a { margin: ${size}px; color: #${hex}; width: calc(100% - ${w}px) }</style><a />',
+      { scope: 'x' },
+    );
+    expect(code).toContain("'--s-x-0': `${(\nsize\n)}px`,");
+    expect(code).toContain("'--s-x-1': `#${(\nhex\n)}`,");
+    expect(code).toContain("'--s-x-2': `${(\nw\n)}px`,");
   });
 
   it('sets the variables on scoped elements', () => {

@@ -14,11 +14,21 @@ export interface SourceMap {
   mappings: string;
 }
 
+export interface StyleVariable extends Range {
+  /** Text of the same CSS token before the interpolation, such as `#`. */
+  prefix: string;
+  /** Text of the same CSS token after the interpolation, such as `px`. */
+  suffix: string;
+}
+
+// Characters that join an interpolation with the CSS token around it.
+const TOKEN_CHARACTER = /[\w%#.-]/;
+
 export interface StyleResult {
   code: string;
   map: SourceMap;
-  /** Offsets of each `${...}` expression, in order. */
-  variables: Range[];
+  /** Each `${...}` expression, in order. */
+  variables: StyleVariable[];
   /** True if at least one block is scoped. */
   scoped: boolean;
 }
@@ -127,7 +137,7 @@ export function processStyles(options: ProcessStylesOptions): StyleResult {
   let css = '';
   let previous = 0;
   const padding = (end: number): string => source.slice(previous, end).replace(/[^\n]/g, ' ');
-  const variables: Range[] = [];
+  const variables: StyleVariable[] = [];
   const placeholders: string[] = [];
 
   for (const block of blocks) {
@@ -143,12 +153,31 @@ export function processStyles(options: ProcessStylesOptions): StyleResult {
         if (!source.slice(i + 2, close).trim()) {
           fail('Empty interpolation', i);
         }
+        // `var()` cannot be joined with other text, so `${size}px` would
+        // become `var(--a)px`. The rest of the token moves into the value.
+        let tokenStart = i;
+        while (tokenStart > previous && TOKEN_CHARACTER.test(source[tokenStart - 1]!)) {
+          tokenStart--;
+        }
+        let tokenEnd = close + 1;
+        while (
+          tokenEnd < block.contentEnd &&
+          TOKEN_CHARACTER.test(source[tokenEnd]!) &&
+          !source.startsWith('${', tokenEnd)
+        ) {
+          tokenEnd++;
+        }
         // A placeholder with the same length keeps the offsets.
-        const placeholder = `$${variables.length}$`.padEnd(close + 1 - i, '_');
-        css += source.slice(previous, i) + placeholder;
-        variables.push({ start: i + 2, end: close });
+        const placeholder = `$${variables.length}$`.padEnd(tokenEnd - tokenStart, '_');
+        css += source.slice(previous, tokenStart) + placeholder;
+        variables.push({
+          start: i + 2,
+          end: close,
+          prefix: source.slice(tokenStart, i),
+          suffix: source.slice(close + 1, tokenEnd),
+        });
         placeholders.push(placeholder);
-        i = close + 1;
+        i = tokenEnd;
         previous = i;
       } else {
         i++;

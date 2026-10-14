@@ -27,6 +27,19 @@ A `.solid` file holds one component. It has three parts:
 <button onClick=(() => count++)>Count: {count}</button>
 ```
 
+## Documentation
+
+- [Getting started](https://github.com/lxsmnsyc/solid-sfc/blob/main/docs/getting-started.md)
+- [Components](https://github.com/lxsmnsyc/solid-sfc/blob/main/docs/components.md)
+- [Markup](https://github.com/lxsmnsyc/solid-sfc/blob/main/docs/markup.md)
+- [Control flow](https://github.com/lxsmnsyc/solid-sfc/blob/main/docs/control-flow.md)
+- [Reactivity](https://github.com/lxsmnsyc/solid-sfc/blob/main/docs/reactivity.md)
+- [Styles](https://github.com/lxsmnsyc/solid-sfc/blob/main/docs/styles.md)
+- [Tooling](https://github.com/lxsmnsyc/solid-sfc/blob/main/docs/tooling.md)
+- [Migrating from 0.x](https://github.com/lxsmnsyc/solid-sfc/blob/main/docs/migration.md)
+
+The sections below are a summary.
+
 ## Install
 
 ```bash
