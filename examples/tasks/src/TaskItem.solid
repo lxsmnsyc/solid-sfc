@@ -1,0 +1,92 @@
+<script lang="ts">
+  import type { Task } from './tasks.ts';
+
+  interface Props {
+    task: Task;
+    maxPriority?: number;
+    onToggle: () => void;
+    onPriority: (priority: number) => void;
+    onRemove: () => void;
+  }
+
+  // Destructured props stay reactive, and defaults apply when a prop is undefined.
+  const { task, maxPriority = 3, onToggle, onPriority, onRemove } = $props<Props>();
+
+  const COLORS = ['#a1a1aa', '#22c55e', '#f59e0b', '#ef4444'];
+
+  // The name of an attribute can be computed too.
+  const state = $memo(task.done ? 'data-done' : 'data-open');
+</script>
+
+<style>
+  li {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    padding: 0.5rem 0.75rem;
+    border-left: 4px solid ${COLORS[task.priority] ?? COLORS[0]};
+    border-radius: 0.5rem;
+    background: var(--background);
+    animation: enter 200ms ease-out;
+  }
+
+  /* Keyframe names get a suffix, so other components can use the same name. */
+  @keyframes enter {
+    from {
+      opacity: 0;
+      transform: translateY(-0.25rem);
+    }
+  }
+
+  .title {
+    flex: 1;
+  }
+
+  li[data-done] .title {
+    color: var(--muted);
+    text-decoration: line-through;
+  }
+
+  .stars button {
+    padding: 0;
+    border: none;
+    color: var(--muted);
+    background: none;
+    cursor: pointer;
+  }
+
+  .stars .filled {
+    color: #f59e0b;
+  }
+
+  .remove {
+    padding: 0 0.25rem;
+    border: none;
+    color: var(--muted);
+    background: none;
+    cursor: pointer;
+  }
+
+  /* :global() leaves part of a selector unscoped. */
+  :global([data-theme='dark']) .remove:hover {
+    color: white;
+  }
+</style>
+
+<li [state]>
+  <input type="checkbox" checked=task.done onChange=onToggle aria-label="Done">
+  <span class="title">{task.title}</span>
+  <span class="stars">
+    #repeat (index of maxPriority) {
+      <button
+        type="button"
+        class={ filled: index < task.priority }
+        aria-label=`Priority ${index + 1}`
+        onClick=(() => onPriority(index + 1))
+      >
+        ★
+      </button>
+    }
+  </span>
+  <button class="remove" type="button" aria-label="Remove" onClick=onRemove>×</button>
+</li>

@@ -1,0 +1,101 @@
+<script lang="ts">
+  import { fetchQuote } from './quotes.ts';
+
+  let index = $signal(0);
+  let failing = $signal(false);
+
+  // An async memo. Reading it inside #loading waits for the promise.
+  const quote = $memo(fetchQuote(index, failing));
+  // True while a new quote loads and the old one is still shown.
+  const pending = () => $isPending(() => quote);
+
+  function retry(reset: () => void) {
+    failing = false;
+    reset();
+  }
+</script>
+
+<style>
+  section {
+    display: grid;
+    gap: 1rem;
+    padding: 1rem;
+    border-radius: 1rem;
+    background: var(--surface);
+  }
+
+  blockquote {
+    margin: 0;
+    font-size: 1.25rem;
+    transition: opacity 200ms;
+    animation: appear 400ms ease-out;
+  }
+
+  @keyframes appear {
+    from {
+      opacity: 0;
+    }
+  }
+
+  cite {
+    display: block;
+    margin-top: 0.5rem;
+    color: var(--muted);
+    font-size: 1rem;
+  }
+
+  .placeholder,
+  .error {
+    margin: 0;
+    color: var(--muted);
+  }
+
+  .error {
+    color: #ef4444;
+  }
+
+  .actions {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  button {
+    padding: 0.5rem 0.75rem;
+    border: none;
+    border-radius: 0.5rem;
+    color: white;
+    background: var(--accent);
+    cursor: pointer;
+  }
+
+  button:disabled {
+    opacity: 0.5;
+  }
+</style>
+
+<section>
+  #try {
+    #loading {
+      <!-- #key creates the quote again when it changes, which replays the animation. -->
+      #key (quote) {
+        <blockquote style={ opacity: pending() ? 0.5 : 1 }>
+          {quote.text}
+          <cite>{quote.author}</cite>
+        </blockquote>
+      }
+      <div class="actions">
+        <button type="button" disabled=(pending()) onClick=(() => index++)>Next quote</button>
+        <button type="button" disabled=(pending()) onClick=(() => (failing = true))>
+          Break the server
+        </button>
+      </div>
+    } #fallback {
+      <p class="placeholder">Loading a quote…</p>
+    }
+  } #catch (error, reset) {
+    <p class="error">{error instanceof Error ? error.message : String(error)}</p>
+    <div class="actions">
+      <button type="button" onClick=(() => retry(reset))>Try again</button>
+    </div>
+  }
+</section>

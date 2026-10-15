@@ -56,6 +56,12 @@ describe('variables', () => {
     );
   });
 
+  it('ignores interpolations in comments', () => {
+    expect(css('/* ${color} */ a { color: ${color} }')).toBe(
+      '/* ${color} */ a[s-x] { color: var(--s-x-0) }',
+    );
+  });
+
   it('moves the rest of the CSS token into the variable value', () => {
     const { code } = compile(
       '<style>a { margin: ${size}px; color: #${hex}; width: calc(100% - ${w}px) }</style><a />',

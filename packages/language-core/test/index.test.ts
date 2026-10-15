@@ -118,6 +118,11 @@ describe('css', () => {
     const interpolation = "${count > 3 ? 'red' : 'blue'}";
     expect(textOf(code)).toBe(css.replace(interpolation, 'x'.padEnd(interpolation.length, '_')));
   });
+
+  it('keeps interpolations in comments', () => {
+    const code = embedded('<style>/* ${a} */ p { color: ${a} }</style>\n<p />', 'style_0');
+    expect(textOf(code)).toBe('/* ${a} */ p { color: x___ }');
+  });
 });
 
 describe('plugin', () => {

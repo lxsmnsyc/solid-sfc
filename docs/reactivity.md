@@ -38,6 +38,7 @@ function increment() {
 - Assignments that `await` a value are split, so the setter receives the value and not the promise.
 - A type annotation on the variable becomes the type argument: `let user: User | null = $signal(null)` compiles to `createSignal<User | null>(null)`.
 - The second argument is the signal options, such as `{ equals: false }`.
+- For a union of string literals, pass the type as a type argument: `let tab = $signal<Tab>('home')`. With an annotation, TypeScript narrows `tab` to `'home'` outside functions, so a check like `tab === 'settings'` in markup is a type error.
 
 When the initial value is not a constant, or when it reads another reactive variable, the signal is derived. It recomputes from its source until it is written, then keeps the written value.
 
@@ -72,6 +73,27 @@ const full = createMemo(() => `${first()} ${last()}`);
 ```
 
 Assigning to a memo is a compile error: `Cannot assign to derived variable "full"`.
+
+A memo can hold a promise. The variable is the resolved value, and reading it before the promise settles suspends the nearest [`#loading` block](./control-flow.md#loading):
+
+```html
+<script lang="ts">
+  let id = $signal(1);
+  const user = $memo(fetchUser(id));
+</script>
+
+#loading {
+  <p>{user.name}</p>
+  <!-- True while a new user loads and the old one is still shown. -->
+  #if ($isPending(() => user)) {
+    <p>Updating…</p>
+  }
+} #fallback {
+  <p>Loading…</p>
+}
+```
+
+Read the memo, and call `$isPending` on it, only inside `#loading`. A read outside it holds the whole update until the promise settles.
 
 ### Variables from existing signals
 

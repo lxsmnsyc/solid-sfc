@@ -9,6 +9,7 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "verbatimModuleSyntax": true,
+    "allowImportingTsExtensions": true,
     "skipLibCheck": true,
     "noEmit": true,
     "jsx": "preserve",

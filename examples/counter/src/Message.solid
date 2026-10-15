@@ -1,9 +1,0 @@
-<script lang="ts">
-  interface Props {
-    message: string;
-  }
-
-  const props = $props<Props>();
-</script>
-
-<span>{props.message}</span>

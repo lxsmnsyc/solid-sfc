@@ -33,9 +33,9 @@ declare global {
       lazy?: boolean;
       unobserved?: () => void;
     },
-  ): T;
+  ): Awaited<T>;
 
-  function $<T>(value: T): T;
+  function $<T>(value: T): Awaited<T>;
 
   // Refs and derefs
 

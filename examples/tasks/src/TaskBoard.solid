@@ -1,0 +1,193 @@
+<script lang="ts">
+  import TaskItem from './TaskItem.solid';
+  import Progress from './Progress.solid';
+  import { FILTERS, loadTasks, saveTasks, type Filter, type Task } from './tasks.ts';
+
+  let tasks: Task[] = $signal(loadTasks());
+  let filter = $signal<Filter>('all');
+  let draft = $signal('');
+
+  // Memos recompute when the signals they read change.
+  const visible = $memo(
+    tasks.filter((task) => (filter === 'all' ? true : filter === 'done' ? task.done : !task.done)),
+  );
+  const remaining = $memo(tasks.filter((task) => !task.done).length);
+  const percent = $memo(
+    tasks.length === 0 ? 0 : Math.round(((tasks.length - remaining) / tasks.length) * 100),
+  );
+
+  const inputId = $uid();
+  let input!: HTMLInputElement;
+
+  // Runs once the component is on the page.
+  $settled(() => {
+    input.focus();
+  });
+
+  // Saves the tasks every time they change.
+  $effect(() => {
+    saveTasks(tasks);
+  });
+
+  function add(event: SubmitEvent) {
+    event.preventDefault();
+    const title = draft.trim();
+    if (title) {
+      tasks = [...tasks, { id: Date.now(), title, done: false, priority: 1 }];
+      draft = '';
+    }
+  }
+
+  function update(id: number, changes: Partial<Task>) {
+    tasks = tasks.map((task) => (task.id === id ? { ...task, ...changes } : task));
+  }
+
+  function remove(id: number) {
+    tasks = tasks.filter((task) => task.id !== id);
+  }
+
+  function clearDone() {
+    tasks = tasks.filter((task) => !task.done);
+  }
+</script>
+
+<style>
+  section {
+    display: grid;
+    gap: 1rem;
+    padding: 1rem;
+    border-radius: 1rem;
+    background: var(--surface);
+  }
+
+  .summary {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+  }
+
+  .summary p {
+    flex: 1;
+    margin: 0;
+    color: var(--muted);
+  }
+
+  form {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  input {
+    flex: 1;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--muted);
+    border-radius: 0.5rem;
+    color: inherit;
+    background: none;
+  }
+
+  button {
+    padding: 0.5rem 0.75rem;
+    border: none;
+    border-radius: 0.5rem;
+    color: white;
+    background: var(--accent);
+    cursor: pointer;
+  }
+
+  button:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+
+  .filters {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .filters button {
+    color: inherit;
+    background: none;
+    text-transform: capitalize;
+  }
+
+  .filters .selected {
+    outline: 2px solid var(--accent);
+  }
+
+  ul {
+    display: grid;
+    gap: 0.5rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .empty {
+    color: var(--muted);
+    text-align: center;
+  }
+
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+</style>
+
+<section>
+  <div class="summary">
+    <!-- (percent) is short for percent={percent}. -->
+    <Progress (percent) />
+    <p>
+      #if (remaining === 0) {
+        All done!
+      } #else if (remaining === 1) {
+        One task left.
+      } #else {
+        {remaining} tasks left.
+      }
+    </p>
+    <button type="button" onClick=clearDone disabled=(remaining === tasks.length)>Clear done</button>
+  </div>
+
+  <form onSubmit=add>
+    <label class="visually-hidden" for=inputId>New task</label>
+    <!-- Void elements need no closing slash. -->
+    <input
+      id=inputId
+      ref=input
+      value=draft
+      placeholder="What needs doing?"
+      onInput=((event) => (draft = event.currentTarget.value))
+    >
+    <button type="submit" disabled=(draft.trim() === '')>Add</button>
+  </form>
+
+  <div class="filters">
+    #for (option of FILTERS) {
+      <button
+        type="button"
+        class={ selected: option === filter }
+        onClick=(() => (filter = option))
+      >
+        {option}
+      </button>
+    }
+  </div>
+
+  <ul>
+    #for (task of visible) {
+      <TaskItem
+        {task}
+        onToggle=(() => update(task.id, { done: !task.done }))
+        onPriority=((priority: number) => update(task.id, { priority }))
+        onRemove=(() => remove(task.id))
+      />
+    } #else {
+      <li class="empty">Nothing here.</li>
+    }
+  </ul>
+</section>

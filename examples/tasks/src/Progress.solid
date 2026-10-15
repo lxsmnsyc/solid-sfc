@@ -1,0 +1,30 @@
+<script lang="ts">
+  const { percent, size = 48 } = $props<{ percent: number; size?: number }>();
+</script>
+
+<style>
+  /* ${...} inserts a value from the script. It updates when the value changes. */
+  .ring {
+    display: grid;
+    place-items: center;
+    width: ${size}px;
+    height: ${size}px;
+    border-radius: 50%;
+    background: conic-gradient(var(--accent) ${percent * 3.6}deg, var(--background) 0);
+    transition: background 300ms;
+  }
+
+  .ring span {
+    display: grid;
+    place-items: center;
+    width: 75%;
+    height: 75%;
+    border-radius: 50%;
+    font-size: 0.75rem;
+    background: var(--surface);
+  }
+</style>
+
+<div class="ring" role="progressbar" aria-valuenow=percent aria-valuemin=0 aria-valuemax=100>
+  <span>{percent}%</span>
+</div>

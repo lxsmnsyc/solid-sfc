@@ -16,7 +16,7 @@ Read the [documentation](./docs/README.md) to get started.
 
 ## Examples
 
-- [`counter`](./examples/counter)
+- [`tasks`](./examples/tasks) is a task board that uses every feature of `.solid` files.
 
 ## Development
 

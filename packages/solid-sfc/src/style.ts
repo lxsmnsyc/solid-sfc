@@ -145,7 +145,11 @@ export function processStyles(options: ProcessStylesOptions): StyleResult {
     previous = block.contentStart;
     let i = block.contentStart;
     while (i < block.contentEnd) {
-      if (source[i] === '$' && source[i + 1] === '{') {
+      if (source.startsWith('/*', i)) {
+        // Comments can mention `${...}` without making a variable.
+        const end = source.indexOf('*/', i + 2);
+        i = end === -1 || end + 2 > block.contentEnd ? block.contentEnd : end + 2;
+      } else if (source[i] === '$' && source[i + 1] === '{') {
         if (block.attributes.global === true) {
           fail('A global style cannot have interpolations', i);
         }

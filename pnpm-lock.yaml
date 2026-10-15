@@ -179,7 +179,7 @@ importers:
         specifier: ^7.0.2
         version: 7.0.2
 
-  examples/counter:
+  examples/tasks:
     dependencies:
       '@solidjs/web':
         specifier: 2.0.0-rc.15

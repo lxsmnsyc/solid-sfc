@@ -169,7 +169,12 @@ function maskInterpolations(css: string): string {
   let result = '';
   let i = 0;
   while (i < css.length) {
-    if (css[i] === '$' && css[i + 1] === '{') {
+    if (css.startsWith('/*', i)) {
+      const end = css.indexOf('*/', i + 2);
+      const next = end === -1 ? css.length : end + 2;
+      result += css.slice(i, next);
+      i = next;
+    } else if (css[i] === '$' && css[i + 1] === '{') {
       let depth = 1;
       let j = i + 2;
       while (j < css.length && depth > 0) {
