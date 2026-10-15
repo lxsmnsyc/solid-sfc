@@ -34,6 +34,8 @@ export class SFCError extends Error {
 
 /** A problem that does not stop compiling, such as an unused CSS selector. */
 export interface SFCWarning {
+  /** Identifies the kind of warning, such as `a11y-missing-alt`. */
+  code: string;
   message: string;
   offset: number;
   /** The length of the text the warning is about. */
@@ -43,10 +45,11 @@ export interface SFCWarning {
 }
 
 export function createWarning(
+  code: string,
   message: string,
   source: string,
   offset: number,
   length: number,
 ): SFCWarning {
-  return { message, offset, length, ...getLocation(source, offset) };
+  return { code, message, offset, length, ...getLocation(source, offset) };
 }

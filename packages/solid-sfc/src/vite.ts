@@ -76,7 +76,7 @@ export default function solidSFC(options: SolidSFCOptions = {}): Plugin[] {
         const result = compileFile(code, file);
         for (const warning of result.warnings) {
           const location = `${path.relative(root, file)}:${warning.line}:${warning.column}`;
-          this.warn(`${warning.message} (${location})`);
+          this.warn(`${warning.code}: ${warning.message} (${location})`);
         }
         let output = result.code;
         if (result.css) {

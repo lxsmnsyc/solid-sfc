@@ -2,6 +2,7 @@ import remapping from '@jridgewell/remapping';
 import { TraceMap, generatedPositionFor, originalPositionFor } from '@jridgewell/trace-mapping';
 import { Bundle, MagicString } from 'magic-string';
 import { KEY_IDENTIFIER } from './control.ts';
+import { checkAccessibility } from './a11y.ts';
 import { SFCError, createWarning } from './error.ts';
 import type { SFCWarning } from './error.ts';
 import { CompileError, compile as compileLabels } from './labels/index.ts';
@@ -228,7 +229,10 @@ export function compileStructure(source: string, options: CompileOptions = {}): 
     code,
     map,
     css: css && { code: css.code, map: css.map },
-    warnings: findUnusedSelectors(source, css?.selectors ?? [], elements),
+    warnings: [
+      ...findUnusedSelectors(source, css?.selectors ?? [], elements),
+      ...checkAccessibility(source, elements),
+    ].toSorted((a, b) => a.offset - b.offset),
     generated: mapGenerated(code, map, source, generated),
     bodies,
   };
@@ -257,6 +261,7 @@ function findUnusedSelectors(
     .filter((selector) => !elements.some((element) => matches(selector, element)))
     .map((selector) =>
       createWarning(
+        'css-unused-selector',
         `Unused CSS selector "${selector.text}"`,
         source,
         selector.offset,

@@ -160,6 +160,32 @@ HTML comments are removed from the output:
 <p>Hello</p>
 ```
 
+## Accessibility warnings
+
+The compiler warns about common accessibility problems in native elements. The Vite plugin prints the warnings, and the editor shows them.
+
+| Code                     | Warns about                                                                                      |
+| ------------------------ | ------------------------------------------------------------------------------------------------ |
+| `a11y-missing-alt`       | `<img>` without `alt`. Use `alt=""` for a decorative image.                                      |
+| `a11y-missing-title`     | `<iframe>` without `title`.                                                                      |
+| `a11y-missing-href`      | `<a>` without `href`. Use a `<button>` for an action.                                            |
+| `a11y-click-events`      | `onClick` on an element that is not interactive, without `onKeyDown`, `onKeyUp` or `onKeyPress`. |
+| `a11y-interactive-focus` | An interactive role, such as `role="button"`, on an element without `tabIndex`.                  |
+| `a11y-unknown-role`      | A `role` that is not a WAI-ARIA role.                                                            |
+| `a11y-unknown-aria`      | An `aria-*` attribute that is not a WAI-ARIA attribute.                                          |
+| `a11y-positive-tabindex` | A `tabIndex` above 0.                                                                            |
+| `a11y-accesskey`         | `accessKey`.                                                                                     |
+| `a11y-autofocus`         | `autofocus`.                                                                                     |
+
+An element with a spread, such as `{...props}`, can have any attribute, so it gets no warnings about missing attributes.
+
+A comment right before an element turns off codes for that element:
+
+```html
+<!-- solid-sfc-ignore a11y-click-events, a11y-interactive-focus -->
+<li role="option" onClick=select>{label}</li>
+```
+
 ## Syntax errors
 
 Errors point at the line and column in the `.solid` file, for example `Wrap this attribute value in parentheses (App.solid:4:17)`. Common ones:

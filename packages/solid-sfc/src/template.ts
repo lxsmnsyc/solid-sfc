@@ -73,9 +73,20 @@ export interface TemplateResult {
   elements: ElementInfo[];
 }
 
-/** What a native element can match in a CSS selector. */
+/** A native element, for unused CSS selectors and accessibility checks. */
 export interface ElementInfo {
   tag: string;
+  /** Offset of `<`. */
+  offset: number;
+  /**
+   * The attributes of the element: a string for a literal value, `true`
+   * without a value, and `null` for an expression.
+   */
+  attributes: Map<string, string | true | null>;
+  /** True if the element has a spread, so it can have any attribute. */
+  spread: boolean;
+  /** Warning codes that a `<!-- solid-sfc-ignore code -->` comment turns off. */
+  ignores: Set<string>;
   classes: Set<string>;
   ids: Set<string>;
   /** True if a class or an id is set by an expression or a spread. */
@@ -110,6 +121,15 @@ const BARE_VALUE = /[\w$.]+/y;
 const MEMBER_NAME = /#?[A-Za-z_$][\w$]*/y;
 const PREFIX_OPERATORS = '!-+~';
 const BLOCK_ATTRIBUTE = /([A-Za-z_$][\w$:-]*)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'))?/y;
+
+/** The value of a string, number or boolean literal, or null for an expression. */
+function literalValue(value: string): string | null {
+  const quote = value[0];
+  if ((quote === '"' || quote === "'") && value.endsWith(quote) && value.length > 1) {
+    return value.slice(1, -1);
+  }
+  return /^(?:-?\d+(?:\.\d+)?|true|false)$/.test(value) ? value : null;
+}
 
 function matchAt(pattern: RegExp, source: string, offset: number): string | undefined {
   pattern.lastIndex = offset;
@@ -150,6 +170,8 @@ export class TemplateParser {
   private mergesStyle = false;
   private usesListen = false;
   private readonly elements: ElementInfo[] = [];
+  /** The codes of the last `solid-sfc-ignore` comment, and where it ends. */
+  private ignore: { codes: Set<string>; end: number } | undefined;
   private readonly generated: GeneratedText[] = [];
 
   constructor(
@@ -276,6 +298,10 @@ export class TemplateParser {
       this.fail('Unterminated comment', offset);
     }
     this.output.remove(offset, end + 3);
+    const match = /^\s*solid-sfc-ignore\s+([\s\S]*?)\s*$/.exec(this.source.slice(offset + 4, end));
+    if (match) {
+      this.ignore = { codes: new Set(match[1]!.split(/[\s,]+/)), end: end + 3 };
+    }
     return end + 3;
   }
 
@@ -326,8 +352,17 @@ export class TemplateParser {
     }
     const native = NATIVE_ELEMENT.test(name);
     const scope = this.scope && native ? this.scope : undefined;
+    // An ignore comment applies to the element right after it.
+    const ignores =
+      this.ignore && this.scanner.skipWhitespace(this.ignore.end) === offset
+        ? this.ignore.codes
+        : new Set<string>();
     const element: ElementInfo = {
       tag: name.toLowerCase(),
+      offset,
+      attributes: new Map(),
+      spread: false,
+      ignores,
       classes: new Set(),
       ids: new Set(),
       dynamicClass: false,
@@ -461,10 +496,12 @@ export class TemplateParser {
           hasStyle = true;
           this.mergesStyle = true;
         } else if (IDENTIFIER.test(inner)) {
+          element.attributes.set(inner, null);
           this.collectSelectorValue(element, inner, inner);
           // The scope attribute may end right before this one.
           output.appendLeft(i, `${start === offset ? ' ' : ''}${inner}=`);
         } else if (inner.startsWith('...')) {
+          element.spread = true;
           element.dynamicClass = true;
           element.dynamicId = true;
         } else {
@@ -483,6 +520,7 @@ export class TemplateParser {
           hasStyle = true;
           this.mergesStyle = true;
         } else {
+          element.attributes.set(inner, null);
           this.collectSelectorValue(element, inner, inner);
           output.update(i, i + 1, `${inner}={`);
           output.update(close, close + 1, '}');
@@ -490,6 +528,7 @@ export class TemplateParser {
         i = close + 1;
       } else if (char === '[') {
         // `[name]=value` becomes `{...{ [name]: value }}`.
+        element.spread = true;
         element.dynamicClass = true;
         element.dynamicId = true;
         const close = this.scanner.scanExpression(i + 1, ']');
@@ -519,12 +558,14 @@ export class TemplateParser {
           const valueStart = this.scanner.skipWhitespace(equals + 1);
           const valueEnd = this.parseValue(valueStart, 'attribute');
           bindings.push({ property: name.slice(5), start: i, valueStart, valueEnd });
+          element.attributes.set(name.slice(5), null);
           i = valueEnd;
         } else if (source[equals] === '=' && variables && name === 'style') {
           const valueStart = this.scanner.skipWhitespace(equals + 1);
           output.appendLeft(valueStart, `{${scope.mergeStyle}(`);
           i = this.parseValue(valueStart, 'expression');
           output.appendLeft(i, `, ${variables}())}`);
+          element.attributes.set(name, null);
           hasStyle = true;
           this.mergesStyle = true;
         } else if (source[equals] === '=') {
@@ -536,7 +577,9 @@ export class TemplateParser {
           if (name === 'class' || name === 'id') {
             this.collectSelectorValue(element, name, source.slice(valueStart, i));
           }
+          element.attributes.set(name, literalValue(source.slice(valueStart, i)));
         } else {
+          element.attributes.set(name, true);
           i = nameEnd;
         }
       }

@@ -148,7 +148,7 @@ const __styleVariables = () => ({
 The compiler warns about scoped selectors that no element in the file can match:
 
 ```text
-[plugin solid-sfc] Unused CSS selector ".title" (src/Card.solid:12:3)
+[plugin solid-sfc] css-unused-selector: Unused CSS selector ".title" (src/Card.solid:12:3)
 ```
 
 The editor shows the same warnings.

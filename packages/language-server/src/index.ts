@@ -37,6 +37,7 @@ export function createSyntaxDiagnosticsPlugin(): LanguageServicePlugin {
                 end: document.positionAt(warning.offset + warning.length),
               },
               message: warning.message,
+              code: warning.code,
               severity: DiagnosticSeverity.Warning,
               source: 'solid-sfc',
             }));
