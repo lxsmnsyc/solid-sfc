@@ -159,9 +159,8 @@
     <input
       id=inputId
       ref=input
-      value=draft
+      bind:value=draft
       placeholder="What needs doing?"
-      onInput=((event) => (draft = event.currentTarget.value))
     >
     <button type="submit" disabled=!draft.trim()>Add</button>
   </form>

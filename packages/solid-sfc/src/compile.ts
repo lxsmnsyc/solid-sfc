@@ -7,8 +7,7 @@ import { CompileError, compile as compileLabels } from './labels/index.ts';
 import { PROPS_IDENTIFIER, analyzeInstanceScript, analyzeModuleScript } from './script.ts';
 import type { SourceMap } from './style.ts';
 import { getScopeAttribute, getVariableName, hash, processStyles } from './style.ts';
-import type { GeneratedProp } from './control.ts';
-import type { Block, Range, TemplateScope } from './template.ts';
+import type { Block, GeneratedText, Range, TemplateScope } from './template.ts';
 import { TemplateParser } from './template.ts';
 
 export type { SourceMap };
@@ -34,11 +33,11 @@ export interface CompileResult {
 }
 
 /**
- * Maps a prop that a control flow block generates, such as `each` in `#for`,
- * to its value in the source. TypeScript reports a wrong prop type on the
- * name of the prop, which has no text in the source.
+ * Maps text that the compiler generates to the source it comes from, such as
+ * the `each` prop of `#for` to its list. TypeScript reports some errors on
+ * this text, which has no place in the source.
  */
-export interface PropMapping {
+export interface GeneratedMapping {
   generatedOffset: number;
   generatedLength: number;
   sourceOffset: number;
@@ -46,7 +45,7 @@ export interface PropMapping {
 }
 
 export interface StructureResult extends CompileResult {
-  props: PropMapping[];
+  generated: GeneratedMapping[];
   /** The bodies of control flow blocks, from `{` to `}`. Editors fold them. */
   bodies: Range[];
 }
@@ -118,7 +117,7 @@ export function compileStructure(source: string, options: CompileOptions = {}): 
     : undefined;
 
   const output = new MagicString(source, { filename });
-  const { markup, mergesStyle, usesKey, props, bodies } = new TemplateParser(
+  const { markup, mergesStyle, usesKey, generated, bodies } = new TemplateParser(
     source,
     output,
     fail,
@@ -222,7 +221,7 @@ export function compileStructure(source: string, options: CompileOptions = {}): 
     code,
     map,
     css: css && { code: css.code, map: css.map },
-    props: mapProps(code, map, source, props),
+    generated: mapGenerated(code, map, source, generated),
     bodies,
   };
 }
@@ -237,42 +236,41 @@ function getLineOffsets(text: string): number[] {
   return offsets;
 }
 
-/** Finds each generated prop, which is written as `name={` right before its value. */
-function mapProps(
+/** Finds each generated text in the output, next to the copy of its anchor. */
+function mapGenerated(
   code: string,
   map: SourceMap,
   source: string,
-  props: GeneratedProp[],
-): PropMapping[] {
-  if (props.length === 0) {
+  texts: GeneratedText[],
+): GeneratedMapping[] {
+  if (texts.length === 0) {
     return [];
   }
   const tracer = new TraceMap(map as never);
   const [file] = map.sources;
   const sourceLines = getLineOffsets(source);
   const codeLines = getLineOffsets(code);
-  const mappings: PropMapping[] = [];
-  for (const prop of props) {
+  const mappings: GeneratedMapping[] = [];
+  for (const text of texts) {
     let line = 0;
-    while (line + 1 < sourceLines.length && sourceLines[line + 1]! <= prop.start) {
+    while (line + 1 < sourceLines.length && sourceLines[line + 1]! <= text.anchor) {
       line++;
     }
     const position = generatedPositionFor(tracer, {
       source: file!,
       line: line + 1,
-      column: prop.start - sourceLines[line]!,
+      column: text.anchor - sourceLines[line]!,
     });
     if (position.line === null) {
       continue;
     }
-    const value = codeLines[position.line - 1]! + position.column;
-    const prefix = `${prop.name}={`;
-    if (code.slice(value - prefix.length, value) === prefix) {
+    const offset = codeLines[position.line - 1]! + position.column + text.delta;
+    if (code.startsWith(text.text, offset)) {
       mappings.push({
-        generatedOffset: value - prefix.length,
-        generatedLength: prop.name.length,
-        sourceOffset: prop.start,
-        sourceLength: prop.end - prop.start,
+        generatedOffset: offset,
+        generatedLength: text.text.length,
+        sourceOffset: text.start,
+        sourceLength: text.end - text.start,
       });
     }
   }

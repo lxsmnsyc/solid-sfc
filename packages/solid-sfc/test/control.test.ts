@@ -221,9 +221,9 @@ describe('#key', () => {
 describe('generated props', () => {
   it('finds the name of each prop and the source of its value', () => {
     const source = '#for (x of list) { }\n#switch { #case ( a ) { } }\n#portal (target) { }';
-    const { code, props } = compileStructure(source);
+    const { code, generated } = compileStructure(source);
     expect(
-      props.map((prop) => [
+      generated.map((prop) => [
         code.slice(prop.generatedOffset, prop.generatedOffset + prop.generatedLength),
         source.slice(prop.sourceOffset, prop.sourceOffset + prop.sourceLength),
       ]),

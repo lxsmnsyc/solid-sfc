@@ -230,12 +230,13 @@ function createScriptCode(
       snapshot: createSnapshot(PRELUDE + result.code),
       mappings: [
         ...mappingsFromSourceMap(result.code, source, result.map, PRELUDE.length, SCRIPT_FEATURES),
-        // Errors on the props that blocks generate are reported on their values.
-        ...result.props.map((prop): CodeMapping => ({
-          sourceOffsets: [prop.sourceOffset],
-          generatedOffsets: [prop.generatedOffset + PRELUDE.length],
-          lengths: [prop.sourceLength],
-          generatedLengths: [prop.generatedLength],
+        // Errors on generated text, such as the props of blocks, are
+        // reported on the source it comes from.
+        ...result.generated.map((text): CodeMapping => ({
+          sourceOffsets: [text.sourceOffset],
+          generatedOffsets: [text.generatedOffset + PRELUDE.length],
+          lengths: [text.sourceLength],
+          generatedLengths: [text.generatedLength],
           data: { verification: true },
         })),
       ],

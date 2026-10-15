@@ -56,6 +56,54 @@ describe('attributes', () => {
   });
 });
 
+describe('bind:', () => {
+  it.each([
+    [
+      '<input bind:value=name>',
+      '<input value={name} onInput={(event) => (name = event.currentTarget.value)}/>',
+    ],
+    [
+      '<input type="number" bind:value=age />',
+      '<input type="number" value={age} onInput={(event) => (age = event.currentTarget.valueAsNumber)} />',
+    ],
+    [
+      "<input bind:value=age type='range' />",
+      "<input value={age} onInput={(event) => (age = event.currentTarget.valueAsNumber)} type='range' />",
+    ],
+    [
+      '<input type="checkbox" bind:checked=done />',
+      '<input type="checkbox" checked={done} onChange={(event) => (done = event.currentTarget.checked)} />',
+    ],
+    [
+      '<select bind:value=form.choice></select>',
+      '<select value={form.choice} onInput={(event) => (form.choice = event.currentTarget.value)}></select>',
+    ],
+    [
+      '<textarea bind:value=notes[i]></textarea>',
+      '<textarea value={notes[i]} onInput={(event) => (notes[i] = event.currentTarget.value)}></textarea>',
+    ],
+  ])('%s', (input, output) => {
+    expect(markup(input)).toBe(output);
+  });
+
+  it('writes signals with their setters', () => {
+    expect(markup('<script>let name = $signal("");</script><input bind:value=name>')).toBe(
+      '<input value={name()} onInput={(event) => (setname_1(() => event.currentTarget.value))}/>',
+    );
+  });
+
+  it.each([
+    ['<div bind:value=a />', 'bind:value is not supported on <div>'],
+    ['<input bind:open=a />', 'bind:open is not supported on <input>'],
+    ['<input bind:value=a onInput=b />', 'bind:value sets onInput'],
+    ['<input bind:value=a() />', 'bind:value needs a variable or a property'],
+    ['<input bind:value=(a) />', 'bind:value needs a variable or a property'],
+    ['<input bind:value />', 'Expected a value for bind:value'],
+  ])('rejects %s', (input, message) => {
+    expect(() => compile(input)).toThrow(message);
+  });
+});
+
 describe('children', () => {
   it('removes XML comments', () => {
     expect(markup('<div><!-- note --></div>')).toBe('<div></div>');

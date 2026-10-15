@@ -45,6 +45,39 @@ A value without parentheses ends at whitespace, `/` or `>`. Operators other than
 <input [ariaAttribute]=label [dataAttribute]>
 ```
 
+## Bindings
+
+`bind:` connects a form field to a variable in both directions. The field shows the variable, and typing into the field writes the variable:
+
+```html
+<script lang="ts">
+  let name = $signal('');
+  let age = $signal(18);
+  let subscribed = $signal(false);
+</script>
+
+<input bind:value=name>
+<input type="number" bind:value=age>
+<input type="checkbox" bind:checked=subscribed>
+```
+
+`bind:value=name` compiles to:
+
+```tsx
+<input value={name} onInput={(event) => (name = event.currentTarget.value)} />
+```
+
+| Binding        | Elements                                   | Reads           | Listens to |
+| -------------- | ------------------------------------------ | --------------- | ---------- |
+| `bind:value`   | `<input>`, `<textarea>`, `<select>`        | `value`         | `input`    |
+| `bind:value`   | `<input type="number">` and `type="range"` | `valueAsNumber` | `input`    |
+| `bind:checked` | `<input>`                                  | `checked`       | `change`   |
+
+- The value must be a variable or a property, such as `name`, `form.name` or `rows[i]`.
+- The binding sets the event handler, so the element cannot also have that handler. Use an `$effect` to react to the change instead.
+- The `type` must be a string for `valueAsNumber` to be used.
+- TypeScript checks that the variable can hold the value. `bind:value=age` on a text input is an error when `age` is a number.
+
 ## Attribute names
 
 Names can contain `-` and one `:` namespace, as in JSX:

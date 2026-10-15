@@ -2,7 +2,7 @@ export { compile, compileStructure } from './compile.ts';
 export type {
   CompileOptions,
   CompileResult,
-  PropMapping,
+  GeneratedMapping,
   SourceMap,
   StructureResult,
 } from './compile.ts';

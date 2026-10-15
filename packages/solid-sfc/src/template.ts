@@ -1,6 +1,5 @@
 import type MagicString from 'magic-string';
 import { ControlFlowParser } from './control.ts';
-import type { GeneratedProp } from './control.ts';
 import { Scanner, isWhitespace } from './scanner.ts';
 
 export interface Block {
@@ -19,6 +18,38 @@ export interface Range {
   end: number;
 }
 
+/**
+ * Text that the compiler writes into the output for a range of the source,
+ * such as the copy of `name` in the handler of `bind:value=name`. Type errors
+ * on the text are reported on the range.
+ */
+export interface GeneratedText {
+  text: string;
+  /** A source offset whose character is copied into the output. */
+  anchor: number;
+  /** Where the text starts, relative to the copied anchor character. */
+  delta: number;
+  start: number;
+  end: number;
+}
+
+/** How `bind:` attributes read and listen to each property. */
+const BINDINGS: Record<string, { tags: string[]; event: string }> = {
+  value: { tags: ['input', 'textarea', 'select'], event: 'onInput' },
+  checked: { tags: ['input'], event: 'onChange' },
+};
+
+// A `bind:` target is a name, followed by property accesses and indexes.
+const BIND_TARGET = /^[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*|\[[^\]]*\])*$/;
+
+interface Binding {
+  property: string;
+  /** Offset of `bind:`. */
+  start: number;
+  valueStart: number;
+  valueEnd: number;
+}
+
 export interface TemplateResult {
   blocks: Block[];
   /** The parts of the file that are markup, in source order. */
@@ -27,8 +58,8 @@ export interface TemplateResult {
   mergesStyle: boolean;
   /** True if a `#key` block is used. */
   usesKey: boolean;
-  /** Props that control flow blocks generate. */
-  props: GeneratedProp[];
+  /** Text that the compiler generates for parts of the source. */
+  generated: GeneratedText[];
   /** The bodies of control flow blocks, from `{` to `}`. */
   bodies: Range[];
 }
@@ -95,6 +126,7 @@ export class TemplateParser {
   private readonly scope: TemplateScope | undefined;
   private readonly control: ControlFlowParser;
   private mergesStyle = false;
+  private readonly generated: GeneratedText[] = [];
 
   constructor(
     source: string,
@@ -139,7 +171,17 @@ export class TemplateParser {
       markup,
       mergesStyle: this.mergesStyle,
       usesKey: this.control.usesKey,
-      props: this.control.props,
+      generated: [
+        // A generated prop is written as `name={` right before its value.
+        ...this.control.props.map((prop) => ({
+          text: prop.name,
+          anchor: prop.start,
+          delta: -(prop.name.length + 2),
+          start: prop.start,
+          end: prop.end,
+        })),
+        ...this.generated,
+      ],
       bodies: this.control.bodies,
     };
   }
@@ -248,7 +290,11 @@ export class TemplateParser {
     if (scope) {
       this.output.appendLeft(nameEnd, ` ${scope.attribute}`);
     }
-    const { end, attributesEnd, selfClosing, hasStyle } = this.parseAttributes(nameEnd, scope);
+    const { end, attributesEnd, selfClosing, hasStyle } = this.parseAttributes(
+      nameEnd,
+      name,
+      scope,
+    );
     if (scope?.variables && !hasStyle) {
       this.output.appendLeft(attributesEnd, ` style={${scope.variables}()}`);
     }
@@ -279,9 +325,13 @@ export class TemplateParser {
 
   private parseAttributes(
     offset: number,
+    tag: string,
     scope: TemplateScope | undefined,
   ): { end: number; attributesEnd: number; selfClosing: boolean; hasStyle: boolean } {
     const { source, output } = this;
+    const names = new Set<string>();
+    const bindings: Binding[] = [];
+    let type: string | undefined;
     // The CSS variables are merged into the `style` attribute, if any.
     const variables = scope?.variables;
     const mergedStyle = `style={${scope?.mergeStyle}(style, ${variables}())}`;
@@ -299,9 +349,11 @@ export class TemplateParser {
         this.fail('Unexpected end of file inside a tag', offset);
       }
       if (char === '/' && source[i + 1] === '>') {
+        this.applyBindings(tag, bindings, names, type);
         return { end: i + 2, attributesEnd, selfClosing: true, hasStyle };
       }
       if (char === '>') {
+        this.applyBindings(tag, bindings, names, type);
         return { end: i + 1, attributesEnd, selfClosing: false, hasStyle };
       }
       if (char === '{') {
@@ -356,7 +408,16 @@ export class TemplateParser {
         }
         const nameEnd = i + name.length;
         const equals = this.scanner.skipWhitespace(nameEnd);
-        if (source[equals] === '=' && variables && name === 'style') {
+        names.add(name);
+        if (name.startsWith('bind:')) {
+          if (source[equals] !== '=') {
+            this.fail(`Expected a value for ${name}`, i);
+          }
+          const valueStart = this.scanner.skipWhitespace(equals + 1);
+          const valueEnd = this.parseValue(valueStart, 'attribute');
+          bindings.push({ property: name.slice(5), start: i, valueStart, valueEnd });
+          i = valueEnd;
+        } else if (source[equals] === '=' && variables && name === 'style') {
           const valueStart = this.scanner.skipWhitespace(equals + 1);
           output.appendLeft(valueStart, `{${scope.mergeStyle}(`);
           i = this.parseValue(valueStart, 'expression');
@@ -364,11 +425,62 @@ export class TemplateParser {
           hasStyle = true;
           this.mergesStyle = true;
         } else if (source[equals] === '=') {
-          i = this.parseValue(this.scanner.skipWhitespace(equals + 1), 'attribute');
+          const valueStart = this.scanner.skipWhitespace(equals + 1);
+          i = this.parseValue(valueStart, 'attribute');
+          if (name === 'type' && '"\''.includes(source[valueStart]!)) {
+            type = source.slice(valueStart + 1, i - 1);
+          }
         } else {
           i = nameEnd;
         }
       }
+    }
+  }
+
+  /**
+   * `bind:value=name` becomes `value={name}` and a handler that writes the
+   * new value back, such as `onInput={(event) => (name = event.currentTarget.value)}`.
+   */
+  private applyBindings(
+    tag: string,
+    bindings: Binding[],
+    names: Set<string>,
+    type: string | undefined,
+  ): void {
+    const { source, output } = this;
+    for (const binding of bindings) {
+      const name = `bind:${binding.property}`;
+      const config = BINDINGS[binding.property];
+      if (!config || !config.tags.includes(tag)) {
+        this.fail(`${name} is not supported on <${tag}>`, binding.start);
+      }
+      if (names.has(config.event)) {
+        this.fail(
+          `${name} sets ${config.event}, so the element cannot have its own`,
+          binding.start,
+        );
+      }
+      const target = source.slice(binding.valueStart, binding.valueEnd);
+      if (!BIND_TARGET.test(target)) {
+        this.fail(`${name} needs a variable or a property`, binding.valueStart);
+      }
+      const property =
+        binding.property === 'value' && (type === 'number' || type === 'range')
+          ? 'valueAsNumber'
+          : binding.property;
+      // `bind:` is removed, so the property name keeps its place in the source.
+      output.remove(binding.start, binding.start + 5);
+      const prefix = ` ${config.event}={(event) => (`;
+      output.appendLeft(binding.valueEnd, `${prefix}${target} = event.currentTarget.${property})}`);
+      // The copy of the target follows the last character of the value and
+      // the `}` that closes it.
+      this.generated.push({
+        text: target,
+        anchor: binding.valueEnd - 1,
+        delta: 2 + prefix.length,
+        start: binding.valueStart,
+        end: binding.valueEnd,
+      });
     }
   }
 
