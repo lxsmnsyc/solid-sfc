@@ -97,6 +97,26 @@ describe('tsx', () => {
     expect(textOf(embedded(source, 'tsx'))).toContain('function App($$props: Props)');
   });
 
+  it('maps the props that blocks generate to their values', () => {
+    const input = '#for (item of items) { <p /> }\n#reveal (order) { <p /> }';
+    const code = embedded(input, 'tsx');
+    const text = textOf(code);
+    const props = code.mappings.filter((mapping) => mapping.generatedLengths);
+    expect(
+      props.map((mapping) => [
+        text.slice(
+          mapping.generatedOffsets[0],
+          mapping.generatedOffsets[0]! + mapping.generatedLengths![0]!,
+        ),
+        input.slice(mapping.sourceOffsets[0], mapping.sourceOffsets[0]! + mapping.lengths[0]!),
+      ]),
+    ).toEqual([
+      ['each', 'items'],
+      ['order', 'order'],
+    ]);
+    expect(props[0]!.data).toEqual({ verification: true });
+  });
+
   it('falls back to the scripts when the markup has an error', () => {
     const errors: string[] = [];
     const broken = '<script>let a: number = 1;</script>\n#if () { }';

@@ -49,6 +49,17 @@ interface Header {
   end: number;
 }
 
+/**
+ * A prop that a block generates, such as `each` in `#for`. The prop has no
+ * text in the source, so type errors on it are reported on its value.
+ */
+export interface GeneratedProp {
+  name: string;
+  /** Offset of the value in the source. */
+  start: number;
+  end: number;
+}
+
 interface Keyword {
   name: string;
   /** Offset of `#`. */
@@ -120,6 +131,8 @@ export class ControlFlowParser {
   private readonly host: ControlHost;
   /** True if `#key` is used, so the runtime helper must be imported. */
   usesKey = false;
+  /** Props that the blocks generate, in source order. */
+  readonly props: GeneratedProp[] = [];
 
   constructor(host: ControlHost) {
     this.host = host;
@@ -221,6 +234,7 @@ export class ControlFlowParser {
       const end = start + arg.trim().length;
       const next = offset + arg.length;
       this.update(offset, start, ` ${names[index]}={`);
+      this.props.push({ name: names[index]!, start, end });
       this.update(end, index === args.length - 1 ? next : next + 1, '}');
       offset = next + 1;
     });
@@ -389,6 +403,7 @@ export class ControlFlowParser {
     const keyed = keyword.name === 'index' ? ' keyed={false}' : '';
 
     this.update(keyword.start, listStart, `<${tag} ${prop}={`);
+    this.props.push({ name: prop, start: listStart, end: listEnd });
     this.update(listEnd, header.end + 1, `}${keyed}`);
     const body = this.parseBody(header.end + 1, keyword.name);
     this.update(header.end + 1, body.start, `>${callback}`);
@@ -434,9 +449,15 @@ export class ControlFlowParser {
       let body: Body;
       if (branch.name === 'case') {
         const header = this.parseHeader(branch.end, 'case');
-        this.update(branch.start, header.start, `<${match} when={`);
+        const start = this.host.scanner.skipWhitespace(header.start);
+        let end = header.end;
+        while (isWhitespace(source[end - 1])) {
+          end--;
+        }
+        this.update(branch.start, start, `<${match} when={`);
+        this.props.push({ name: 'when', start, end });
         body = this.parseBody(header.end + 1, 'case');
-        this.update(header.end, body.start, '}><>');
+        this.update(end, body.start, '}><>');
       } else {
         hasDefault = true;
         body = this.parseBody(branch.end, 'default');
@@ -459,13 +480,13 @@ export class ControlFlowParser {
   ): number {
     const { source, fail } = this.bind();
     // `#loading (value)` shows the fallback again when the value changes.
-    const header =
+    const onHeader =
       tag === 'Loading' ? this.parseOptionalHeader(keyword.end, keyword.name) : undefined;
-    const body = this.parseBody(header ? header.end + 1 : keyword.end, keyword.name);
-    if (header) {
-      this.update(keyword.start, header.start, `<${tag}`);
-      this.headerProps(header, keyword.name, ['on']);
-      this.update(header.end, body.open, '');
+    const body = this.parseBody(onHeader ? onHeader.end + 1 : keyword.end, keyword.name);
+    if (onHeader) {
+      this.update(keyword.start, onHeader.start, `<${tag}`);
+      this.headerProps(onHeader, keyword.name, ['on']);
+      this.update(onHeader.end, body.open, '');
     } else {
       this.update(keyword.start, body.open, `<${tag}`);
     }

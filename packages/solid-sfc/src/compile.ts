@@ -1,5 +1,5 @@
 import remapping from '@jridgewell/remapping';
-import { TraceMap, originalPositionFor } from '@jridgewell/trace-mapping';
+import { TraceMap, generatedPositionFor, originalPositionFor } from '@jridgewell/trace-mapping';
 import { Bundle, MagicString } from 'magic-string';
 import { KEY_IDENTIFIER } from './control.ts';
 import { SFCError } from './error.ts';
@@ -7,6 +7,7 @@ import { CompileError, compile as compileLabels } from './labels/index.ts';
 import { PROPS_IDENTIFIER, analyzeInstanceScript, analyzeModuleScript } from './script.ts';
 import type { SourceMap } from './style.ts';
 import { getScopeAttribute, getVariableName, hash, processStyles } from './style.ts';
+import type { GeneratedProp } from './control.ts';
 import type { Block, Range, TemplateScope } from './template.ts';
 import { TemplateParser } from './template.ts';
 
@@ -32,7 +33,21 @@ export interface CompileResult {
   css: { code: string; map: SourceMap } | undefined;
 }
 
-export interface StructureResult extends CompileResult {}
+/**
+ * Maps a prop that a control flow block generates, such as `each` in `#for`,
+ * to its value in the source. TypeScript reports a wrong prop type on the
+ * name of the prop, which has no text in the source.
+ */
+export interface PropMapping {
+  generatedOffset: number;
+  generatedLength: number;
+  sourceOffset: number;
+  sourceLength: number;
+}
+
+export interface StructureResult extends CompileResult {
+  props: PropMapping[];
+}
 
 const VARIABLES_IDENTIFIER = '__styleVariables';
 const MERGE_STYLE_IDENTIFIER = '__mergeStyle';
@@ -101,7 +116,7 @@ export function compileStructure(source: string, options: CompileOptions = {}): 
     : undefined;
 
   const output = new MagicString(source, { filename });
-  const { markup, mergesStyle, usesKey } = new TemplateParser(
+  const { markup, mergesStyle, usesKey, props } = new TemplateParser(
     source,
     output,
     fail,
@@ -195,11 +210,70 @@ export function compileStructure(source: string, options: CompileOptions = {}): 
   }
   addText('</>);\n}');
 
+  const code = bundle.toString();
+  const map = bundle.generateMap({
+    hires: true,
+    includeContent: true,
+    file: filename,
+  }) as SourceMap;
   return {
-    code: bundle.toString(),
-    map: bundle.generateMap({ hires: true, includeContent: true, file: filename }) as SourceMap,
+    code,
+    map,
     css: css && { code: css.code, map: css.map },
+    props: mapProps(code, map, source, props),
   };
+}
+
+function getLineOffsets(text: string): number[] {
+  const offsets = [0];
+  for (let i = 0; i < text.length; i++) {
+    if (text[i] === '\n') {
+      offsets.push(i + 1);
+    }
+  }
+  return offsets;
+}
+
+/** Finds each generated prop, which is written as `name={` right before its value. */
+function mapProps(
+  code: string,
+  map: SourceMap,
+  source: string,
+  props: GeneratedProp[],
+): PropMapping[] {
+  if (props.length === 0) {
+    return [];
+  }
+  const tracer = new TraceMap(map as never);
+  const [file] = map.sources;
+  const sourceLines = getLineOffsets(source);
+  const codeLines = getLineOffsets(code);
+  const mappings: PropMapping[] = [];
+  for (const prop of props) {
+    let line = 0;
+    while (line + 1 < sourceLines.length && sourceLines[line + 1]! <= prop.start) {
+      line++;
+    }
+    const position = generatedPositionFor(tracer, {
+      source: file!,
+      line: line + 1,
+      column: prop.start - sourceLines[line]!,
+    });
+    if (position.line === null) {
+      continue;
+    }
+    const value = codeLines[position.line - 1]! + position.column;
+    const prefix = `${prop.name}={`;
+    if (code.slice(value - prefix.length, value) === prefix) {
+      mappings.push({
+        generatedOffset: value - prefix.length,
+        generatedLength: prop.name.length,
+        sourceOffset: prop.start,
+        sourceLength: prop.end - prop.start,
+      });
+    }
+  }
+  return mappings;
 }
 
 /** Compiles a `.solid` file into a TSX module. */

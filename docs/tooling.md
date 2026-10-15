@@ -139,6 +139,8 @@ const { code, map, css } = compile(source, {
 
 `compileStructure` takes the same options and returns the TSX before the compile-time functions are replaced. Type checking uses this code, because the global declarations of the compile-time functions already describe it.
 
+It also returns `props`. Control flow blocks generate props, such as `each` for `#for`, that have no text in the file. TypeScript reports a wrong prop type on the name of the prop, so each entry maps the name in `code` to the value in the file. `@solid-sfc/language-core` adds these to its mappings, so the errors show up on the header of the block.
+
 ### `SFCError`
 
 Syntax errors throw an `SFCError`.

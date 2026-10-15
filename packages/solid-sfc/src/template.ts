@@ -1,5 +1,6 @@
 import type MagicString from 'magic-string';
 import { ControlFlowParser } from './control.ts';
+import type { GeneratedProp } from './control.ts';
 import { Scanner, isWhitespace } from './scanner.ts';
 
 export interface Block {
@@ -26,6 +27,8 @@ export interface TemplateResult {
   mergesStyle: boolean;
   /** True if a `#key` block is used. */
   usesKey: boolean;
+  /** Props that control flow blocks generate. */
+  props: GeneratedProp[];
 }
 
 /** Where children are parsed. Each mode ends at a different token. */
@@ -132,6 +135,7 @@ export class TemplateParser {
       markup,
       mergesStyle: this.mergesStyle,
       usesKey: this.control.usesKey,
+      props: this.control.props,
     };
   }
 

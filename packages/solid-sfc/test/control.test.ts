@@ -1,6 +1,6 @@
 import { parseSync } from 'oxc-parser';
 import { describe, expect, it } from 'vitest';
-import { compile } from '../src/index.ts';
+import { compile, compileStructure } from '../src/index.ts';
 
 /** The compiled markup, without the surrounding fragment and blank lines. */
 function markup(template: string): string {
@@ -185,6 +185,23 @@ describe('#key', () => {
     expect(imports('#key (id) { <P /> }')).toContain(
       "import { key as __key } from 'solid-sfc/runtime';",
     );
+  });
+});
+
+describe('generated props', () => {
+  it('finds the name of each prop and the source of its value', () => {
+    const source = '#for (x of list) { }\n#switch { #case ( a ) { } }\n#portal (target) { }';
+    const { code, props } = compileStructure(source);
+    expect(
+      props.map((prop) => [
+        code.slice(prop.generatedOffset, prop.generatedOffset + prop.generatedLength),
+        source.slice(prop.sourceOffset, prop.sourceOffset + prop.sourceLength),
+      ]),
+    ).toEqual([
+      ['each', 'list'],
+      ['when', 'a'],
+      ['mount', 'target'],
+    ]);
   });
 });
 

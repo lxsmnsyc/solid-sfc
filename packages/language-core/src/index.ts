@@ -223,13 +223,17 @@ function createScriptCode(
       id: 'tsx',
       languageId: 'typescriptreact',
       snapshot: createSnapshot(PRELUDE + result.code),
-      mappings: mappingsFromSourceMap(
-        result.code,
-        source,
-        result.map,
-        PRELUDE.length,
-        SCRIPT_FEATURES,
-      ),
+      mappings: [
+        ...mappingsFromSourceMap(result.code, source, result.map, PRELUDE.length, SCRIPT_FEATURES),
+        // Errors on the props that blocks generate are reported on their values.
+        ...result.props.map((prop): CodeMapping => ({
+          sourceOffsets: [prop.sourceOffset],
+          generatedOffsets: [prop.generatedOffset + PRELUDE.length],
+          lengths: [prop.sourceLength],
+          generatedLengths: [prop.generatedLength],
+          data: { verification: true },
+        })),
+      ],
     };
   } catch (error) {
     if (!(error instanceof SFCError)) {
