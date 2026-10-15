@@ -14,7 +14,6 @@
     reset();
   }
 </script>
-
 <style>
   section {
     display: grid;
@@ -72,7 +71,6 @@
     opacity: 0.5;
   }
 </style>
-
 <section>
   #try {
     #loading {

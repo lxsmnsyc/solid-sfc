@@ -137,6 +137,8 @@ export class ControlFlowParser {
   usesKey = false;
   /** Props that the blocks generate, in source order. */
   readonly props: GeneratedProp[] = [];
+  /** The body of each block, from `{` to `}`. Editors fold them. */
+  readonly bodies: { start: number; end: number }[] = [];
 
   constructor(host: ControlHost) {
     this.host = host;
@@ -265,6 +267,7 @@ export class ControlFlowParser {
       this.host.fail(`Expected "{" after #${keyword}`, open);
     }
     const end = this.host.parseBody(open + 1);
+    this.bodies.push({ start: open, end });
     return { open, start: open + 1, end };
   }
 
@@ -483,6 +486,7 @@ export class ControlFlowParser {
       // Whitespace and comments between cases are dropped.
       this.update(cursor, next, '');
       if (source[next] === '}') {
+        this.bodies.push({ start: open, end: next });
         this.update(next, next + 1, `</${'Switch'}>`);
         return next + 1;
       }

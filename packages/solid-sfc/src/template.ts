@@ -29,6 +29,8 @@ export interface TemplateResult {
   usesKey: boolean;
   /** Props that control flow blocks generate. */
   props: GeneratedProp[];
+  /** The bodies of control flow blocks, from `{` to `}`. */
+  bodies: Range[];
 }
 
 /** Where children are parsed. Each mode ends at a different token. */
@@ -138,6 +140,7 @@ export class TemplateParser {
       mergesStyle: this.mergesStyle,
       usesKey: this.control.usesKey,
       props: this.control.props,
+      bodies: this.control.bodies,
     };
   }
 

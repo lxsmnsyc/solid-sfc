@@ -47,6 +47,8 @@ export interface PropMapping {
 
 export interface StructureResult extends CompileResult {
   props: PropMapping[];
+  /** The bodies of control flow blocks, from `{` to `}`. Editors fold them. */
+  bodies: Range[];
 }
 
 const VARIABLES_IDENTIFIER = '__styleVariables';
@@ -116,7 +118,7 @@ export function compileStructure(source: string, options: CompileOptions = {}): 
     : undefined;
 
   const output = new MagicString(source, { filename });
-  const { markup, mergesStyle, usesKey, props } = new TemplateParser(
+  const { markup, mergesStyle, usesKey, props, bodies } = new TemplateParser(
     source,
     output,
     fail,
@@ -221,6 +223,7 @@ export function compileStructure(source: string, options: CompileOptions = {}): 
     map,
     css: css && { code: css.code, map: css.map },
     props: mapProps(code, map, source, props),
+    bodies,
   };
 }
 

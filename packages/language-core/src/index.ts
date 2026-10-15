@@ -90,7 +90,10 @@ export function mappingsFromSourceMap(
   const generatedLines = getLineOffsets(generated);
   const sourceLines = getLineOffsets(source);
   const mappings: CodeMapping[] = [];
-  let run: { source: number; generated: number; length: number } | undefined;
+  // Generated code such as `<For` maps its first character to the block it
+  // replaces. Folding and outlines from that code would not match the file.
+  const replaced: CodeInformation = { ...data, structure: false };
+  let run: { source: number; generated: number; length: number; data: CodeInformation } | undefined;
 
   const flush = (): void => {
     if (run) {
@@ -98,7 +101,7 @@ export function mappingsFromSourceMap(
         sourceOffsets: [run.source],
         generatedOffsets: [run.generated + shift],
         lengths: [run.length],
-        data,
+        data: run.data,
       });
       run = undefined;
     }
@@ -111,15 +114,17 @@ export function mappingsFromSourceMap(
       }
       const generatedOffset = generatedLines[line]! + segment[0];
       const sourceOffset = sourceLines[segment[2]!]! + segment[3]!;
+      const charData = generated[generatedOffset] === source[sourceOffset] ? data : replaced;
       if (
         run &&
+        run.data === charData &&
         run.generated + run.length === generatedOffset &&
         run.source + run.length === sourceOffset
       ) {
         run.length++;
       } else {
         flush();
-        run = { source: sourceOffset, generated: generatedOffset, length: 1 };
+        run = { source: sourceOffset, generated: generatedOffset, length: 1, data: charData };
       }
     }
   });
@@ -298,4 +303,48 @@ export function createSolidLanguagePlugin<T>(
       },
     },
   };
+}
+
+export interface FoldingRange {
+  /** Offset where the range starts. */
+  start: number;
+  /** Offset of the last character to hide. Its line is the last folded line. */
+  end: number;
+  kind?: 'comment';
+}
+
+/**
+ * Finds the parts of a `.solid` file that editors can fold: `<script>` and
+ * `<style>` blocks, control flow blocks and comments in the markup. The
+ * embedded TypeScript and CSS add the folding ranges inside them.
+ */
+export function getFoldingRanges(source: string): FoldingRange[] {
+  const ranges: FoldingRange[] = [];
+  // Closing tags and braces stay visible, so a range ends at the line break
+  // before them.
+  const before = (close: number): number => source.lastIndexOf('\n', close - 1);
+  let markup = source;
+  for (const match of source.matchAll(/<(script|style)\b[^>]*>[\s\S]*?(<\/\1\s*>)/g)) {
+    const close = match.index + match[0].length - match[2]!.length;
+    ranges.push({ start: match.index, end: before(close) });
+    // Comments inside scripts and styles are not markup comments.
+    markup =
+      markup.slice(0, match.index) +
+      ' '.repeat(match[0].length) +
+      markup.slice(match.index + match[0].length);
+  }
+  for (const match of markup.matchAll(/<!--[\s\S]*?-->/g)) {
+    ranges.push({ start: match.index, end: match.index + match[0].length - 3, kind: 'comment' });
+  }
+  try {
+    for (const body of compileStructure(source).bodies) {
+      ranges.push({ start: body.start, end: before(body.end) });
+    }
+  } catch (error) {
+    // The markup has a syntax error, so its blocks are not known.
+    if (!(error instanceof SFCError)) {
+      throw error;
+    }
+  }
+  return ranges.toSorted((a, b) => a.start - b.start);
 }

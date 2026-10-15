@@ -1,7 +1,8 @@
-import { createSolidLanguagePlugin } from '@solid-sfc/language-core';
-import type { Diagnostic, LanguageServicePlugin } from '@volar/language-server';
+import { createSolidLanguagePlugin, getFoldingRanges } from '@solid-sfc/language-core';
+import type { Diagnostic, FoldingRange, LanguageServicePlugin } from '@volar/language-server';
 import {
   DiagnosticSeverity,
+  FoldingRangeKind,
   createConnection,
   createServer,
   createTypeScriptProject,
@@ -51,6 +52,42 @@ export function createSyntaxDiagnosticsPlugin(): LanguageServicePlugin {
 }
 
 /**
+ * Folds the parts of a `.solid` file that only exist in it, such as
+ * `<script>` blocks and `#if` blocks. TypeScript and CSS fold the code
+ * inside them.
+ */
+export function createFoldingPlugin(): LanguageServicePlugin {
+  return {
+    name: 'solid-sfc-folding',
+    capabilities: {
+      foldingRangeProvider: true,
+    },
+    create() {
+      return {
+        provideFoldingRanges(document) {
+          if (document.languageId !== 'solid') {
+            return [];
+          }
+          const ranges: FoldingRange[] = [];
+          for (const range of getFoldingRanges(document.getText())) {
+            const startLine = document.positionAt(range.start).line;
+            const endLine = document.positionAt(range.end).line;
+            if (endLine > startLine) {
+              ranges.push({
+                startLine,
+                endLine,
+                kind: range.kind === 'comment' ? FoldingRangeKind.Comment : undefined,
+              });
+            }
+          }
+          return ranges;
+        },
+      };
+    },
+  };
+}
+
+/**
  * Starts the language server over the connection the client opened.
  * TypeScript 7 has no JavaScript API, so the server uses its own copy of the
  * TypeScript 6 compiler.
@@ -72,7 +109,12 @@ export function startServer(): void {
           createSolidLanguagePlugin<URI>({}, (uri) => uri.fsPath.replaceAll('\\', '/')),
         ],
       })),
-      [...createTypeScriptServices(ts), createCssServices(), createSyntaxDiagnosticsPlugin()],
+      [
+        ...createTypeScriptServices(ts),
+        createCssServices(),
+        createSyntaxDiagnosticsPlugin(),
+        createFoldingPlugin(),
+      ],
     ),
   );
   connection.onInitialized(server.initialized);

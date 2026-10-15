@@ -1,6 +1,10 @@
 import type { CodeMapping, IScriptSnapshot, VirtualCode } from '@volar/language-core';
 import { describe, expect, it } from 'vitest';
-import { createSolidLanguagePlugin, createSolidVirtualCode } from '../src/index.ts';
+import {
+  createSolidLanguagePlugin,
+  createSolidVirtualCode,
+  getFoldingRanges,
+} from '../src/index.ts';
 
 function snapshot(text: string): IScriptSnapshot {
   return {
@@ -117,6 +121,19 @@ describe('tsx', () => {
     expect(props[0]!.data).toEqual({ verification: true });
   });
 
+  it('turns off folding where the generated code replaces the file', () => {
+    const code = embedded('#for (item of items) { <p /> }', 'tsx');
+    const text = textOf(code);
+    const start = code.mappings.find((mapping) =>
+      text.startsWith('<For', mapping.generatedOffsets[0]),
+    );
+    expect(start?.data.structure).toBe(false);
+    const items = code.mappings.find((mapping) =>
+      text.startsWith('items', mapping.generatedOffsets[0]),
+    );
+    expect(items?.data.structure).toBe(true);
+  });
+
   it('falls back to the scripts when the markup has an error', () => {
     const errors: string[] = [];
     const broken = '<script>let a: number = 1;</script>\n#if () { }';
@@ -142,6 +159,46 @@ describe('css', () => {
   it('keeps interpolations in comments', () => {
     const code = embedded('<style>/* ${a} */ p { color: ${a} }</style>\n<p />', 'style_0');
     expect(textOf(code)).toBe('/* ${a} */ p { color: x___ }');
+  });
+});
+
+/** Each range as its first and last folded line, starting at 1. */
+function folds(text: string): string[] {
+  const line = (offset: number) => text.slice(0, offset).split('\n').length;
+  return getFoldingRanges(text)
+    .map((range) => `${line(range.start)}-${line(range.end)}${range.kind ? ` ${range.kind}` : ''}`)
+    .filter((range) => !/^(\d+)-\1\b/.test(range));
+}
+
+describe('folding', () => {
+  it('folds scripts, styles, comments and blocks', () => {
+    const input = [
+      '<script>',
+      '  let a = 1;',
+      '</script>',
+      '<style>',
+      '  p { color: red; }',
+      '</style>',
+      '<!--',
+      '  note',
+      '-->',
+      '#if (a) {',
+      '  <p />',
+      '  } #else {',
+      '  <q />',
+      '}',
+    ].join('\n');
+    expect(folds(input)).toEqual(['1-2', '4-5', '7-9 comment', '10-11', '12-13']);
+  });
+
+  it('ignores comments in scripts and blocks on one line', () => {
+    expect(folds('<script>\n  const a = "<!--\n-->";\n</script>\n#if (a) { <p /> }')).toEqual([
+      '1-3',
+    ]);
+  });
+
+  it('keeps the script and style ranges when the markup has an error', () => {
+    expect(folds('<script>\n  let a;\n</script>\n<div>\n')).toEqual(['1-2']);
   });
 });
 

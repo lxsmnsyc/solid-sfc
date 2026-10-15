@@ -65,6 +65,7 @@ Install the Solid SFC extension from the Visual Studio Marketplace or Open VSX. 
 - Type errors, hover, completion, go-to-definition and rename in scripts and markup.
 - CSS completion and errors in `<style>` blocks.
 - Markup syntax errors.
+- Folding for `<script>` and `<style>` blocks, control flow blocks, elements and comments.
 
 The extension includes its own language server and TypeScript, so it needs no setup.
 
