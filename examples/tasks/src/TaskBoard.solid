@@ -163,7 +163,7 @@
       placeholder="What needs doing?"
       onInput=((event) => (draft = event.currentTarget.value))
     >
-    <button type="submit" disabled=(draft.trim() === '')>Add</button>
+    <button type="submit" disabled=!draft.trim()>Add</button>
   </form>
 
   <div class="filters">

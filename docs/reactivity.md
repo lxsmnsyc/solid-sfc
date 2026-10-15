@@ -243,7 +243,7 @@ Reading a reactive variable gives its value. To pass the signal itself to other 
   let count = $signal(0);
 </script>
 
-<Counter value=($get(count)) onChange=($set(count)) />
+<Counter value=$get(count) onChange=$set(count) />
 ```
 
 `$getter`, `$setter` and `$property` turn an object property into a getter, a setter, or both:

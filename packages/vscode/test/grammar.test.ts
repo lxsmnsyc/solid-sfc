@@ -89,6 +89,15 @@ describe('markup', () => {
     expect(scopeOf(source, 0, 'a + b')).toContain('meta.embedded.expression.tsx');
   });
 
+  it('scopes calls and member accesses in attribute values', () => {
+    const source = '<b onClick=props.select(item.id) value=!items[0]?.label next />';
+    expect(scopeOf(source, 0, 'select')).toContain('entity.name.function.solid');
+    expect(scopeOf(source, 0, 'item.id')).toContain('meta.embedded.expression.tsx');
+    expect(scopeOf(source, 0, '!')).toContain('keyword.operator.solid');
+    expect(scopeOf(source, 0, 'label')).toContain('variable.other.readwrite.solid');
+    expect(scopeOf(source, 0, 'next')).toContain('entity.other.attribute-name.solid');
+  });
+
   it('embeds TSX in expressions with nested braces', () => {
     const source = '<p>{fn({ a: 1 })} text</p>';
     expect(scopeOf(source, 0, 'fn(')).toContain('meta.embedded.expression.tsx');

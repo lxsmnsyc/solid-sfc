@@ -36,6 +36,21 @@ describe('attributes', () => {
     ['<input value=x>', '<input value={x}/>'],
     ['<div use:ref=el class:active=on />', '<div use:ref={el} class:active={on} />'],
     ['<Comp render=<b>hi</b> />', '<Comp render=<b>hi</b> />'],
+    ['<input value=value()>', '<input value={value()}/>'],
+    ['<b onClick=props.onClick(event, 1) />', '<b onClick={props.onClick(event, 1)} />'],
+    [
+      '<b x=items[0].label y=map.get(key)?.name />',
+      '<b x={items[0].label} y={map.get(key)?.name} />',
+    ],
+    ['<b x=a?.[i] y=fn?.(1) z=el! />', '<b x={a?.[i]} y={fn?.(1)} z={el!} />'],
+    ['<b x=!valid y=-1 z=!!list.length />', '<b x={!valid} y={-1} z={!!list.length} />'],
+    [
+      '<b x=(a + b).toFixed(2) y=[1, 2].map(f) />',
+      '<b x={(a + b).toFixed(2)} y={[1, 2].map(f)} />',
+    ],
+    ['<b x=css`color: red` y=`a`.length />', '<b x={css`color: red`} y={`a`.length} />'],
+    ['<b x=a.b()>c</b>', '<b x={a.b()}>c</b>'],
+    ['<div [name]=get(key) />', '<div {...{[name]: get(key)}} />'],
   ])('%s', (input, output) => {
     expect(markup(input)).toBe(output);
   });
@@ -139,7 +154,12 @@ describe('errors', () => {
     ['<div>', 'expected a closing tag'],
     ['<div></span>', 'Expected </div>'],
     ['</div>', 'Unexpected closing tag'],
-    ['<a b=c.d() />', 'Wrap this attribute value in parentheses'],
+    ['<a b=c+d />', 'Wrap this attribute value in parentheses'],
+    ['<a b=c.d()e />', 'Wrap this attribute value in parentheses'],
+    ['<a b=c!=d />', 'Wrap this attribute value in parentheses'],
+    ['<a b=!"c" />', 'Wrap this attribute value in parentheses'],
+    ['<a b={ c: 1 }.c />', 'Expected whitespace between attributes'],
+    ['<a b=c?.1 />', 'Expected a property name'],
     ['<a (b + c) />', 'Expected an identifier'],
     ['<a {b + c} />', 'Expected a spread or a shorthand attribute'],
     ['<a b="c"d />', 'Expected whitespace between attributes'],
@@ -153,7 +173,7 @@ describe('errors', () => {
   });
 
   it('reports the location', () => {
-    expect(() => compile('<div>\n  <a b=c.d() />\n</div>')).toThrow(
+    expect(() => compile('<div>\n  <a b=c+d />\n</div>')).toThrow(
       expect.objectContaining({ name: 'SFCError', line: 2, column: 8 }),
     );
   });

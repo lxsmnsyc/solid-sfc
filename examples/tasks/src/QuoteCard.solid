@@ -84,8 +84,8 @@
         </blockquote>
       }
       <div class="actions">
-        <button type="button" disabled=(pending()) onClick=(() => index++)>Next quote</button>
-        <button type="button" disabled=(pending()) onClick=(() => (failing = true))>
+        <button type="button" disabled=pending() onClick=(() => index++)>Next quote</button>
+        <button type="button" disabled=pending() onClick=(() => (failing = true))>
           Break the server
         </button>
       </div>

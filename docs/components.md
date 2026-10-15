@@ -141,7 +141,7 @@ The script also cannot have `export default` or `export *`.
   const props = $props<Props>();
 </script>
 
-<button disabled=(props.disabled)>{props.label}</button>
+<button disabled=props.disabled>{props.label}</button>
 ```
 
 Read props through the object (`props.label`) to keep them reactive. To destructure them, destructure the call itself:

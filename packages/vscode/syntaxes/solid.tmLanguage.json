@@ -442,7 +442,7 @@
         },
         {
           "begin": "=",
-          "end": "(?<=[\"'`)}\\]>\\w$.])(?=[\\s/>])|(?=/?>)",
+          "end": "(?<=[\"'`)}\\]>\\w$.!])(?=[\\s/>])|(?=/?>)",
           "beginCaptures": {
             "0": {
               "name": "punctuation.separator.key-value.solid"
@@ -547,8 +547,21 @@
           "name": "string.regexp.solid"
         },
         {
-          "match": "[A-Za-z_$][\\w$.]*(?=[\\s/>])",
+          "comment": "A value can be followed by member accesses, calls and indexes, as in `items[0].label()`.",
+          "match": "#?[A-Za-z_$][\\w$]*(?=\\s*(?:\\?\\.)?\\()",
+          "name": "entity.name.function.solid"
+        },
+        {
+          "match": "#?[A-Za-z_$][\\w$]*",
           "name": "variable.other.readwrite.solid"
+        },
+        {
+          "match": "\\?\\.|\\.",
+          "name": "punctuation.accessor.solid"
+        },
+        {
+          "match": "[!~+-]",
+          "name": "keyword.operator.solid"
         }
       ]
     },

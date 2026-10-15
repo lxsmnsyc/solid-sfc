@@ -7,7 +7,10 @@ Everything in a `.solid` file outside `<script>` and `<style>` is markup. Markup
 | Write                    | Compiles to                | Notes                                     |
 | ------------------------ | -------------------------- | ----------------------------------------- |
 | `onClick=increment`      | `onClick={increment}`      | Identifiers need no braces.               |
-| `value=props.label`      | `value={props.label}`      | Dotted names also need no braces.         |
+| `value=props.label`      | `value={props.label}`      | Member accesses.                          |
+| `value=count()`          | `value={count()}`          | Calls.                                    |
+| `label=items[0]?.name`   | `label={items[0]?.name}`   | Indexes and optional chaining.            |
+| `disabled=!valid`        | `disabled={!valid}`        | `!`, `-`, `+` and `~` before a value.     |
 | `tabIndex=0`             | `tabIndex={0}`             | Numbers.                                  |
 | `disabled=false`         | `disabled={false}`         | `true`, `false` and `null`.               |
 | `href=(base + path)`     | `href={(base + path)}`     | Any other expression goes in parentheses. |
@@ -18,7 +21,9 @@ Everything in a `.solid` file outside `<script>` and `<style>` is markup. Markup
 | `icon=<Icon />`          | `icon=<Icon />`            | Elements, as in JSX.                      |
 | `title="Hello"`          | `title="Hello"`            | Strings, as in JSX.                       |
 
-A bare value ends at whitespace, `/` or `>`. Anything else needs parentheses. `onClick=props.onClick()` is a syntax error. Write `onClick=(props.onClick())` instead.
+A value without parentheses reads like a value in a JavaScript object: a name, a number or a literal, followed by any number of `.name`, `?.name`, `(arguments)`, `[index]` and `!`. Whitespace is allowed inside brackets, as in `onClick=select(item, 1)`, but not between the parts.
+
+A value without parentheses ends at whitespace, `/` or `>`. Operators other than the prefixes need parentheses, because they would be read as the end of the value or the end of the tag. `disabled=count>3` is a syntax error. Write `disabled=(count > 3)` instead. Arrow functions also need parentheses: `onClick=(() => select(item))`.
 
 > [!IMPORTANT]
 > Braces in an attribute value are an object literal, not an expression. `value={count}` passes the object `{ count }`, not the value of `count`. Write `value=count` or `value=(count)` for the value.
@@ -103,10 +108,10 @@ HTML comments are removed from the output:
 
 Errors point at the line and column in the `.solid` file, for example `Wrap this attribute value in parentheses (App.solid:4:17)`. Common ones:
 
-| Message                                          | Cause                                                                          |
-| ------------------------------------------------ | ------------------------------------------------------------------------------ |
-| `Wrap this attribute value in parentheses`       | A bare value contains something other than a name or a number, such as a call. |
-| `Expected whitespace between attributes`         | Two attributes touch, as in `a="1"b="2"`.                                      |
-| `Expected a spread or a shorthand attribute`     | `{...}` in a tag holds neither a spread nor an identifier.                     |
-| `Expected </div>`                                | A closing tag does not match its opening tag.                                  |
-| `Unexpected end of file, expected a closing tag` | An element is never closed.                                                    |
+| Message                                          | Cause                                                            |
+| ------------------------------------------------ | ---------------------------------------------------------------- |
+| `Wrap this attribute value in parentheses`       | A value without parentheses contains an operator, such as `a+b`. |
+| `Expected whitespace between attributes`         | Two attributes touch, as in `a="1"b="2"`.                        |
+| `Expected a spread or a shorthand attribute`     | `{...}` in a tag holds neither a spread nor an identifier.       |
+| `Expected </div>`                                | A closing tag does not match its opening tag.                    |
+| `Unexpected end of file, expected a closing tag` | An element is never closed.                                      |

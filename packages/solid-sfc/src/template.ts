@@ -55,6 +55,8 @@ const TAG_NAME = /[A-Za-z_$][\w$.:-]*/y;
 const ATTRIBUTE_NAME = /[A-Za-z_$][\w$-]*(?::[A-Za-z_$][\w$-]*)?/y;
 const IDENTIFIER = /^[A-Za-z_$][\w$]*$/;
 const BARE_VALUE = /[\w$.]+/y;
+const MEMBER_NAME = /#?[A-Za-z_$][\w$]*/y;
+const PREFIX_OPERATORS = '!-+~';
 const BLOCK_ATTRIBUTE = /([A-Za-z_$][\w$:-]*)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'))?/y;
 
 function matchAt(pattern: RegExp, source: string, offset: number): string | undefined {
@@ -371,54 +373,80 @@ export class TemplateParser {
    * Parses an attribute value and returns the offset after it. In an
    * `attribute` context the value is rewritten into a valid JSX attribute
    * value. In an `expression` context it is rewritten into a JS expression.
+   *
+   * A value has no whitespace outside brackets. It is an optional prefix
+   * operator such as `!`, a primary value, and then member accesses, calls
+   * and indexes, as in `!props.items[0].label()`.
    */
   private parseValue(offset: number, context: ValueContext): number {
     const { source, scanner } = this;
-    const char = source[offset];
+    let start = offset;
+    while (PREFIX_OPERATORS.includes(source[start]!)) {
+      start++;
+    }
+    const prefixed = start > offset;
+    const char = source[start];
     let end: number;
     let wrap = context === 'attribute';
+    // Strings, objects and elements cannot be followed by member accesses.
+    let chain = true;
     switch (char) {
       case '"':
       case "'":
+        if (prefixed) {
+          return this.fail('Wrap this attribute value in parentheses', offset);
+        }
         // JSX strings have no escapes. JS strings do.
-        end = scanner.skipString(offset, context === 'expression');
+        end = scanner.skipString(start, context === 'expression');
         wrap = false;
+        chain = false;
         break;
       case '`':
-        end = scanner.skipTemplate(offset);
+        end = scanner.skipTemplate(start);
         break;
       case '{': {
+        if (prefixed) {
+          return this.fail('Wrap this attribute value in parentheses', offset);
+        }
         // Braces hold an object literal.
-        end = scanner.scanExpression(offset + 1, '}') + 1;
+        end = scanner.scanExpression(start + 1, '}') + 1;
         if (context === 'expression') {
-          this.output.appendLeft(offset, '(');
+          this.output.appendLeft(start, '(');
           this.output.appendLeft(end, ')');
         }
+        chain = false;
         break;
       }
       case '(':
-        end = scanner.scanExpression(offset + 1, ')') + 1;
+        end = scanner.scanExpression(start + 1, ')') + 1;
         break;
       case '[':
-        end = scanner.scanExpression(offset + 1, ']') + 1;
+        end = scanner.scanExpression(start + 1, ']') + 1;
         break;
       case '/':
-        end = scanner.skipRegExp(offset);
+        end = scanner.skipRegExp(start);
         break;
       case '<':
-        end = this.parseElement(offset);
+        if (prefixed) {
+          return this.fail('Wrap this attribute value in parentheses', offset);
+        }
+        end = this.parseElement(start);
         wrap = false;
+        chain = false;
         break;
       default: {
-        const value = matchAt(BARE_VALUE, source, offset);
+        const value = matchAt(BARE_VALUE, source, start);
         if (!value) {
           return this.fail('Expected an attribute value', offset);
         }
-        end = offset + value.length;
-        const next = source[end];
-        if (next !== undefined && !isWhitespace(next) && next !== '>' && next !== '/') {
-          this.fail('Wrap this attribute value in parentheses', offset);
-        }
+        end = start + value.length;
+      }
+    }
+    if (chain) {
+      end = this.parseChain(end);
+      const next = source[end];
+      if (next !== undefined && !isWhitespace(next) && next !== '>' && next !== '/') {
+        this.fail('Wrap this attribute value in parentheses', offset);
       }
     }
     if (wrap) {
@@ -426,5 +454,42 @@ export class TemplateParser {
       this.output.appendLeft(end, '}');
     }
     return end;
+  }
+
+  /** Skips member accesses, calls, indexes and tagged templates after a value. */
+  private parseChain(offset: number): number {
+    const { source, scanner } = this;
+    let i = offset;
+    while (true) {
+      const char = source[i];
+      if (char === '?' && source[i + 1] === '.') {
+        // `?.name`, `?.(...)` and `?.[...]`.
+        i += 2;
+        if (source[i] !== '(' && source[i] !== '[') {
+          i = this.parseMemberName(i);
+        }
+      } else if (char === '.') {
+        i = this.parseMemberName(i + 1);
+      } else if (char === '(') {
+        i = scanner.scanExpression(i + 1, ')') + 1;
+      } else if (char === '[') {
+        i = scanner.scanExpression(i + 1, ']') + 1;
+      } else if (char === '`') {
+        i = scanner.skipTemplate(i);
+      } else if (char === '!' && source[i + 1] !== '=') {
+        // A TypeScript non-null assertion.
+        i++;
+      } else {
+        return i;
+      }
+    }
+  }
+
+  private parseMemberName(offset: number): number {
+    const name = matchAt(MEMBER_NAME, this.source, offset);
+    if (!name) {
+      return this.fail('Expected a property name', offset);
+    }
+    return offset + name.length;
   }
 }
