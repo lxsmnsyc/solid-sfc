@@ -140,6 +140,45 @@ describe('#loading', () => {
   });
 });
 
+describe('#loading (on)', () => {
+  it('passes the header as the on prop', () => {
+    expect(markup('#loading (id) { <P /> } #fallback { <S /> }')).toBe(
+      '<_Loading on={id} fallback={<> <S /> </>}> <P /> </_Loading>',
+    );
+    expect(markup('#loading ( user.id ) { <P /> }')).toBe(
+      '<_Loading on={user.id}> <P /> </_Loading>',
+    );
+  });
+});
+
+describe('#reveal', () => {
+  it('compiles to <Reveal>', () => {
+    expect(markup('#reveal { <A /> }')).toBe('<_Reveal> <A /> </_Reveal>');
+    expect(imports('#reveal { <A /> }')).toContain('import { Reveal as _Reveal } from "solid-js";');
+  });
+
+  it('passes the order and collapsed props', () => {
+    expect(markup("#reveal ('sequential') { <A /> }")).toBe(
+      "<_Reveal order={'sequential'}> <A /> </_Reveal>",
+    );
+    expect(markup("#reveal ('together', fold(a, b)) { <A /> }")).toBe(
+      "<_Reveal order={'together'} collapsed={fold(a, b)}> <A /> </_Reveal>",
+    );
+  });
+});
+
+describe('#portal', () => {
+  it('compiles to <Portal>', () => {
+    expect(markup('#portal { <dialog /> }')).toBe('<_Portal> <dialog /> </_Portal>');
+    expect(markup('#portal (target) { <dialog /> }')).toBe(
+      '<_Portal mount={target}> <dialog /> </_Portal>',
+    );
+    expect(imports('#portal { <A /> }')).toContain(
+      'import { Portal as _Portal } from "@solidjs/web";',
+    );
+  });
+});
+
 describe('#key', () => {
   it('uses the runtime helper', () => {
     expect(markup('#key (id) { <P /> }')).toBe('{__key(() => (id), () => <> <P /> </>)}');
@@ -180,6 +219,9 @@ describe('errors', () => {
     ['#switch { #default { } #case (a) { } }', '#default must be the last branch'],
     ['#try { <W /> }', '#try needs a #catch block'],
     ['#try { } #catch ({ a }) { }', 'Expected "(error)" or "(error, reset)"'],
+    ['#portal (a, b) { }', 'Expected "(mount)" after #portal'],
+    ['#reveal (a, b, c) { }', 'Expected "(order, collapsed)" after #reveal'],
+    ['#loading (a, b) { }', 'Expected "(on)" after #loading'],
   ])('%s', (input, message) => {
     expect(() => compile(input)).toThrow(message);
   });

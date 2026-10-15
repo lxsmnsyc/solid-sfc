@@ -149,6 +149,45 @@ Only `#case`, `#default`, whitespace and comments are allowed directly inside `#
 
 `#loading` compiles to `<Loading>`. It shows the `#fallback` body while async reads in the body are pending. `#fallback` is optional.
 
+After the first load, `#loading` keeps showing the old content while new data loads. A header shows the fallback again whenever its value changes:
+
+```html
+#loading (userId) {
+  <Profile id=userId />
+} #fallback {
+  <p>Loading…</p>
+}
+```
+
+The header compiles to the `on` prop of `<Loading>`.
+
+## `#reveal`
+
+```html
+#reveal ('sequential') {
+  #loading { <Profile /> } #fallback { <p>Loading profile…</p> }
+  #loading { <Feed /> } #fallback { <p>Loading feed…</p> }
+}
+```
+
+`#reveal` compiles to `<Reveal>`. It controls when the `#loading` blocks inside it show their content:
+
+- `'sequential'`, the default, shows them in order. A block waits for the blocks before it.
+- `'together'` shows them all at once, when every one has loaded.
+- `'natural'` shows each one as soon as it loads. It is useful inside another `#reveal`, where the whole group counts as one block.
+
+The header is `(order)` or `(order, collapsed)`, and both are optional. With `collapsed` set to `true` in sequential order, the blocks after the next one to load show nothing instead of their fallbacks.
+
+## `#portal`
+
+```html
+#portal {
+  <dialog open>Saved</dialog>
+}
+```
+
+`#portal` compiles to `<Portal>`. It renders its body at the end of `document.body`, outside the parent elements. A header sets another target: `#portal (container) { }`.
+
 ## `#key`
 
 ```html
@@ -177,7 +216,7 @@ Only `#case`, `#default`, whitespace and comments are allowed directly inside `#
 
 `#` starts a block only when all of these are true:
 
-- A known keyword follows: `if`, `for`, `index`, `repeat`, `switch`, `try`, `loading` or `key`.
+- A known keyword follows: `if`, `for`, `index`, `repeat`, `switch`, `try`, `loading`, `reveal`, `portal` or `key`.
 - The keyword is followed by `(` or `{`.
 - The `#` does not come right after a letter, a digit, `_` or `$`.
 

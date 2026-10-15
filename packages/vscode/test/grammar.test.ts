@@ -117,6 +117,15 @@ describe('control flow', () => {
     expect(scopeOf(source, 0, 'li')).toContain('entity.name.tag.solid');
   });
 
+  it('scopes blocks with optional headers', () => {
+    const source = "#reveal ('sequential') {\n  #loading (id) { <a /> }\n}\n#portal { <b /> }";
+    expect(scopeOf(source, 0, 'reveal')).toContain('keyword.control.flow.solid');
+    expect(scopeOf(source, 0, "'sequential'")).toContain('meta.embedded.expression.tsx');
+    expect(scopeOf(source, 1, 'id')).toContain('meta.embedded.expression.tsx');
+    expect(scopeOf(source, 3, 'portal')).toContain('keyword.control.flow.solid');
+    expect(scopeOf(source, 3, 'b')).toContain('entity.name.tag.solid');
+  });
+
   it('nests blocks', () => {
     const source = '#if (a) {\n  #for (x of xs) {\n    <b />\n  }\n}\n<c />';
     expect(scopeOf(source, 1, 'for')).toContain('keyword.control.flow.solid');

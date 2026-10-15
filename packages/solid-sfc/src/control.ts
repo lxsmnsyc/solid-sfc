@@ -9,7 +9,18 @@ import { isIdentifierPart, isWhitespace } from './scanner.ts';
 /** Helper from `solid-sfc/runtime` used by `#key`. */
 export const KEY_IDENTIFIER = '__key';
 
-const BLOCKS = new Set(['if', 'for', 'index', 'repeat', 'switch', 'try', 'loading', 'key']);
+const BLOCKS = new Set([
+  'if',
+  'for',
+  'index',
+  'repeat',
+  'switch',
+  'try',
+  'loading',
+  'reveal',
+  'portal',
+  'key',
+]);
 const BRANCHES = new Set(['else', 'case', 'default', 'catch', 'fallback']);
 const KEYWORD = /#([a-z]+)/y;
 
@@ -153,6 +164,10 @@ export class ControlFlowParser {
         return this.parseBoundary(keyword, 'Errored', 'catch');
       case 'loading':
         return this.parseBoundary(keyword, 'Loading', 'fallback');
+      case 'reveal':
+        return this.parseWrapper(keyword, 'Reveal', ['order', 'collapsed']);
+      case 'portal':
+        return this.parseWrapper(keyword, 'Portal', ['mount']);
       default:
         return this.parseKey(keyword);
     }
@@ -178,6 +193,52 @@ export class ControlFlowParser {
       this.host.fail(`Expected an expression after #${keyword}`, open);
     }
     return { open, start: open + 1, end };
+  }
+
+  /** Parses a header if `(` follows `offset`. */
+  private parseOptionalHeader(offset: number, keyword: string): Header | undefined {
+    const { source, scanner } = this.host;
+    return source[scanner.skipWhitespace(offset)] === '('
+      ? this.parseHeader(offset, keyword)
+      : undefined;
+  }
+
+  /**
+   * Rewrites the arguments of a header into props, so `(a, b)` with `names`
+   * `['order', 'collapsed']` becomes ` order={a} collapsed={b}`.
+   */
+  private headerProps(header: Header, keyword: string, names: string[]): void {
+    const { source } = this.host;
+    const args = splitTopLevel(source.slice(header.start, header.end), ',');
+    if (args.length > names.length || args.some((arg) => !arg.trim())) {
+      this.host.fail(`Expected "(${names.join(', ')})" after #${keyword}`, header.start);
+    }
+    let offset = header.start;
+    args.forEach((arg, index) => {
+      // The text between arguments is replaced, and each argument stays in
+      // place, so the source map keeps pointing at it.
+      const start = offset + arg.length - arg.trimStart().length;
+      const end = start + arg.trim().length;
+      const next = offset + arg.length;
+      this.update(offset, start, ` ${names[index]}={`);
+      this.update(end, index === args.length - 1 ? next : next + 1, '}');
+      offset = next + 1;
+    });
+  }
+
+  /** `#reveal (order) { A }` and `#portal (mount) { A }` become components with props. */
+  private parseWrapper(keyword: Keyword, tag: 'Reveal' | 'Portal', names: string[]): number {
+    const header = this.parseOptionalHeader(keyword.end, keyword.name);
+    const body = this.parseBody(header ? header.end + 1 : keyword.end, keyword.name);
+    if (header) {
+      this.update(keyword.start, header.start, `<${tag}`);
+      this.headerProps(header, keyword.name, names);
+      this.update(header.end, body.start, '>');
+    } else {
+      this.update(keyword.start, body.start, `<${tag}>`);
+    }
+    this.update(body.end, body.end + 1, `</${tag}>`);
+    return body.end + 1;
   }
 
   private parseBody(offset: number, keyword: string): Body {
@@ -397,8 +458,17 @@ export class ControlFlowParser {
     fallbackKeyword: 'catch' | 'fallback',
   ): number {
     const { source, fail } = this.bind();
-    const body = this.parseBody(keyword.end, keyword.name);
-    this.update(keyword.start, body.open, `<${tag}`);
+    // `#loading (value)` shows the fallback again when the value changes.
+    const header =
+      tag === 'Loading' ? this.parseOptionalHeader(keyword.end, keyword.name) : undefined;
+    const body = this.parseBody(header ? header.end + 1 : keyword.end, keyword.name);
+    if (header) {
+      this.update(keyword.start, header.start, `<${tag}`);
+      this.headerProps(header, keyword.name, ['on']);
+      this.update(header.end, body.open, '');
+    } else {
+      this.update(keyword.start, body.open, `<${tag}`);
+    }
     this.update(body.open, body.start, '>');
 
     const branch = this.nextBranch(body.end + 1, [fallbackKeyword]);
