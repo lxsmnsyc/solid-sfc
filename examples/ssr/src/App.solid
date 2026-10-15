@@ -1,0 +1,34 @@
+<script lang="ts">
+  let count = $signal(0);
+  const doubled = $memo(count * 2);
+
+  async function fetchGreeting(name: string): Promise<string> {
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    return `Hello, ${name}`;
+  }
+
+  const greeting = $memo(fetchGreeting('server'));
+</script>
+
+<style>
+  main {
+    font-family: system-ui, sans-serif;
+    color: ${count > 2 ? 'crimson' : 'black'};
+  }
+</style>
+
+<main>
+  <h1>Solid SFC with SSR</h1>
+  <button type="button" onClick=(() => count++)>Count: {count}</button>
+  <p>Doubled: {doubled}</p>
+  #loading {
+    <p class="greeting">{greeting}</p>
+  } #else {
+    <p>Loading…</p>
+  }
+  <ul>
+    #for (n of [1, 2, 3]) {
+      <li>{n}</li>
+    }
+  </ul>
+</main>

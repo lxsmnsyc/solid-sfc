@@ -1,0 +1,15 @@
+<script lang="ts">
+  import type { Element } from 'solid-js';
+
+  const props = $props<{ children: Element }>();
+</script>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Solid SFC SSR</title>
+    <HydrationScript />
+  </head>
+  <body>{props.children}</body>
+</html>

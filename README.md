@@ -18,6 +18,7 @@ Read the [documentation](./docs/README.md) to get started.
 ## Examples
 
 - [`tasks`](./examples/tasks) is a task board that uses every feature of `.solid` files.
+- [`ssr`](./examples/ssr) renders a `.solid` app on the server with start mode and hydrates it.
 
 ## Development
 

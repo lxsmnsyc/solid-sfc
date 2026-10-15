@@ -20,6 +20,41 @@ The plugin compiles `.solid` files in these steps:
 
 The CSS of each component is a separate module, `App.solid?solid-sfc&type=style&lang.css`, which Vite processes like any CSS file.
 
+### Server-side rendering
+
+Solid 2.0 renders on the server through the start mode of `@solidjs/vite-plugin`. Pass its options through `solid`:
+
+```ts
+export default defineConfig({
+  plugins: [solidSFC({ solid: { start: true, ssr: true } })],
+});
+```
+
+Start mode renders `src/App.*` inside `src/Document.*`. When `start` is set, `solid-sfc/vite` uses `src/App.solid` and `src/Document.solid` if they exist and `start.app` and `start.document` are not set. The document renders the whole page, including `<HydrationScript />`:
+
+```html
+<script lang="ts">
+  import type { Element } from 'solid-js';
+
+  const props = $props<{ children: Element }>();
+</script>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <HydrationScript />
+  </head>
+  <body>{props.children}</body>
+</html>
+```
+
+- Scoped styles and their CSS variables are rendered on the server, so the page has its styles before it hydrates.
+- `#loading` blocks stream their content when it is ready.
+- `<solid:window>` and `<solid:document>` do nothing on the server.
+- Without `ssr: true`, start mode renders on the client into a prerendered document.
+
+The [`ssr` example](../examples/ssr) is a complete app.
+
 ### Options
 
 | Option  | Description                                                                |

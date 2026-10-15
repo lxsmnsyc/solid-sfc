@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { transformWithOxc } from 'vite';
@@ -34,11 +35,31 @@ function isSFC(id: string): boolean {
 }
 
 /**
+ * Start mode looks for `src/App.tsx` and `src/Document.tsx`. When those are
+ * not given, this points it at `src/App.solid` and `src/Document.solid`.
+ */
+function withSolidEntries(options: Partial<SolidPluginOptions>): Partial<SolidPluginOptions> {
+  if (!options.start) {
+    return options;
+  }
+  const start = options.start === true ? {} : { ...options.start };
+  for (const [key, file] of [
+    ['app', 'src/App.solid'],
+    ['document', 'src/Document.solid'],
+  ] as const) {
+    if (!start[key] && existsSync(file)) {
+      start[key] = `./${file}`;
+    }
+  }
+  return { ...options, start };
+}
+
+/**
  * Compiles `.solid` files. It includes `@solidjs/vite-plugin`, so do not add it
  * again.
  */
 export default function solidSFC(options: SolidSFCOptions = {}): Plugin[] {
-  const solidOptions = options.solid ?? {};
+  const solidOptions = withSolidEntries(options.solid ?? {});
   let root = process.cwd();
   let dev = false;
 
