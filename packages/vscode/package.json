@@ -46,10 +46,7 @@
     "typescriptServerPlugins": [
       {
         "name": "solid-sfc-typescript-plugin-pack",
-        "enableForWorkspaceTypeScriptVersions": true,
-        "languages": [
-          "solid"
-        ]
+        "enableForWorkspaceTypeScriptVersions": true
       }
     ],
     "languages": [
@@ -65,6 +62,27 @@
         "configuration": "./language-configuration.json"
       }
     ],
+    "snippets": [
+      {
+        "language": "solid",
+        "path": "./snippets/solid.code-snippets"
+      }
+    ],
+    "configuration": {
+      "title": "Solid SFC",
+      "properties": {
+        "solid.autoClosingTags": {
+          "type": "boolean",
+          "default": true,
+          "description": "Insert the closing tag after typing the `>` of an opening tag in markup."
+        }
+      }
+    },
+    "configurationDefaults": {
+      "emmet.includeLanguages": {
+        "solid": "html"
+      }
+    },
     "grammars": [
       {
         "language": "solid",

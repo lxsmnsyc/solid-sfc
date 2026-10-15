@@ -215,6 +215,9 @@ importers:
       '@volar/language-core':
         specifier: 2.4.28
         version: 2.4.28
+      oxc-parser:
+        specifier: ^0.154.0
+        version: 0.154.0
       solid-sfc:
         specifier: workspace:*
         version: link:../solid-sfc

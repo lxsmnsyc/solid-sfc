@@ -66,6 +66,10 @@ Install the Solid SFC extension from the Visual Studio Marketplace or Open VSX. 
 - CSS completion and errors in `<style>` blocks.
 - Markup syntax errors.
 - Folding for `<script>` and `<style>` blocks, control flow blocks, elements and comments.
+- An outline with the `<script>` blocks and their declarations, the `<style>` blocks and their rules, and `#template` declarations.
+- Closing tags inserted after the `>` of an opening tag. The `solid.autoClosingTags` setting turns this off.
+- Emmet abbreviations in markup, as in HTML.
+- Snippets for control flow blocks, such as `#if`, `#for` and `#try`, and for `script`, `style` and a whole `component`.
 
 The extension includes its own language server and TypeScript, so it needs no setup.
 

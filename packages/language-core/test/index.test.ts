@@ -3,6 +3,8 @@ import { describe, expect, it } from 'vitest';
 import {
   createSolidLanguagePlugin,
   createSolidVirtualCode,
+  getClosingTag,
+  getDocumentSymbols,
   getFoldingRanges,
 } from '../src/index.ts';
 
@@ -208,6 +210,64 @@ describe('folding', () => {
 
   it('keeps the script and style ranges when the markup has an error', () => {
     expect(folds('<script>\n  let a;\n</script>\n<div>\n')).toEqual(['1-2']);
+  });
+});
+
+/** The closing tag to insert after the end of `text`. */
+function close(text: string): string | undefined {
+  return getClosingTag(text, text.length);
+}
+
+describe('outline', () => {
+  it('lists blocks, script declarations and templates', () => {
+    const file = [
+      '<script lang="ts">',
+      '  interface Props { a: string }',
+      '  const { a } = $props<Props>();',
+      '  let count = $signal(0);',
+      '  function increment() {}',
+      '</script>',
+      '<style lang="scss">p {}</style>',
+      '<p>{row(1)}</p>',
+      '#template row(n: number) { <i>{n}</i> }',
+    ].join('\n');
+    const symbols = getDocumentSymbols(file);
+    expect(symbols.map((symbol) => [symbol.name, symbol.kind])).toEqual([
+      ['<script lang="ts">', 'module'],
+      ['<style lang="scss">', 'module'],
+      ['row', 'function'],
+    ]);
+    expect(symbols[0]!.children.map((symbol) => [symbol.name, symbol.kind])).toEqual([
+      ['Props', 'interface'],
+      ['{ a }', 'constant'],
+      ['count', 'variable'],
+      ['increment', 'function'],
+    ]);
+    const count = symbols[0]!.children[2]!;
+    expect(file.slice(count.selectionStart, count.selectionEnd)).toBe('count');
+  });
+});
+
+describe('closing tags', () => {
+  it.each([
+    ['<div>', '</div>'],
+    ['<p>text</p><Card title="a > b" onClick=(() => a > b)>', '</Card>'],
+    ['<>', '</>'],
+    ['<solid:show when=a>', '</solid:show>'],
+  ])('closes %s', (text, tag) => {
+    expect(close(text)).toBe(tag);
+  });
+
+  it.each([
+    '<br>',
+    '<img src="a">',
+    '<div />',
+    '</div>',
+    'a > b',
+    '<script>if (a <b>',
+    '<style>a > b',
+  ])('does not close %s', (text) => {
+    expect(close(text)).toBeUndefined();
   });
 });
 

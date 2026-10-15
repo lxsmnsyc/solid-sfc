@@ -7,6 +7,7 @@ import type {
   VirtualCode,
 } from '@volar/language-core';
 import type { TypeScriptServiceScript } from '@volar/typescript';
+import { parseSync } from 'oxc-parser';
 import { SFCError, compileStructure } from 'solid-sfc';
 import type { SourceMap } from 'solid-sfc';
 
@@ -35,6 +36,8 @@ const UNUSED_DIAGNOSTICS = new Set([6133, 6138, 6192, 6196, 6198, 6199, 6205]);
  */
 const FALLBACK_FEATURES: CodeInformation = {
   ...SCRIPT_FEATURES,
+  // The outline lists the declarations already, see `getDocumentSymbols`.
+  structure: false,
   verification: {
     shouldReport: (_source, code) => !UNUSED_DIAGNOSTICS.has(Number(code)),
   },
@@ -360,4 +363,200 @@ export function getFoldingRanges(source: string): FoldingRange[] {
     }
   }
   return ranges.toSorted((a, b) => a.start - b.start);
+}
+
+export type SymbolKind =
+  | 'module'
+  | 'function'
+  | 'variable'
+  | 'constant'
+  | 'class'
+  | 'interface'
+  | 'enum';
+
+/** An entry of the outline of a `.solid` file. Offsets are in the file. */
+export interface DocumentSymbol {
+  name: string;
+  kind: SymbolKind;
+  start: number;
+  end: number;
+  /** The range of the name. */
+  selectionStart: number;
+  selectionEnd: number;
+  children: DocumentSymbol[];
+}
+
+interface Span {
+  start: number;
+  end: number;
+}
+
+interface Declaration extends Span {
+  type: string;
+  id?: (Span & { name?: string; type: string }) | null;
+  kind?: string;
+  declarations?: (Span & { id: Span & { type: string; name?: string } })[];
+  declaration?: Declaration | null;
+}
+
+const DECLARATION_KINDS: Record<string, SymbolKind> = {
+  FunctionDeclaration: 'function',
+  ClassDeclaration: 'class',
+  TSInterfaceDeclaration: 'interface',
+  TSTypeAliasDeclaration: 'interface',
+  TSEnumDeclaration: 'enum',
+};
+
+/** The top-level declarations of a script, such as functions and variables. */
+function getScriptSymbols(code: string, offset: number, lang: 'ts' | 'js'): DocumentSymbol[] {
+  const { program } = parseSync(`script.${lang}`, code, { lang, sourceType: 'module' });
+  const symbols: DocumentSymbol[] = [];
+  const add = (name: string, kind: SymbolKind, node: Span, id: Span): void => {
+    symbols.push({
+      name,
+      kind,
+      start: offset + node.start,
+      end: offset + node.end,
+      selectionStart: offset + id.start,
+      selectionEnd: offset + id.end,
+      children: [],
+    });
+  };
+  const visit = (node: Declaration): void => {
+    const name = node.id?.name;
+    const kind = DECLARATION_KINDS[node.type];
+    if (node.type === 'ExportNamedDeclaration' || node.type === 'ExportDefaultDeclaration') {
+      if (node.declaration) {
+        visit(node.declaration);
+      }
+    } else if (kind && name && node.id) {
+      add(name, kind, node, node.id);
+    } else if (node.type === 'VariableDeclaration') {
+      for (const declarator of node.declarations ?? []) {
+        // Destructuring patterns are listed by their whole pattern.
+        const id = declarator.id;
+        const label = id.type === 'Identifier' ? id.name! : code.slice(id.start, id.end);
+        add(label, node.kind === 'const' ? 'constant' : 'variable', declarator, id);
+      }
+    }
+  };
+  for (const node of program.body as unknown as Declaration[]) {
+    visit(node);
+  }
+  return symbols;
+}
+
+/**
+ * Lists the `<script>` blocks of a `.solid` file with their top-level
+ * declarations, the `<style>` blocks and the `#template` declarations. CSS
+ * adds its rules to the style blocks. The declarations come from here,
+ * because TypeScript sees them inside the generated component function,
+ * which has no place in the file.
+ */
+export function getDocumentSymbols(source: string): DocumentSymbol[] {
+  const symbols: DocumentSymbol[] = [];
+  for (const match of source.matchAll(/<(script|style)\b([^>]*)>([\s\S]*?)<\/\1\s*>/g)) {
+    const [whole, tag, attributes = '', content = ''] = match;
+    const name = `<${tag}${attributes.replace(/\s+/g, ' ').trimEnd()}>`;
+    const contentStart = match.index + whole.indexOf('>') + 1;
+    const lang = /\blang\s*=\s*["']ts["']/.test(attributes) ? 'ts' : 'js';
+    symbols.push({
+      name,
+      kind: 'module',
+      start: match.index,
+      end: match.index + whole.length,
+      selectionStart: match.index,
+      selectionEnd: match.index + tag!.length + 1,
+      children: tag === 'script' ? getScriptSymbols(content, contentStart, lang) : [],
+    });
+  }
+  // Templates are found in the markup only, not in scripts and styles.
+  let markup = source;
+  for (const symbol of symbols) {
+    markup =
+      markup.slice(0, symbol.start) +
+      ' '.repeat(symbol.end - symbol.start) +
+      markup.slice(symbol.end);
+  }
+  for (const match of markup.matchAll(/(?<![\w$])#template\s+([A-Za-z_$][\w$]*)\s*\(/g)) {
+    const nameStart = match.index + match[0].indexOf(match[1]!);
+    symbols.push({
+      name: match[1]!,
+      kind: 'function',
+      start: match.index,
+      end: match.index + match[0].length,
+      selectionStart: nameStart,
+      selectionEnd: nameStart + match[1]!.length,
+      children: [],
+    });
+  }
+  return symbols.toSorted((a, b) => a.start - b.start);
+}
+
+// HTML elements that never have children.
+const VOID_ELEMENTS = new Set([
+  'area',
+  'base',
+  'br',
+  'col',
+  'embed',
+  'hr',
+  'img',
+  'input',
+  'link',
+  'meta',
+  'source',
+  'track',
+  'wbr',
+]);
+
+/**
+ * Returns the closing tag to insert after `>` at `offset - 1` ends an opening
+ * tag in the markup, such as `</div>` for `<div class="a">`, or undefined.
+ */
+export function getClosingTag(source: string, offset: number): string | undefined {
+  if (source[offset - 1] !== '>' || source[offset - 2] === '/') {
+    return undefined;
+  }
+  // Scripts and styles are not markup.
+  for (const match of source.matchAll(/<(script|style)\b[^>]*>[\s\S]*?(?:<\/\1\s*>|$)/g)) {
+    const contentStart = match.index + match[0].indexOf('>') + 1;
+    if (offset > contentStart && offset <= match.index + match[0].length) {
+      return undefined;
+    }
+  }
+  if (source[offset - 2] === '<') {
+    return '</>';
+  }
+  // The nearest `<name` before the `>`, outside of quotes and brackets.
+  let depth = 0;
+  let quote: string | undefined;
+  for (let i = offset - 2; i >= 0; i--) {
+    const char = source[i]!;
+    if (quote) {
+      if (char === quote) {
+        quote = undefined;
+      }
+    } else if (char === '"' || char === "'" || char === '`') {
+      quote = char;
+    } else if (char === ')' || char === ']' || char === '}') {
+      depth++;
+    } else if (char === '(' || char === '[' || char === '{') {
+      depth--;
+    } else if (char === '>' && depth === 0) {
+      return undefined;
+    } else if (char === '<' && depth === 0) {
+      const name = /^[A-Za-z][\w$.:-]*/.exec(source.slice(i + 1))?.[0];
+      if (
+        !name ||
+        VOID_ELEMENTS.has(name) ||
+        name === 'solid:window' ||
+        name === 'solid:document'
+      ) {
+        return undefined;
+      }
+      return `</${name}>`;
+    }
+  }
+  return undefined;
 }

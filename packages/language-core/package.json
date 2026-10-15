@@ -40,6 +40,7 @@
   "dependencies": {
     "@jridgewell/sourcemap-codec": "^1.6.0",
     "@volar/language-core": "2.4.28",
+    "oxc-parser": "^0.154.0",
     "solid-sfc": "workspace:*"
   },
   "devDependencies": {

@@ -1,8 +1,20 @@
-import { createSolidLanguagePlugin, getFoldingRanges } from '@solid-sfc/language-core';
-import type { Diagnostic, FoldingRange, LanguageServicePlugin } from '@volar/language-server';
+import {
+  createSolidLanguagePlugin,
+  getClosingTag,
+  getDocumentSymbols,
+  getFoldingRanges,
+} from '@solid-sfc/language-core';
+import type { DocumentSymbol as SolidSymbol } from '@solid-sfc/language-core';
+import type {
+  Diagnostic,
+  DocumentSymbol,
+  FoldingRange,
+  LanguageServicePlugin,
+} from '@volar/language-server';
 import {
   DiagnosticSeverity,
   FoldingRangeKind,
+  SymbolKind,
   createConnection,
   createServer,
   createTypeScriptProject,
@@ -96,6 +108,81 @@ export function createFoldingPlugin(): LanguageServicePlugin {
   };
 }
 
+const SYMBOL_KINDS: Record<SolidSymbol['kind'], SymbolKind> = {
+  module: SymbolKind.Module,
+  function: SymbolKind.Function,
+  variable: SymbolKind.Variable,
+  constant: SymbolKind.Constant,
+  class: SymbolKind.Class,
+  interface: SymbolKind.Interface,
+  enum: SymbolKind.Enum,
+};
+
+/**
+ * Adds the parts of a `.solid` file to the outline: `<script>` blocks with
+ * their declarations, `<style>` blocks with their rules, and `#template`
+ * declarations.
+ */
+export function createDocumentSymbolPlugin(): LanguageServicePlugin {
+  return {
+    name: 'solid-sfc-symbols',
+    capabilities: {
+      documentSymbolProvider: true,
+    },
+    create() {
+      return {
+        provideDocumentSymbols(document) {
+          if (document.languageId !== 'solid') {
+            return [];
+          }
+          const convert = (symbol: SolidSymbol): DocumentSymbol => ({
+            name: symbol.name,
+            kind: SYMBOL_KINDS[symbol.kind],
+            range: {
+              start: document.positionAt(symbol.start),
+              end: document.positionAt(symbol.end),
+            },
+            selectionRange: {
+              start: document.positionAt(symbol.selectionStart),
+              end: document.positionAt(symbol.selectionEnd),
+            },
+            children: symbol.children.map(convert),
+          });
+          return getDocumentSymbols(document.getText()).map(convert);
+        },
+      };
+    },
+  };
+}
+
+/** Inserts the closing tag after `>` ends an opening tag in the markup. */
+export function createAutoCloseTagPlugin(): LanguageServicePlugin {
+  return {
+    name: 'solid-sfc-auto-close',
+    capabilities: {
+      autoInsertionProvider: {
+        triggerCharacters: ['>'],
+        configurationSections: ['solid.autoClosingTags'],
+      },
+    },
+    create(context) {
+      return {
+        async provideAutoInsertSnippet(document, selection, change) {
+          if (
+            document.languageId !== 'solid' ||
+            !change.text.endsWith('>') ||
+            (await context.env.getConfiguration?.<boolean>('solid.autoClosingTags')) === false
+          ) {
+            return undefined;
+          }
+          const tag = getClosingTag(document.getText(), document.offsetAt(selection));
+          return tag && `$0${tag}`;
+        },
+      };
+    },
+  };
+}
+
 /**
  * Starts the language server over the connection the client opened.
  * TypeScript 7 has no JavaScript API, so the server uses its own copy of the
@@ -123,6 +210,8 @@ export function startServer(): void {
         createCssServices(),
         createSyntaxDiagnosticsPlugin(),
         createFoldingPlugin(),
+        createDocumentSymbolPlugin(),
+        createAutoCloseTagPlugin(),
       ],
     ),
   );
