@@ -222,6 +222,25 @@ The header is `(order)` or `(order, collapsed)`, and both are optional. With `co
 
 `#key` renders its body again when the value changes. Elements and state inside the body are created again. Equal values do not render again.
 
+## `#const`
+
+`#const` declares a value inside a block, from the item of a loop or another value of the block:
+
+```html
+#for (item of cart by item.id) {
+  #const total = item.price * item.quantity;
+  <li>{item.name}: {total}</li>
+}
+```
+
+`#const total = value;` compiles to `const total = $memo(value);`, so `total` updates when the values it reads change.
+
+- Declarations come first in a block, before its markup. Only whitespace and comments may come before them.
+- A declaration can read the declarations before it.
+- The name must be an identifier. Destructuring is not supported.
+- The declaration ends at `;`.
+- `#const` works in every block body, including `#else` and `#catch`.
+
 ## Branches
 
 `#else`, `#else if` and `#catch` must come right after the body of their block. Only whitespace and comments may be in between:
@@ -240,8 +259,8 @@ The header is `(order)` or `(order, collapsed)`, and both are optional. With `co
 
 `#` starts a block only when all of these are true:
 
-- A known keyword follows: `if`, `for`, `repeat`, `switch`, `try`, `loading`, `reveal`, `portal` or `key`.
-- The keyword is followed by `(` or `{`.
+- A known keyword follows: `if`, `for`, `repeat`, `switch`, `try`, `loading`, `reveal`, `portal`, `key` or `const`.
+- The keyword is followed by `(` or `{`. `#const` is followed by a name and `=` instead.
 - The `#` does not come right after a letter, a digit, `_` or `$`.
 
 Any other `#` is text, so `C#`, `#hashtag` and `#if without parentheses` render as written. To render text that looks like a block, write the `#` as an expression:

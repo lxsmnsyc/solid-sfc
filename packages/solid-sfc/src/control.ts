@@ -130,6 +130,7 @@ function findWord(text: string, word: string, from = 0): number {
 }
 
 const IDENTIFIER = /^[A-Za-z_$][\w$]*$/;
+const CONST_DECLARATION = /\s*(?:[A-Za-z_$][\w$]*\s*=(?!=)|[{[])/y;
 
 export class ControlFlowParser {
   private readonly host: ControlHost;
@@ -139,6 +140,8 @@ export class ControlFlowParser {
   readonly props: GeneratedProp[] = [];
   /** The body of each block, from `{` to `}`. Editors fold them. */
   readonly bodies: { start: number; end: number }[] = [];
+  /** The block bodies being parsed, innermost last, with the end of their `#const` declarations. */
+  private readonly frames: { start: number; constsEnd: number | undefined }[] = [];
 
   constructor(host: ControlHost) {
     this.host = host;
@@ -154,6 +157,10 @@ export class ControlFlowParser {
     if (source[offset] !== '#' || isIdentifierPart(source[offset - 1])) {
       return undefined;
     }
+    const constant = this.matchConst(offset);
+    if (constant) {
+      return constant;
+    }
     const keyword = this.readKeyword(offset);
     if (!keyword) {
       return undefined;
@@ -166,6 +173,19 @@ export class ControlFlowParser {
       this.host.fail(`#${keyword.name} must follow its block`, offset);
     }
     return BLOCKS.has(keyword.name) ? keyword : undefined;
+  }
+
+  /**
+   * `#const` is followed by `name =` or by a destructuring pattern, which is
+   * an error. Other text after `#const` stays text.
+   */
+  private matchConst(offset: number): Keyword | undefined {
+    const keyword = this.readKeyword(offset);
+    if (keyword?.name !== 'const' || !isWhitespace(this.host.source[keyword.end])) {
+      return undefined;
+    }
+    CONST_DECLARATION.lastIndex = keyword.end;
+    return CONST_DECLARATION.test(this.host.source) ? keyword : undefined;
   }
 
   /** Parses the block that starts at `keyword` and returns the offset after it. */
@@ -186,6 +206,8 @@ export class ControlFlowParser {
         return this.parseWrapper(keyword, 'Reveal', ['order', 'collapsed']);
       case 'portal':
         return this.parseWrapper(keyword, 'Portal', ['mount']);
+      case 'const':
+        return this.parseConst(keyword);
       default:
         return this.parseKey(keyword);
     }
@@ -266,8 +288,17 @@ export class ControlFlowParser {
     if (source[open] !== '{') {
       this.host.fail(`Expected "{" after #${keyword}`, open);
     }
+    const frame = { start: open + 1, constsEnd: undefined as number | undefined };
+    this.frames.push(frame);
     const end = this.host.parseBody(open + 1);
+    this.frames.pop();
     this.bodies.push({ start: open, end });
+    if (frame.constsEnd !== undefined) {
+      // The declarations need a function body. The markup is its result.
+      this.host.output.prependRight(open + 1, '{(() => {');
+      this.host.output.appendLeft(frame.constsEnd, ' return <>');
+      this.host.output.appendLeft(end, '</>; })()}');
+    }
     return { open, start: open + 1, end };
   }
 
@@ -573,6 +604,40 @@ export class ControlFlowParser {
     this.update(fallback.end, fallback.end + 1, '');
     this.moveBody(fallback, body.open, before, after);
     return fallback.end + 1;
+  }
+
+  /**
+   * `#const name = value;` becomes `const name = $memo(value);`, so the value
+   * stays reactive. Declarations come first in their block.
+   */
+  private parseConst(keyword: Keyword): number {
+    const { source, fail } = this.bind();
+    const { scanner } = this.host;
+    const frame = this.frames.at(-1);
+    if (!frame) {
+      return fail('#const must be directly inside a block', keyword.start);
+    }
+    if (this.skipTrivia(frame.constsEnd ?? frame.start) !== keyword.start) {
+      fail('#const must come before the markup of its block', keyword.start);
+    }
+    const nameStart = scanner.skipWhitespace(keyword.end);
+    if (source[nameStart] === '{' || source[nameStart] === '[') {
+      fail('#const needs a name. Destructuring is not supported', nameStart);
+    }
+    const name = /[A-Za-z_$][\w$]*/y;
+    name.lastIndex = nameStart;
+    const nameEnd = nameStart + name.exec(source)![0].length;
+    const equals = scanner.skipWhitespace(nameEnd);
+    const valueStart = scanner.skipWhitespace(equals + 1);
+    const end = scanner.scanExpression(valueStart, ';');
+    if (!source.slice(valueStart, end).trim()) {
+      fail('Expected "#const name = value;"', keyword.start);
+    }
+    this.update(keyword.start, nameStart, 'const ');
+    this.update(nameEnd, valueStart, ' = $memo(');
+    this.update(end, end + 1, ');');
+    frame.constsEnd = end + 1;
+    return end + 1;
   }
 
   /** `#key (value) { A }` renders `A` again when `value` changes. */

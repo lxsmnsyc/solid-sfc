@@ -187,6 +187,32 @@
       "comment": "Each rule covers one keyword, its header and its body, and ends after the body's `}`.",
       "patterns": [
         {
+          "begin": "(?<![\\w$])(#)(const)\\b(?=\\s+[A-Za-z_$][\\w$]*\\s*=)",
+          "end": ";",
+          "beginCaptures": {
+            "1": {
+              "name": "storage.type.solid"
+            },
+            "2": {
+              "name": "storage.type.solid"
+            }
+          },
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.terminator.statement.solid"
+            }
+          },
+          "contentName": "meta.embedded.expression.tsx",
+          "patterns": [
+            {
+              "include": "#parens"
+            },
+            {
+              "include": "source.tsx"
+            }
+          ]
+        },
+        {
           "begin": "(?<![\\w$])(#)(for|repeat)\\b(?=\\s*\\()",
           "end": "(?<=\\})",
           "beginCaptures": {

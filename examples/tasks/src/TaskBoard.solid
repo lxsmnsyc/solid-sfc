@@ -167,9 +167,11 @@
 
   <div class="filters">
     #for (option of FILTERS) {
+      #const selected = option === filter;
       <button
         type="button"
-        class={ selected: option === filter }
+        class={ selected }
+        aria-pressed=(selected ? 'true' : 'false')
         onClick=(() => (filter = option))
       >
         {option}

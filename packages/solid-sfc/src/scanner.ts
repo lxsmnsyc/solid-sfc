@@ -184,7 +184,8 @@ export class Scanner {
 
   /**
    * Scans an expression that starts at `offset` and returns the offset of
-   * the unmatched `close` character that ends it.
+   * the unmatched `close` character that ends it. A `;` close ends at the
+   * first `;` outside brackets.
    */
   scanExpression(offset: number, close: string): number {
     const { source } = this;
@@ -232,6 +233,9 @@ export class Scanner {
             if (char === close) {
               return i;
             }
+            if (close === ';') {
+              return this.hooks.error('Expected ";"', i);
+            }
             return this.hooks.error(`Unexpected "${char}"`, i);
           }
           if (expected !== char) {
@@ -240,6 +244,12 @@ export class Scanner {
           i++;
           break;
         }
+        case ';':
+          if (close === ';' && stack.length === 0) {
+            return i;
+          }
+          i++;
+          break;
         default:
           i++;
       }

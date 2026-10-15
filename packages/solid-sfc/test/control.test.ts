@@ -209,6 +209,34 @@ describe('#portal', () => {
   });
 });
 
+describe('#const', () => {
+  it('declares memos before the markup of a block', () => {
+    expect(markup('#if (a) { #const x = a * 2; #const y = x + 1; <p>{y}</p> }')).toBe(
+      '{(a) ? <>{(() => { const x = _createMemo(() => a * 2); const y = _createMemo(() => x() + 1); return <> <p>{y()}</p> </>; })()}</> : null}',
+    );
+  });
+
+  it('works in loops and fallbacks', () => {
+    expect(
+      markup(
+        '#for (n of list) { #const d = n * 2; <i>{d}</i> } #else { #const e = 0; <b>{e}</b> }',
+      ),
+    ).toBe(
+      '<_For each={list} fallback={<>{(() => { const e = _createMemo(() => 0); return <> <b>{e()}</b> </>; })()}</>}>{(n) => <>{(() => { const d = _createMemo(() => n * 2); return <> <i>{d()}</i> </>; })()}</>}</_For>',
+    );
+  });
+
+  it('allows comments between declarations', () => {
+    expect(markup('#if (a) { #const x = 1; <!-- c --> #const y = 2; {x + y} }')).toBe(
+      '{(a) ? <>{(() => { const x = _createMemo(() => 1);  const y = _createMemo(() => 2); return <> {x() + y()} </>; })()}</> : null}',
+    );
+  });
+
+  it('keeps other #const text', () => {
+    expect(markup('<p>#const values</p>')).toBe('<p>#const values</p>');
+  });
+});
+
 describe('#key', () => {
   it('uses the runtime helper', () => {
     expect(markup('#key (id) { <P /> }')).toBe('{__key(() => (id), () => <> <P /> </>)}');
@@ -270,6 +298,12 @@ describe('errors', () => {
     ['#portal (a, b) { }', 'Expected "(mount)" after #portal'],
     ['#reveal (a, b, c) { }', 'Expected "(order, collapsed)" after #reveal'],
     ['#loading (a, b) { }', 'Expected "(on)" after #loading'],
+    ['#const x = 1;', '#const must be directly inside a block'],
+    ['<p>#const x = 1;</p>', '#const must be directly inside a block'],
+    ['#if (a) { <p /> #const x = 1; }', '#const must come before the markup of its block'],
+    ['#if (a) { #const x = 1 }', 'Expected ";"'],
+    ['#if (a) { #const x = ; }', 'Expected "#const name = value;"'],
+    ['#if (a) { #const { x } = a; }', '#const needs a name'],
   ])('%s', (input, message) => {
     expect(() => compile(input)).toThrow(message);
   });

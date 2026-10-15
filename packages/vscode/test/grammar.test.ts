@@ -136,6 +136,13 @@ describe('control flow', () => {
     expect(scopeOf(source, 3, 'b')).toContain('entity.name.tag.solid');
   });
 
+  it('scopes #const declarations', () => {
+    const source = '#for (item of items) {\n  #const total = item.price * 2;\n  <p />\n}';
+    expect(scopeOf(source, 1, 'const')).toContain('storage.type.solid');
+    expect(scopeOf(source, 1, 'total = item.price * 2')).toContain('meta.embedded.expression.tsx');
+    expect(scopeOf(source, 2, 'p')).toContain('entity.name.tag.solid');
+  });
+
   it('nests blocks', () => {
     const source = '#if (a) {\n  #for (x of xs) {\n    <b />\n  }\n}\n<c />';
     expect(scopeOf(source, 1, 'for')).toContain('keyword.control.flow.solid');
