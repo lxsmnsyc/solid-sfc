@@ -9,7 +9,7 @@ A task board built with `.solid` files. Each file shows a few features:
 | [`TaskItem.solid`](./src/TaskItem.solid)   | `$props` destructuring with defaults, `#repeat`, computed attribute names, `@keyframes`, `:global()`, a style interpolation        |
 | [`Progress.solid`](./src/Progress.solid)   | Style interpolations joined with units, such as `${size}px`                                                                        |
 | [`Notes.solid`](./src/Notes.solid)         | `#for … by index`                                                                                                                  |
-| [`QuoteCard.solid`](./src/QuoteCard.solid) | An async `$memo`, `$isPending`, `#try` / `#catch`, `#loading` / `#fallback`, `#key`                                                |
+| [`QuoteCard.solid`](./src/QuoteCard.solid) | An async `$memo`, `$isPending`, `#try` / `#catch`, `#loading` / `#else`, `#key`                                                    |
 
 Run it from the root of the repository. `pnpm build` builds the packages that the example uses.
 

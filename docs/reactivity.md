@@ -88,7 +88,7 @@ A memo can hold a promise. The variable is the resolved value, and reading it be
   #if ($isPending(() => user)) {
     <p>Updating…</p>
   }
-} #fallback {
+} #else {
   <p>Loading…</p>
 }
 ```

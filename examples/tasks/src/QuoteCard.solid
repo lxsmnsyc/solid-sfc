@@ -89,7 +89,7 @@
           Break the server
         </button>
       </div>
-    } #fallback {
+    } #else {
       <p class="placeholder">Loading a quote…</p>
     }
   } #catch (error, reset) {

@@ -159,7 +159,7 @@ Control flow blocks start with `#` and a keyword. The block body is markup in `{
 | `#repeat (index of count) { } #else { }`   | `<Repeat count={count} fallback>`. The index is optional: `#repeat (3) { }`.    |
 | `#switch { #case (a) { } #default { } }`   | `<Switch>` and `<Match>`. `#default` must be last.                              |
 | `#try { } #catch (error, reset) { }`       | `<Errored fallback>`. `error` is read without a call.                           |
-| `#loading (on) { } #fallback { }`          | `<Loading on fallback>`                                                         |
+| `#loading (on) { } #else { }`              | `<Loading on fallback>`                                                         |
 | `#reveal (order, collapsed) { }`           | `<Reveal order collapsed>`                                                      |
 | `#portal (mount) { }`                      | `<Portal mount>`                                                                |
 | `#key (value) { }`                         | Renders the body again when `value` changes.                                    |

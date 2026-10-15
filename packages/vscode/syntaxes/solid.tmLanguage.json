@@ -297,7 +297,7 @@
           ]
         },
         {
-          "begin": "(?<![\\w$])(#)(else|switch|default|try|catch|loading|fallback|reveal|portal)\\b(?=\\s*\\{)",
+          "begin": "(?<![\\w$])(#)(else|switch|default|try|catch|loading|reveal|portal)\\b(?=\\s*\\{)",
           "end": "(?<=\\})",
           "beginCaptures": {
             "1": {

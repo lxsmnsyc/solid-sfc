@@ -20,7 +20,7 @@ const BLOCKS = new Set([
   'portal',
   'key',
 ]);
-const BRANCHES = new Set(['else', 'case', 'default', 'catch', 'fallback']);
+const BRANCHES = new Set(['else', 'case', 'default', 'catch']);
 const KEYWORD = /#([a-z]+)/y;
 
 export interface ControlHost {
@@ -179,7 +179,7 @@ export class ControlFlowParser {
       case 'try':
         return this.parseBoundary(keyword, 'Errored', 'catch');
       case 'loading':
-        return this.parseBoundary(keyword, 'Loading', 'fallback');
+        return this.parseBoundary(keyword, 'Loading', 'else');
       case 'reveal':
         return this.parseWrapper(keyword, 'Reveal', ['order', 'collapsed']);
       case 'portal':
@@ -518,12 +518,12 @@ export class ControlFlowParser {
   /**
    * `#try { A } #catch (error, reset) { B }` becomes
    * `<Errored fallback={(error, reset) => <>B</>}>A</Errored>`.
-   * `#loading { A } #fallback { B }` becomes `<Loading fallback={<>B</>}>A</Loading>`.
+   * `#loading { A } #else { B }` becomes `<Loading fallback={<>B</>}>A</Loading>`.
    */
   private parseBoundary(
     keyword: Keyword,
     tag: 'Errored' | 'Loading',
-    fallbackKeyword: 'catch' | 'fallback',
+    fallbackKeyword: 'catch' | 'else',
   ): number {
     const { source, fail } = this.bind();
     // `#loading (value)` shows the fallback again when the value changes.

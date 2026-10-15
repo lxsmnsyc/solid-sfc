@@ -94,7 +94,7 @@ Markup uses a shorter syntax for attribute values. Code with `{expression}` attr
 | `<solid:slot name="header" />`                       | `{props.header}`                                                                                      |
 | `<solid:children />`                                 | `{props.children}`                                                                                    |
 | `<solid:self />`                                     | The component's own name. The component in `Tree.solid` is named `Tree`, so it can render `<Tree />`. |
-| `<solid:suspense>`                                   | `#loading { } #fallback { }`                                                                          |
+| `<solid:suspense>`                                   | `#loading { } #else { }`                                                                              |
 | `<solid:error-boundary>`                             | `#try { } #catch (error, reset) { }`                                                                  |
 
 ```html
@@ -109,7 +109,7 @@ Markup uses a shorter syntax for attribute values. Code with `{expression}` attr
 <!-- After -->
 #loading {
   <Profile />
-} #fallback {
+} #else {
   <h1>Loading…</h1>
 }
 ```

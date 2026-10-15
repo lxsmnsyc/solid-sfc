@@ -163,7 +163,7 @@ describe('#try', () => {
 
 describe('#loading', () => {
   it('compiles to <Loading>', () => {
-    expect(markup('#loading { <P /> } #fallback { <S /> }')).toBe(
+    expect(markup('#loading { <P /> } #else { <S /> }')).toBe(
       '<_Loading fallback={<> <S /> </>}> <P /> </_Loading>',
     );
     expect(markup('#loading { <P /> }')).toBe('<_Loading> <P /> </_Loading>');
@@ -172,7 +172,7 @@ describe('#loading', () => {
 
 describe('#loading (on)', () => {
   it('passes the header as the on prop', () => {
-    expect(markup('#loading (id) { <P /> } #fallback { <S /> }')).toBe(
+    expect(markup('#loading (id) { <P /> } #else { <S /> }')).toBe(
       '<_Loading on={id} fallback={<> <S /> </>}> <P /> </_Loading>',
     );
     expect(markup('#loading ( user.id ) { <P /> }')).toBe(

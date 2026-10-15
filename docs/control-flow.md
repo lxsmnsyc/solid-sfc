@@ -166,19 +166,19 @@ Only `#case`, `#default`, whitespace and comments are allowed directly inside `#
 ```html
 #loading {
   <Profile id=userId />
-} #fallback {
+} #else {
   <p>Loading…</p>
 }
 ```
 
-`#loading` compiles to `<Loading>`. It shows the `#fallback` body while async reads in the body are pending. `#fallback` is optional.
+`#loading` compiles to `<Loading>`. It shows the `#else` body while async reads in the body are pending. `#else` is optional.
 
 After the first load, `#loading` keeps showing the old content while new data loads. A header shows the fallback again whenever its value changes:
 
 ```html
 #loading (userId) {
   <Profile id=userId />
-} #fallback {
+} #else {
   <p>Loading…</p>
 }
 ```
@@ -189,8 +189,8 @@ The header compiles to the `on` prop of `<Loading>`.
 
 ```html
 #reveal ('sequential') {
-  #loading { <Profile /> } #fallback { <p>Loading profile…</p> }
-  #loading { <Feed /> } #fallback { <p>Loading feed…</p> }
+  #loading { <Profile /> } #else { <p>Loading profile…</p> }
+  #loading { <Feed /> } #else { <p>Loading feed…</p> }
 }
 ```
 
@@ -224,7 +224,7 @@ The header is `(order)` or `(order, collapsed)`, and both are optional. With `co
 
 ## Branches
 
-`#else`, `#else if`, `#catch` and `#fallback` must come right after the body of their block. Only whitespace and comments may be in between:
+`#else`, `#else if` and `#catch` must come right after the body of their block. Only whitespace and comments may be in between:
 
 ```html
 #if (a) {
