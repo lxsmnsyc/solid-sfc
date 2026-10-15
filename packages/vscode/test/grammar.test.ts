@@ -143,6 +143,14 @@ describe('control flow', () => {
     expect(scopeOf(source, 2, 'p')).toContain('entity.name.tag.solid');
   });
 
+  it('scopes #template declarations', () => {
+    const source = '#template row(user, index) {\n  <tr />\n}';
+    expect(scopeOf(source, 0, 'template')).toContain('storage.type.solid');
+    expect(scopeOf(source, 0, 'row')).toContain('entity.name.function.solid');
+    expect(scopeOf(source, 0, 'user, index')).toContain('meta.embedded.expression.tsx');
+    expect(scopeOf(source, 1, 'tr')).toContain('entity.name.tag.solid');
+  });
+
   it('nests blocks', () => {
     const source = '#if (a) {\n  #for (x of xs) {\n    <b />\n  }\n}\n<c />';
     expect(scopeOf(source, 1, 'for')).toContain('keyword.control.flow.solid');

@@ -237,6 +237,32 @@ describe('#const', () => {
   });
 });
 
+describe('#template', () => {
+  it('moves templates at the top level before the markup', () => {
+    const { code } = compile('<ul>{row(1)}</ul>\n#template row(n) {\n  <li>{n}</li>\n}', {
+      filename: 'T.solid',
+    });
+    expect(code).toContain('const row = (n) => <>\n  <li>{n}</li>\n</>;\nreturn (<>');
+    expect(markup('<ul>{row(1)}</ul>\n#template row(n) { <li>{n}</li> }')).toBe(
+      '<ul>{row(1)}</ul>',
+    );
+  });
+
+  it('declares templates in blocks', () => {
+    expect(markup('#if (a) { #template t() { <p /> } {t()} }')).toBe(
+      '{(a) ? <>{(() => { const t = () => <> <p /> </>; return <> {t()} </>; })()}</> : null}',
+    );
+  });
+
+  it('accepts #const in templates', () => {
+    expect(markup('{t(1)}#template t(n) { #const d = n * 2; <i>{d}</i> }')).toBe('{t(1)}');
+  });
+
+  it('keeps other #template text', () => {
+    expect(markup('<p>#template text</p>')).toBe('<p>#template text</p>');
+  });
+});
+
 describe('#key', () => {
   it('uses the runtime helper', () => {
     expect(markup('#key (id) { <P /> }')).toBe('{__key(() => (id), () => <> <P /> </>)}');
@@ -304,6 +330,12 @@ describe('errors', () => {
     ['#if (a) { #const x = 1 }', 'Expected ";"'],
     ['#if (a) { #const x = ; }', 'Expected "#const name = value;"'],
     ['#if (a) { #const { x } = a; }', '#const needs a name'],
+    [
+      '<div>#template t() { }</div>',
+      '#template must be at the top level or directly inside a block',
+    ],
+    ['#if (a) { <p /> #template t() { } }', '#template must come before the markup of its block'],
+    ['#template t() <p />', 'Expected "{" after #template'],
   ])('%s', (input, message) => {
     expect(() => compile(input)).toThrow(message);
   });

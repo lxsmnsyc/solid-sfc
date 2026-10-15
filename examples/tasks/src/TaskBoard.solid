@@ -144,10 +144,10 @@
     <p>
       #if (remaining === 0) {
         All done!
-      } #else if (remaining === 1) {
-        One task left.
+      } #else if (remaining === tasks.length) {
+        {plural(remaining, 'task')} to go.
       } #else {
-        {remaining} tasks left.
+        {plural(remaining, 'task')} left.
       }
     </p>
     <button type="button" onClick=clearDone disabled=(remaining === tasks.length)>Clear done</button>
@@ -193,3 +193,8 @@
     }
   </ul>
 </section>
+
+<!-- A template is markup that the file can render with arguments. -->
+#template plural(count: number, word: string) {
+  {count} {count === 1 ? word : `${word}s`}
+}

@@ -213,6 +213,60 @@
           ]
         },
         {
+          "begin": "(?<![\\w$])(#)(template)\\s+([A-Za-z_$][\\w$]*)(?=\\s*\\()",
+          "end": "(?<=\\})",
+          "beginCaptures": {
+            "1": {
+              "name": "storage.type.solid"
+            },
+            "2": {
+              "name": "storage.type.solid"
+            },
+            "3": {
+              "name": "entity.name.function.solid"
+            }
+          },
+          "patterns": [
+            {
+              "begin": "\\(",
+              "end": "\\)",
+              "captures": {
+                "0": {
+                  "name": "meta.brace.round.solid"
+                }
+              },
+              "contentName": "meta.embedded.expression.tsx",
+              "patterns": [
+                {
+                  "include": "#parens"
+                },
+                {
+                  "include": "source.tsx"
+                }
+              ]
+            },
+            {
+              "begin": "\\{",
+              "end": "\\}",
+              "beginCaptures": {
+                "0": {
+                  "name": "punctuation.section.block.begin.solid"
+                }
+              },
+              "endCaptures": {
+                "0": {
+                  "name": "punctuation.section.block.end.solid"
+                }
+              },
+              "patterns": [
+                {
+                  "include": "#markup"
+                }
+              ]
+            }
+          ]
+        },
+        {
           "begin": "(?<![\\w$])(#)(for|repeat)\\b(?=\\s*\\()",
           "end": "(?<=\\})",
           "beginCaptures": {

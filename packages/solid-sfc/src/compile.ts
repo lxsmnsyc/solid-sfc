@@ -117,7 +117,7 @@ export function compileStructure(source: string, options: CompileOptions = {}): 
     : undefined;
 
   const output = new MagicString(source, { filename });
-  const { markup, mergesStyle, usesKey, generated, bodies } = new TemplateParser(
+  const { markup, mergesStyle, usesKey, generated, bodies, templates } = new TemplateParser(
     source,
     output,
     fail,
@@ -203,6 +203,10 @@ export function compileStructure(source: string, options: CompileOptions = {}): 
       addText(`)${joined ? `}${variable.suffix}\`` : ''},`);
     });
     addText('});');
+  }
+
+  for (const range of templates) {
+    addRange(range.start, range.end);
   }
 
   addText('return (<>');

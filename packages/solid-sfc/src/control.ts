@@ -59,6 +59,13 @@ export interface GeneratedProp {
   end: number;
 }
 
+/** A block body that is being parsed. */
+interface Frame {
+  start: number;
+  /** The end of the `#const` and `#template` declarations at its start. */
+  declarationsEnd: number | undefined;
+}
+
 interface Keyword {
   name: string;
   /** Offset of `#`. */
@@ -130,6 +137,7 @@ function findWord(text: string, word: string, from = 0): number {
 }
 
 const IDENTIFIER = /^[A-Za-z_$][\w$]*$/;
+const TEMPLATE_DECLARATION = /\s+[A-Za-z_$][\w$]*\s*\(/y;
 const CONST_DECLARATION = /\s*(?:[A-Za-z_$][\w$]*\s*=(?!=)|[{[])/y;
 
 export class ControlFlowParser {
@@ -140,8 +148,13 @@ export class ControlFlowParser {
   readonly props: GeneratedProp[] = [];
   /** The body of each block, from `{` to `}`. Editors fold them. */
   readonly bodies: { start: number; end: number }[] = [];
-  /** The block bodies being parsed, innermost last, with the end of their `#const` declarations. */
-  private readonly frames: { start: number; constsEnd: number | undefined }[] = [];
+  /** `#template` declarations at the top level. The compiler moves them before the markup. */
+  readonly templates: { start: number; end: number }[] = [];
+  /**
+   * The block bodies being parsed, innermost last, with the end of their
+   * `#const` and `#template` declarations.
+   */
+  private readonly frames: Frame[] = [];
 
   constructor(host: ControlHost) {
     this.host = host;
@@ -157,9 +170,9 @@ export class ControlFlowParser {
     if (source[offset] !== '#' || isIdentifierPart(source[offset - 1])) {
       return undefined;
     }
-    const constant = this.matchConst(offset);
-    if (constant) {
-      return constant;
+    const declaration = this.matchDeclaration(offset);
+    if (declaration) {
+      return declaration;
     }
     const keyword = this.readKeyword(offset);
     if (!keyword) {
@@ -177,15 +190,21 @@ export class ControlFlowParser {
 
   /**
    * `#const` is followed by `name =` or by a destructuring pattern, which is
-   * an error. Other text after `#const` stays text.
+   * an error, and `#template` by `name(`. Other text after them stays text.
    */
-  private matchConst(offset: number): Keyword | undefined {
+  private matchDeclaration(offset: number): Keyword | undefined {
     const keyword = this.readKeyword(offset);
-    if (keyword?.name !== 'const' || !isWhitespace(this.host.source[keyword.end])) {
+    const pattern =
+      keyword?.name === 'const'
+        ? CONST_DECLARATION
+        : keyword?.name === 'template'
+          ? TEMPLATE_DECLARATION
+          : undefined;
+    if (!keyword || !pattern || !isWhitespace(this.host.source[keyword.end])) {
       return undefined;
     }
-    CONST_DECLARATION.lastIndex = keyword.end;
-    return CONST_DECLARATION.test(this.host.source) ? keyword : undefined;
+    pattern.lastIndex = keyword.end;
+    return pattern.test(this.host.source) ? keyword : undefined;
   }
 
   /** Parses the block that starts at `keyword` and returns the offset after it. */
@@ -208,6 +227,8 @@ export class ControlFlowParser {
         return this.parseWrapper(keyword, 'Portal', ['mount']);
       case 'const':
         return this.parseConst(keyword);
+      case 'template':
+        return this.parseTemplate(keyword);
       default:
         return this.parseKey(keyword);
     }
@@ -288,15 +309,15 @@ export class ControlFlowParser {
     if (source[open] !== '{') {
       this.host.fail(`Expected "{" after #${keyword}`, open);
     }
-    const frame = { start: open + 1, constsEnd: undefined as number | undefined };
+    const frame: Frame = { start: open + 1, declarationsEnd: undefined };
     this.frames.push(frame);
     const end = this.host.parseBody(open + 1);
     this.frames.pop();
     this.bodies.push({ start: open, end });
-    if (frame.constsEnd !== undefined) {
+    if (frame.declarationsEnd !== undefined) {
       // The declarations need a function body. The markup is its result.
       this.host.output.prependRight(open + 1, '{(() => {');
-      this.host.output.appendLeft(frame.constsEnd, ' return <>');
+      this.host.output.appendLeft(frame.declarationsEnd, ' return <>');
       this.host.output.appendLeft(end, '</>; })()}');
     }
     return { open, start: open + 1, end };
@@ -607,18 +628,54 @@ export class ControlFlowParser {
   }
 
   /**
+   * Returns the block that a declaration belongs to, or undefined at the top
+   * level. Declarations come before the markup of their block.
+   */
+  private declarationFrame(keyword: Keyword): Frame | undefined {
+    const frame = this.frames.at(-1);
+    if (frame && this.skipTrivia(frame.declarationsEnd ?? frame.start) !== keyword.start) {
+      this.host.fail(`#${keyword.name} must come before the markup of its block`, keyword.start);
+    }
+    return frame;
+  }
+
+  /**
+   * `#template row(item) { A }` becomes `const row = (item) => <>A</>;`. In a
+   * block it is a declaration, like `#const`. At the top level the compiler
+   * moves it before the markup, so the whole file can use it.
+   */
+  private parseTemplate(keyword: Keyword): number {
+    const { source, scanner } = this.host;
+    const frame = this.declarationFrame(keyword);
+    const nameStart = scanner.skipWhitespace(keyword.end);
+    const name = /[A-Za-z_$][\w$]*/y;
+    name.lastIndex = nameStart;
+    const nameEnd = nameStart + name.exec(source)![0].length;
+    const open = scanner.skipWhitespace(nameEnd);
+    const close = scanner.scanExpression(open + 1, ')');
+    const body = this.parseBody(close + 1, 'template');
+    this.update(keyword.start, nameStart, 'const ');
+    this.update(nameEnd, open, ' = ');
+    this.update(close + 1, body.start, ' => <>');
+    this.update(body.end, body.end + 1, '</>;');
+    if (frame) {
+      frame.declarationsEnd = body.end + 1;
+    } else {
+      this.templates.push({ start: keyword.start, end: body.end + 1 });
+    }
+    return body.end + 1;
+  }
+
+  /**
    * `#const name = value;` becomes `const name = $memo(value);`, so the value
    * stays reactive. Declarations come first in their block.
    */
   private parseConst(keyword: Keyword): number {
     const { source, fail } = this.bind();
     const { scanner } = this.host;
-    const frame = this.frames.at(-1);
+    const frame = this.declarationFrame(keyword);
     if (!frame) {
       return fail('#const must be directly inside a block', keyword.start);
-    }
-    if (this.skipTrivia(frame.constsEnd ?? frame.start) !== keyword.start) {
-      fail('#const must come before the markup of its block', keyword.start);
     }
     const nameStart = scanner.skipWhitespace(keyword.end);
     if (source[nameStart] === '{' || source[nameStart] === '[') {
@@ -636,7 +693,7 @@ export class ControlFlowParser {
     this.update(keyword.start, nameStart, 'const ');
     this.update(nameEnd, valueStart, ' = $memo(');
     this.update(end, end + 1, ');');
-    frame.constsEnd = end + 1;
+    frame.declarationsEnd = end + 1;
     return end + 1;
   }
 

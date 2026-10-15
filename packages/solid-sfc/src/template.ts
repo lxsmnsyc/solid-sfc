@@ -62,6 +62,8 @@ export interface TemplateResult {
   generated: GeneratedText[];
   /** The bodies of control flow blocks, from `{` to `}`. */
   bodies: Range[];
+  /** `#template` declarations at the top level, which go before the markup. */
+  templates: Range[];
 }
 
 /** Where children are parsed. Each mode ends at a different token. */
@@ -155,13 +157,15 @@ export class TemplateParser {
     const blocks: Block[] = [];
     this.parseChildren(0, 'root', blocks);
 
+    // Scripts, styles and top-level templates are not part of the markup.
+    const excluded = [...blocks, ...this.control.templates].toSorted((a, b) => a.start - b.start);
     const markup: Range[] = [];
     let start = 0;
-    for (const block of blocks) {
-      if (block.start > start) {
-        markup.push({ start, end: block.start });
+    for (const range of excluded) {
+      if (range.start > start) {
+        markup.push({ start, end: range.start });
       }
-      start = block.end;
+      start = range.end;
     }
     if (start < this.source.length) {
       markup.push({ start, end: this.source.length });
@@ -183,6 +187,7 @@ export class TemplateParser {
         ...this.generated,
       ],
       bodies: this.control.bodies,
+      templates: this.control.templates,
     };
   }
 
@@ -223,6 +228,9 @@ export class TemplateParser {
         const keyword = this.control.match(i);
         if (keyword?.name === 'const' && mode !== 'block') {
           this.fail('#const must be directly inside a block', i);
+        }
+        if (keyword?.name === 'template' && mode === 'element') {
+          this.fail('#template must be at the top level or directly inside a block', i);
         }
         i = keyword ? this.control.parse(keyword) : i + 1;
       } else {

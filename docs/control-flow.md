@@ -241,6 +241,33 @@ The header is `(order)` or `(order, collapsed)`, and both are optional. With `co
 - The declaration ends at `;`.
 - `#const` works in every block body, including `#else` and `#catch`.
 
+## `#template`
+
+`#template` declares markup that the file can render with arguments, like a function:
+
+```html
+<table>
+  #for (user, index of users by user.id) {
+    {row(user, index)}
+  }
+</table>
+
+#template row(user: User, index: number) {
+  <tr>
+    <td>{index + 1}</td>
+    <td>{user.name}</td>
+  </tr>
+}
+```
+
+`#template row(user, index) { … }` compiles to `const row = (user, index) => <>…</>;`. Call it in an expression, `{row(user, 0)}`, or pass it to a component that renders it, `<Table renderRow=row />`.
+
+- A template at the top level can be used anywhere in the file, before or after it. The compiler moves it before the markup.
+- In a block, a template is a declaration, like `#const`. It comes before the markup of the block and can read the values of the block.
+- The parameters are TypeScript parameters, with types and default values.
+- A template can have `#const` declarations, and its markup gets the scoped styles of the file.
+- `{row(user, index)}` renders again when an argument it reads changes, such as `index`.
+
 ## Branches
 
 `#else`, `#else if` and `#catch` must come right after the body of their block. Only whitespace and comments may be in between:
@@ -259,8 +286,8 @@ The header is `(order)` or `(order, collapsed)`, and both are optional. With `co
 
 `#` starts a block only when all of these are true:
 
-- A known keyword follows: `if`, `for`, `repeat`, `switch`, `try`, `loading`, `reveal`, `portal`, `key` or `const`.
-- The keyword is followed by `(` or `{`. `#const` is followed by a name and `=` instead.
+- A known keyword follows: `if`, `for`, `repeat`, `switch`, `try`, `loading`, `reveal`, `portal`, `key`, `const` or `template`.
+- The keyword is followed by `(` or `{`. `#const` is followed by a name and `=`, and `#template` by a name and `(`.
 - The `#` does not come right after a letter, a digit, `_` or `$`.
 
 Any other `#` is text, so `C#`, `#hashtag` and `#if without parentheses` render as written. To render text that looks like a block, write the `#` as an expression:
