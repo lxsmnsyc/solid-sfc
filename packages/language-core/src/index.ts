@@ -169,14 +169,21 @@ function createFallbackScript(source: string): VirtualCode {
   };
 }
 
-/** Replaces `${...}` interpolations with placeholders of the same length. */
-function maskInterpolations(css: string): string {
+/**
+ * Replaces `${...}` interpolations with placeholders of the same length.
+ * `lineComments` is true for SCSS and Less, which have `//` comments.
+ */
+function maskInterpolations(css: string, lineComments: boolean): string {
   let result = '';
   let i = 0;
   while (i < css.length) {
-    if (css.startsWith('/*', i)) {
-      const end = css.indexOf('*/', i + 2);
-      const next = end === -1 ? css.length : end + 2;
+    const comment = css.startsWith('/*', i)
+      ? css.indexOf('*/', i + 2) + 2
+      : lineComments && css.startsWith('//', i) && css[i - 1] !== ':'
+        ? css.indexOf('\n', i)
+        : undefined;
+    if (comment !== undefined) {
+      const next = comment <= i ? css.length : comment;
       result += css.slice(i, next);
       i = next;
     } else if (css[i] === '$' && css[i + 1] === '{') {
@@ -202,19 +209,24 @@ function maskInterpolations(css: string): string {
 }
 
 function createStyleCodes(source: string): VirtualCode[] {
-  return findBlocks(source, 'style').map((block, index) => ({
-    id: `style_${index}`,
-    languageId: 'css',
-    snapshot: createSnapshot(maskInterpolations(source.slice(block.start, block.end))),
-    mappings: [
-      {
-        sourceOffsets: [block.start],
-        generatedOffsets: [0],
-        lengths: [block.end - block.start],
-        data: ALL_FEATURES,
-      },
-    ],
-  }));
+  return findBlocks(source, 'style').map((block, index) => {
+    const lang = /\blang\s*=\s*["'](scss|less)["']/.exec(block.attributes)?.[1] ?? 'css';
+    return {
+      id: `style_${index}`,
+      languageId: lang,
+      snapshot: createSnapshot(
+        maskInterpolations(source.slice(block.start, block.end), lang !== 'css'),
+      ),
+      mappings: [
+        {
+          sourceOffsets: [block.start],
+          generatedOffsets: [0],
+          lengths: [block.end - block.start],
+          data: ALL_FEATURES,
+        },
+      ],
+    };
+  });
 }
 
 function createScriptCode(

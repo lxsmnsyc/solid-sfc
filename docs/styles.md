@@ -143,6 +143,36 @@ const __styleVariables = () => ({
 - Interpolations are only allowed in declaration values. They are not allowed in selectors, at-rules, property names or `<style global>` blocks.
 - The expression must not be empty.
 
+## SCSS and Less
+
+`lang="scss"` and `lang="less"` use a preprocessor. Install it in your project, as for any Vite project:
+
+```bash
+pnpm add -D sass
+```
+
+```html
+<style lang="scss">
+  $accent: #7c3aed;
+
+  .card {
+    border-color: $accent;
+
+    &__title {
+      font-size: ${size}px;
+    }
+  }
+</style>
+```
+
+The compiler scopes the selectors in the SCSS or Less source, and Vite compiles the result, so Vite's `css.preprocessorOptions` apply.
+
+- The scope attribute goes at the start of each compound, so a suffix like `&__title` joins the parent: `[s-x1y2z3].card__title`.
+- Placeholder selectors such as `%shared` are not scoped. The selectors that `@extend` them are.
+- Less mixin definitions such as `.mixin()` are not scoped.
+- `${expression}` works as in CSS. SCSS and Less `//` comments are comments for interpolations too.
+- Every `<style>` block of a file must use the same `lang`.
+
 ## Unused selectors
 
 The compiler warns about scoped selectors that no element in the file can match:
@@ -155,7 +185,7 @@ The editor shows the same warnings.
 
 - Only the scoped part of a selector is checked. In `.list .item`, the compiler checks `.item`, because `.list` can be an element of another component.
 - Classes from `class="a b"` and from the keys of `class={ active: on }` are known. A `class` or `id` set by an expression, or a spread such as `{...props}`, can be anything, so every class or id selector matches that element.
-- Selectors in `:global(...)` and `<style global>` blocks are not checked.
+- Selectors in `:global(...)` and `<style global>` blocks are not checked, and neither are selectors that a preprocessor builds, such as `.btn-#{$name}`.
 - Elements that a child component renders are not scoped, so they never count.
 
 ## Syntax errors

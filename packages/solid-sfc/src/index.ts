@@ -9,3 +9,4 @@ export type {
 export type { Range } from './template.ts';
 export { SFCError } from './error.ts';
 export type { SFCWarning } from './error.ts';
+export type { StyleLang } from './style.ts';

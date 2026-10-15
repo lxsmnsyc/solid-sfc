@@ -9,3 +9,4 @@ minimumReleaseAgeExclude:
 allowBuilds:
   '@vscode/vsce-sign': false
   keytar: false
+  '@parcel/watcher': false

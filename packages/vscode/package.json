@@ -62,7 +62,9 @@
         "path": "./syntaxes/solid.tmLanguage.json",
         "embeddedLanguages": {
           "source.tsx": "typescriptreact",
-          "source.css": "css"
+          "source.css": "css",
+          "source.css.scss": "scss",
+          "source.css.less": "less"
         }
       }
     ]

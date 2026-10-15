@@ -197,3 +197,52 @@ describe('unused selectors', () => {
     );
   });
 });
+
+describe('preprocessors', () => {
+  it('scopes SCSS at the start of compounds, so suffixes join the parent', () => {
+    const { css: stylesheet } = compile(
+      '<style lang="scss">\n.card { &__title { } .body { } }\np { }\n%shared { }\n</style><p class="card card__title body" />',
+      { scope: 'x' },
+    );
+    expect(stylesheet?.lang).toBe('scss');
+    expect(stylesheet?.code).toBe(
+      '[s-x].card { &__title { } [s-x].body { } }\n\np[s-x] { }\n\n%shared { }\n',
+    );
+  });
+
+  it('keeps SCSS line comments and replaces interpolations', () => {
+    const { css: stylesheet } = compile(
+      '<style lang="scss">\n// ${a}\n$c: 1;\np { margin: ${a}px; }\n</style><p />',
+      {
+        scope: 'x',
+      },
+    );
+    expect(stylesheet?.code).toContain('// ${a}');
+    expect(stylesheet?.code).toContain('p[s-x] { margin: var(--s-x-0); }');
+  });
+
+  it('does not scope Less mixins', () => {
+    const { css: stylesheet } = compile(
+      '<style lang="less">\n.mixin() { }\n.a { .mixin(); }\n</style><p class="a" />',
+      { scope: 'x' },
+    );
+    expect(stylesheet?.code).toBe('.mixin() { }\n\n[s-x].a { .mixin(); }\n');
+  });
+
+  it('does not check selectors that a preprocessor builds', () => {
+    const result = compile('<style lang="scss">.btn-#{$c} { } %p { }</style><p />', {
+      scope: 'x',
+    });
+    expect(result.warnings).toEqual([]);
+  });
+
+  it.each([
+    [
+      '<style lang="scss"></style><style></style>',
+      'All <style> blocks of a file must have the same lang',
+    ],
+    ['<style lang="stylus"></style>', 'Unsupported style lang "stylus"'],
+  ])('rejects %s', (input, message) => {
+    expect(() => compile(input)).toThrow(message);
+  });
+});

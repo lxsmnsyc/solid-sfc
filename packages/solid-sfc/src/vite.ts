@@ -14,7 +14,12 @@ export interface SolidSFCOptions {
 }
 
 const EXTENSION = '.solid';
-const STYLE_QUERY = '?solid-sfc&type=style&lang.css';
+// Vite processes the stylesheet by the extension at the end, such as `.scss`.
+const STYLE_QUERY = /\?solid-sfc&type=style&lang\.(?:css|scss|less)$/;
+
+function styleQuery(lang: string): string {
+  return `?solid-sfc&type=style&lang.${lang}`;
+}
 
 function splitId(id: string): { file: string; query: string } {
   const index = id.indexOf('?');
@@ -54,14 +59,14 @@ export default function solidSFC(options: SolidSFCOptions = {}): Plugin[] {
         dev = !config.isProduction;
       },
       resolveId(source, importer) {
-        if (importer && source.endsWith(STYLE_QUERY)) {
+        if (importer && STYLE_QUERY.test(source)) {
           return path.resolve(path.dirname(splitId(importer).file), source);
         }
         return null;
       },
       async load(id) {
         const { file, query } = splitId(id);
-        if (query !== STYLE_QUERY) {
+        if (!STYLE_QUERY.test(query)) {
           return null;
         }
         // Compile again instead of caching, so the CSS always matches the file.
@@ -80,7 +85,8 @@ export default function solidSFC(options: SolidSFCOptions = {}): Plugin[] {
         }
         let output = result.code;
         if (result.css) {
-          output += `\nimport ${JSON.stringify(`./${path.basename(file)}${STYLE_QUERY}`)};`;
+          const style = `./${path.basename(file)}${styleQuery(result.css.lang)}`;
+          output += `\nimport ${JSON.stringify(style)};`;
         }
         return { code: output, map: result.map };
       },

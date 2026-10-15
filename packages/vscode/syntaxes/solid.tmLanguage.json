@@ -72,46 +72,143 @@
       ]
     },
     "style": {
-      "begin": "(<)(style)\\b(?=[^>]*>)",
-      "end": "(</)(style)\\s*(>)",
-      "beginCaptures": {
-        "1": {
-          "name": "punctuation.definition.tag.begin.solid"
-        },
-        "2": {
-          "name": "entity.name.tag.style.solid"
-        }
-      },
-      "endCaptures": {
-        "1": {
-          "name": "punctuation.definition.tag.begin.solid"
-        },
-        "2": {
-          "name": "entity.name.tag.style.solid"
-        },
-        "3": {
-          "name": "punctuation.definition.tag.end.solid"
-        }
-      },
+      "comment": "SCSS and Less blocks embed their own grammars. Other blocks are CSS.",
       "patterns": [
         {
-          "include": "#block-attributes"
-        },
-        {
-          "begin": "(>)",
+          "begin": "(<)(style)\\b(?=[^>]*\\blang\\s*=\\s*[\"']scss[\"'])(?=[^>]*>)",
+          "end": "(</)(style)\\s*(>)",
           "beginCaptures": {
             "1": {
+              "name": "punctuation.definition.tag.begin.solid"
+            },
+            "2": {
+              "name": "entity.name.tag.style.solid"
+            }
+          },
+          "endCaptures": {
+            "1": {
+              "name": "punctuation.definition.tag.begin.solid"
+            },
+            "2": {
+              "name": "entity.name.tag.style.solid"
+            },
+            "3": {
               "name": "punctuation.definition.tag.end.solid"
             }
           },
-          "end": "(?=</style\\s*>)",
-          "contentName": "source.css",
           "patterns": [
             {
-              "include": "#style-interpolation"
+              "include": "#block-attributes"
             },
             {
-              "include": "source.css"
+              "begin": "(>)",
+              "beginCaptures": {
+                "1": {
+                  "name": "punctuation.definition.tag.end.solid"
+                }
+              },
+              "end": "(?=</style\\s*>)",
+              "contentName": "source.css.scss",
+              "patterns": [
+                {
+                  "include": "#style-interpolation"
+                },
+                {
+                  "include": "source.css.scss"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "begin": "(<)(style)\\b(?=[^>]*\\blang\\s*=\\s*[\"']less[\"'])(?=[^>]*>)",
+          "end": "(</)(style)\\s*(>)",
+          "beginCaptures": {
+            "1": {
+              "name": "punctuation.definition.tag.begin.solid"
+            },
+            "2": {
+              "name": "entity.name.tag.style.solid"
+            }
+          },
+          "endCaptures": {
+            "1": {
+              "name": "punctuation.definition.tag.begin.solid"
+            },
+            "2": {
+              "name": "entity.name.tag.style.solid"
+            },
+            "3": {
+              "name": "punctuation.definition.tag.end.solid"
+            }
+          },
+          "patterns": [
+            {
+              "include": "#block-attributes"
+            },
+            {
+              "begin": "(>)",
+              "beginCaptures": {
+                "1": {
+                  "name": "punctuation.definition.tag.end.solid"
+                }
+              },
+              "end": "(?=</style\\s*>)",
+              "contentName": "source.css.less",
+              "patterns": [
+                {
+                  "include": "#style-interpolation"
+                },
+                {
+                  "include": "source.css.less"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "begin": "(<)(style)\\b(?=[^>]*>)",
+          "end": "(</)(style)\\s*(>)",
+          "beginCaptures": {
+            "1": {
+              "name": "punctuation.definition.tag.begin.solid"
+            },
+            "2": {
+              "name": "entity.name.tag.style.solid"
+            }
+          },
+          "endCaptures": {
+            "1": {
+              "name": "punctuation.definition.tag.begin.solid"
+            },
+            "2": {
+              "name": "entity.name.tag.style.solid"
+            },
+            "3": {
+              "name": "punctuation.definition.tag.end.solid"
+            }
+          },
+          "patterns": [
+            {
+              "include": "#block-attributes"
+            },
+            {
+              "begin": "(>)",
+              "beginCaptures": {
+                "1": {
+                  "name": "punctuation.definition.tag.end.solid"
+                }
+              },
+              "end": "(?=</style\\s*>)",
+              "contentName": "source.css",
+              "patterns": [
+                {
+                  "include": "#style-interpolation"
+                },
+                {
+                  "include": "source.css"
+                }
+              ]
             }
           ]
         }

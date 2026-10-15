@@ -9,7 +9,7 @@ import { CompileError, compile as compileLabels } from './labels/index.ts';
 import { PROPS_IDENTIFIER, analyzeInstanceScript, analyzeModuleScript } from './script.ts';
 import type { SourceMap } from './style.ts';
 import { getScopeAttribute, getVariableName, hash, processStyles } from './style.ts';
-import type { ScopedSelector } from './style.ts';
+import type { ScopedSelector, StyleLang } from './style.ts';
 import type { Block, ElementInfo, GeneratedText, Range, TemplateScope } from './template.ts';
 import { LISTEN_IDENTIFIER, TemplateParser } from './template.ts';
 
@@ -32,7 +32,7 @@ export interface CompileResult {
   code: string;
   map: SourceMap;
   /** The stylesheet of the component, if it has `<style>` blocks. */
-  css: { code: string; map: SourceMap } | undefined;
+  css: { code: string; map: SourceMap; lang: StyleLang } | undefined;
   /** Problems that do not stop compiling, such as unused CSS selectors. */
   warnings: SFCWarning[];
 }
@@ -228,7 +228,7 @@ export function compileStructure(source: string, options: CompileOptions = {}): 
   return {
     code,
     map,
-    css: css && { code: css.code, map: css.map },
+    css: css && { code: css.code, map: css.map, lang: css.lang },
     warnings: [
       ...findUnusedSelectors(source, css?.selectors ?? [], elements),
       ...checkAccessibility(source, elements),
@@ -357,7 +357,7 @@ export function compile(source: string, options: CompileOptions = {}): CompileRe
   return {
     code: ctf.code,
     map: { ...map, version: 3, file: options.filename } as SourceMap,
-    css: css && { code: css.code, map: css.map },
+    css,
     warnings,
   };
 }

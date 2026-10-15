@@ -70,6 +70,15 @@ describe('blocks', () => {
     expect(scopeOf(source, 1, 'a { color:')).toContain('source.css');
     expect(scopeOf(source, 1, 'color')).toContain('meta.embedded.expression.tsx');
   });
+
+  it('embeds SCSS and Less by lang', () => {
+    expect(scopeOf('<style lang="scss">\n  a { b {} }\n</style>', 1, 'a { b {} }')).toContain(
+      'source.css.scss',
+    );
+    expect(scopeOf("<style lang='less'>\n  a { b {} }\n</style>", 1, 'a { b {} }')).toContain(
+      'source.css.less',
+    );
+  });
 });
 
 describe('markup', () => {

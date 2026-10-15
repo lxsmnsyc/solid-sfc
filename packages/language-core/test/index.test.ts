@@ -156,6 +156,15 @@ describe('css', () => {
     expect(textOf(code)).toBe(css.replace(interpolation, 'x'.padEnd(interpolation.length, '_')));
   });
 
+  it('uses the lang of the block and skips line comments', () => {
+    const code = embedded(
+      '<style lang="scss">// ${a}\np { color: ${a} }</style>\n<p />',
+      'style_0',
+    );
+    expect(code.languageId).toBe('scss');
+    expect(textOf(code)).toBe('// ${a}\np { color: x___ }');
+  });
+
   it('keeps interpolations in comments', () => {
     const code = embedded('<style>/* ${a} */ p { color: ${a} }</style>\n<p />', 'style_0');
     expect(textOf(code)).toBe('/* ${a} */ p { color: x___ }');

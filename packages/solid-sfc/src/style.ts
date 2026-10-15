@@ -1,5 +1,7 @@
 import { CssSyntaxError, parse } from 'postcss';
-import type { AtRule, Root } from 'postcss';
+import type { AtRule, Root, Syntax } from 'postcss';
+import less from 'postcss-less';
+import scss from 'postcss-scss';
 import selectorParser from 'postcss-selector-parser';
 import type { Node as SelectorNode, Selector } from 'postcss-selector-parser';
 import { Scanner } from './scanner.ts';
@@ -34,8 +36,24 @@ export interface ScopedSelector {
   ids: string[];
 }
 
+/** The languages that `<style lang>` accepts. Vite compiles SCSS and Less. */
+export type StyleLang = 'css' | 'scss' | 'less';
+
+const SYNTAXES: Record<StyleLang, Syntax | undefined> = {
+  css: undefined,
+  scss,
+  less: less as Syntax,
+};
+
+// Selectors that a preprocessor builds or that are not elements, such as
+// `.btn-#{$name}`, `%placeholder` and Less mixins, are not checked for use.
+const PREPROCESSED_SELECTOR = /#\{|@\{|%/;
+const LESS_MIXIN = /^[.#][\w-]+\s*\(.*\)\s*(?:when\b.*)?$/s;
+
 export interface StyleResult {
   code: string;
+  /** The language of the stylesheet. Vite compiles it when it is not CSS. */
+  lang: StyleLang;
   map: SourceMap;
   /** Each `${...}` expression, in order. */
   variables: StyleVariable[];
@@ -80,8 +98,16 @@ function isGlobal(node: SelectorNode): node is selectorParser.Pseudo {
 /**
  * Adds the scope attribute to the last compound selector, before any pseudo
  * element. `:global(...)` is replaced by its content and is not scoped.
+ *
+ * With `atStart`, the attribute goes at the start of the compound, after a
+ * type selector. SCSS and Less join `&__title` to the parent selector, which
+ * then becomes `[s-x].card__title` instead of `.card[s-x]__title`.
  */
-function scopeSelector(selector: Selector, attribute: string): ScopedSelector | undefined {
+function scopeSelector(
+  selector: Selector,
+  attribute: string,
+  atStart: boolean,
+): ScopedSelector | undefined {
   let lastCompound = 0;
   selector.each((node, index) => {
     if (node.type === 'combinator') {
@@ -89,7 +115,13 @@ function scopeSelector(selector: Selector, attribute: string): ScopedSelector | 
     }
   });
   const compound = selector.nodes.slice(lastCompound);
-  const skip = compound.some((node) => isGlobal(node) || node.type === 'nesting');
+  // A placeholder such as `%shared` is scoped through the selectors that extend it.
+  const skip = compound.some(
+    (node) =>
+      isGlobal(node) ||
+      node.type === 'nesting' ||
+      (atStart && node.type === 'tag' && node.value.startsWith('%')),
+  );
 
   selector.walkPseudos((node) => {
     if (isGlobal(node)) {
@@ -127,8 +159,13 @@ function scopeSelector(selector: Selector, attribute: string): ScopedSelector | 
     raws: {},
     quoteMark: null,
   });
+  const first = compound[0]!;
   const pseudoElement = compound.find(isPseudoElement);
-  if (pseudoElement) {
+  if (atStart && (first.type === 'tag' || first.type === 'universal')) {
+    selector.insertAfter(first, scope);
+  } else if (atStart) {
+    selector.insertBefore(first, scope);
+  } else if (pseudoElement) {
     selector.insertBefore(pseudoElement, scope);
   } else {
     selector.insertAfter(compound[compound.length - 1]!, scope);
@@ -155,6 +192,18 @@ export interface ProcessStylesOptions {
  */
 export function processStyles(options: ProcessStylesOptions): StyleResult {
   const { source, blocks, scope, filename, fail } = options;
+  const langs = new Set(blocks.map((block) => block.attributes.lang ?? 'css'));
+  if (langs.size > 1) {
+    fail('All <style> blocks of a file must have the same lang', blocks[1]!.start);
+  }
+  const lang = [...langs][0];
+  if (lang !== 'css' && lang !== 'scss' && lang !== 'less') {
+    return fail(
+      `Unsupported style lang "${String(lang)}". Use css, scss or less`,
+      blocks[0]!.start,
+    );
+  }
+  const syntax = SYNTAXES[lang];
   const scanner = new Scanner(source, {
     error: fail,
     element: (offset) => fail('Unexpected element in a style interpolation', offset),
@@ -177,6 +226,10 @@ export function processStyles(options: ProcessStylesOptions): StyleResult {
         // Comments can mention `${...}` without making a variable.
         const end = source.indexOf('*/', i + 2);
         i = end === -1 || end + 2 > block.contentEnd ? block.contentEnd : end + 2;
+      } else if (syntax && source.startsWith('//', i) && source[i - 1] !== ':') {
+        // SCSS and Less have line comments. `url(http://...)` is not one.
+        const end = source.indexOf('\n', i);
+        i = end === -1 || end > block.contentEnd ? block.contentEnd : end;
       } else if (source[i] === '$' && source[i + 1] === '{') {
         if (block.attributes.global === true) {
           fail('A global style cannot have interpolations', i);
@@ -221,7 +274,7 @@ export function processStyles(options: ProcessStylesOptions): StyleResult {
 
   let root: Root;
   try {
-    root = parse(css, { from: filename });
+    root = (syntax?.parse ?? parse)(css, { from: filename }) as Root;
   } catch (error) {
     if (error instanceof CssSyntaxError) {
       const lines = css.split('\n').slice(0, (error.line ?? 1) - 1);
@@ -244,8 +297,8 @@ export function processStyles(options: ProcessStylesOptions): StyleResult {
   let ruleOffset = 0;
   const transformSelector = selectorParser((nodes) => {
     nodes.each((selector) => {
-      const scoped = scopeSelector(selector, attribute);
-      if (scoped) {
+      const scoped = scopeSelector(selector, attribute, syntax !== undefined);
+      if (scoped && !PREPROCESSED_SELECTOR.test(scoped.text)) {
         selectors.push({ ...scoped, offset: ruleOffset + scoped.offset });
       }
     });
@@ -266,6 +319,10 @@ export function processStyles(options: ProcessStylesOptions): StyleResult {
     }
     const parent = rule.parent;
     if (parent?.type === 'atrule' && KEYFRAMES.test((parent as AtRule).name)) {
+      return;
+    }
+    // A Less mixin is not a selector of the markup.
+    if (lang === 'less' && LESS_MIXIN.test(rule.selector)) {
       return;
     }
     ruleOffset = rule.source?.start?.offset ?? 0;
@@ -317,6 +374,7 @@ export function processStyles(options: ProcessStylesOptions): StyleResult {
 
   const result = root.toResult({
     to: filename,
+    syntax,
     map: { inline: false, annotation: false, sourcesContent: false },
   });
   const raw = result.map.toJSON();
@@ -328,5 +386,6 @@ export function processStyles(options: ProcessStylesOptions): StyleResult {
     variables,
     scoped: blocks.some((block) => block.attributes.global !== true),
     selectors,
+    lang,
   };
 }

@@ -57,6 +57,8 @@
     "magic-string": "^1.4.3",
     "oxc-parser": "^0.154.0",
     "postcss": "^8.5.30",
+    "postcss-less": "^6.0.0",
+    "postcss-scss": "^4.0.9",
     "postcss-selector-parser": "^7.1.6"
   },
   "devDependencies": {
@@ -64,6 +66,7 @@
     "@solidjs/vite-plugin": "3.0.0-next.35",
     "@solidjs/web": "2.0.0-rc.15",
     "@types/node": "^24.0.0",
+    "@types/postcss-less": "^4.0.7",
     "solid-js": "2.0.0-rc.15",
     "tsdown": "^0.23.1",
     "typescript": "^7.0.2",

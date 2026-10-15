@@ -18,7 +18,17 @@
   const state = $memo(task.done ? 'data-done' : 'data-open');
 </script>
 
-<style>
+<!-- SCSS works too. Vite compiles it with the sass package. -->
+<style lang="scss">
+  $star: #f59e0b;
+
+  @mixin plain-button {
+    border: none;
+    color: var(--muted);
+    background: none;
+    cursor: pointer;
+  }
+
   li {
     display: flex;
     gap: 0.75rem;
@@ -28,9 +38,14 @@
     border-radius: 0.5rem;
     background: var(--background);
     animation: enter 200ms ease-out;
+
+    &[data-done] .title {
+      color: var(--muted);
+      text-decoration: line-through;
+    }
   }
 
-  /* Keyframe names get a suffix, so other components can use the same name. */
+  // Keyframe names get a suffix, so other components can use the same name.
   @keyframes enter {
     from {
       opacity: 0;
@@ -42,32 +57,23 @@
     flex: 1;
   }
 
-  li[data-done] .title {
-    color: var(--muted);
-    text-decoration: line-through;
-  }
+  .stars {
+    button {
+      @include plain-button;
+      padding: 0;
+    }
 
-  .stars button {
-    padding: 0;
-    border: none;
-    color: var(--muted);
-    background: none;
-    cursor: pointer;
-  }
-
-  .stars .filled {
-    color: #f59e0b;
+    .filled {
+      color: $star;
+    }
   }
 
   .remove {
+    @include plain-button;
     padding: 0 0.25rem;
-    border: none;
-    color: var(--muted);
-    background: none;
-    cursor: pointer;
   }
 
-  /* :global() leaves part of a selector unscoped. */
+  // :global() leaves part of a selector unscoped.
   :global([data-theme='dark']) .remove:hover {
     color: white;
   }
