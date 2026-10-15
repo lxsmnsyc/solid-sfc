@@ -111,9 +111,10 @@ describe('control flow', () => {
     expect(scopeOf(source, 3, 'q')).toContain('entity.name.tag.solid');
   });
 
-  it('scopes `of` in loop headers', () => {
-    const source = '#for (item, index of items) { <li /> }';
+  it('scopes `of` and `by` in loop headers', () => {
+    const source = '#for (item, index of items by item.id) { <li /> }';
     expect(scopeOf(source, 0, 'of')).toContain('keyword.operator.expression.of.solid');
+    expect(scopeOf(source, 0, 'by')).toContain('keyword.operator.expression.by.solid');
     expect(scopeOf(source, 0, 'li')).toContain('entity.name.tag.solid');
   });
 

@@ -187,7 +187,7 @@
       "comment": "Each rule covers one keyword, its header and its body, and ends after the body's `}`.",
       "patterns": [
         {
-          "begin": "(?<![\\w$])(#)(for|index|repeat)\\b(?=\\s*\\()",
+          "begin": "(?<![\\w$])(#)(for|repeat)\\b(?=\\s*\\()",
           "end": "(?<=\\})",
           "beginCaptures": {
             "1": {
@@ -211,6 +211,10 @@
                 {
                   "match": "(?<=\\s)of(?=\\s)",
                   "name": "keyword.operator.expression.of.solid"
+                },
+                {
+                  "match": "(?<=\\s)by(?=\\s)",
+                  "name": "keyword.operator.expression.by.solid"
                 },
                 {
                   "include": "#parens"

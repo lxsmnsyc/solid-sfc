@@ -150,16 +150,19 @@ Control flow blocks start with `#` and a keyword. The block body is markup in `{
 }
 ```
 
-| Block                                        | Compiles to                                                                    |
-| -------------------------------------------- | ------------------------------------------------------------------------------ |
-| `#if (a) { } #else if (b) { } #else { }`     | A conditional expression. TypeScript narrows the condition inside each branch. |
-| `#for (item, index of list) { } #else { }`   | `<For each={list} fallback>`. `index` is read without a call.                  |
-| `#index (item, index of list) { } #else { }` | `<For each={list} keyed={false} fallback>`. `item` is read without a call.     |
-| `#repeat (index of count) { } #else { }`     | `<Repeat count={count} fallback>`                                              |
-| `#switch { #case (a) { } #default { } }`     | `<Switch>` and `<Match>`. `#default` must be last.                             |
-| `#try { } #catch (error, reset) { }`         | `<Errored fallback>`. `error` is read without a call.                          |
-| `#loading { } #fallback { }`                 | `<Loading fallback>`                                                           |
-| `#key (value) { }`                           | Renders the body again when `value` changes.                                   |
+| Block                                      | Compiles to                                                                     |
+| ------------------------------------------ | ------------------------------------------------------------------------------- |
+| `#if (a) { } #else if (b) { } #else { }`   | A conditional expression. TypeScript narrows the condition inside each branch.  |
+| `#for (item, index of list) { } #else { }` | `<For each={list} fallback>`. `index` is read without a call.                   |
+| `#for (item of list by item.id) { }`       | `<For each={list} keyed={(item) => (item.id)}>`. `item` is read without a call. |
+| `#for (item, index of list by index) { }`  | `<For each={list} keyed={false}>`. `item` is read without a call.               |
+| `#repeat (index of count) { } #else { }`   | `<Repeat count={count} fallback>`                                               |
+| `#switch { #case (a) { } #default { } }`   | `<Switch>` and `<Match>`. `#default` must be last.                              |
+| `#try { } #catch (error, reset) { }`       | `<Errored fallback>`. `error` is read without a call.                           |
+| `#loading (on) { } #fallback { }`          | `<Loading on fallback>`                                                         |
+| `#reveal (order, collapsed) { }`           | `<Reveal order collapsed>`                                                      |
+| `#portal (mount) { }`                      | `<Portal mount>`                                                                |
+| `#key (value) { }`                         | Renders the body again when `value` changes.                                    |
 
 Blocks can be nested, and they work inside elements and inside JSX in expressions.
 

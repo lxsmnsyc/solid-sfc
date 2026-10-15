@@ -58,8 +58,8 @@
 <section>
   <p>Notes are saved for this visit only.</p>
   <ol>
-    <!-- #index keeps one input per position, so an input keeps its focus while you type. -->
-    #index (note, index of notes) {
+    <!-- "by index" keeps one input per position, so an input keeps its focus while you type. -->
+    #for (note, index of notes by index) {
       <li>
         <input value=note onInput=((event) => update(index, event.currentTarget.value))>
         <button type="button" aria-label="Remove" onClick=(() => remove(index))>×</button>

@@ -12,7 +12,6 @@ export const KEY_IDENTIFIER = '__key';
 const BLOCKS = new Set([
   'if',
   'for',
-  'index',
   'repeat',
   'switch',
   'try',
@@ -97,11 +96,14 @@ function splitTopLevel(text: string, separator: string): string[] {
   return parts;
 }
 
-/** Finds ` of ` outside brackets and strings. Returns its offset in `text`. */
-function findOf(text: string): number {
+/**
+ * Finds `word` with whitespace on both sides, outside brackets and strings,
+ * starting at `from`. Returns its offset in `text`, or -1.
+ */
+function findWord(text: string, word: string, from = 0): number {
   let depth = 0;
   let quote: string | undefined;
-  for (let i = 0; i < text.length; i++) {
+  for (let i = from; i < text.length; i++) {
     const char = text[i]!;
     if (quote) {
       if (char === '\\') {
@@ -117,15 +119,17 @@ function findOf(text: string): number {
       depth--;
     } else if (
       depth === 0 &&
-      text.startsWith('of', i) &&
+      text.startsWith(word, i) &&
       isWhitespace(text[i - 1]) &&
-      isWhitespace(text[i + 2])
+      isWhitespace(text[i + word.length])
     ) {
       return i;
     }
   }
   return -1;
 }
+
+const IDENTIFIER = /^[A-Za-z_$][\w$]*$/;
 
 export class ControlFlowParser {
   private readonly host: ControlHost;
@@ -168,7 +172,6 @@ export class ControlFlowParser {
       case 'if':
         return this.parseIf(keyword);
       case 'for':
-      case 'index':
       case 'repeat':
         return this.parseLoop(keyword);
       case 'switch':
@@ -349,37 +352,67 @@ export class ControlFlowParser {
     return source.slice(offset, end);
   }
 
+  /** Trims whitespace from both ends of a range of the source. */
+  private trim(start: number, end: number): { start: number; end: number } {
+    const { source } = this.host;
+    while (start < end && isWhitespace(source[start])) {
+      start++;
+    }
+    while (end > start && isWhitespace(source[end - 1])) {
+      end--;
+    }
+    return { start, end };
+  }
+
   /**
    * `#for (item, index of list) { A } #else { B }` becomes
    * `<For each={list} fallback={<>B</>}>{(item, index) => <>A</>}</For>`.
-   * `#index` uses `<For keyed={false}>`, and `#repeat (index of count)` uses
-   * `<Repeat>`. Parameters that Solid passes as accessors become reactive
-   * variables, so they are read without a call.
+   * `by` picks what identifies an item: `by item.id` passes a key function,
+   * and `by index` keeps one entry per position. `#repeat (index of count)`
+   * uses `<Repeat>`. Parameters that Solid passes as accessors become
+   * reactive variables, so they are read without a call.
    */
   private parseLoop(keyword: Keyword): number {
     const { source, fail } = this.bind();
+    const repeat = keyword.name === 'repeat';
     const header = this.parseHeader(keyword.end, keyword.name);
     const text = source.slice(header.start, header.end);
-    const of = findOf(text);
-    const expected =
-      keyword.name === 'repeat' ? '"index of count"' : '"item of list" or "item, index of list"';
+    const expected = repeat ? '"index of count"' : '"item of list" or "item, index of list"';
+    const of = findWord(text, 'of');
     if (of === -1) {
       fail(`Expected ${expected} after #${keyword.name}`, header.start);
     }
-    const params = splitTopLevel(text.slice(0, of), ',').map((param) => param.trim());
-    const maxParams = keyword.name === 'repeat' ? 1 : 2;
-    if (params.length > maxParams || params.some((param) => !param)) {
+    const params =
+      of === -1 ? [] : splitTopLevel(text.slice(0, of), ',').map((param) => param.trim());
+    if (params.length > (repeat ? 1 : 2) || params.some((param) => !param)) {
       fail(`Expected ${expected} after #${keyword.name}`, header.start);
     }
-    const listStart = this.host.scanner.skipWhitespace(header.start + of + 2);
-    let listEnd = header.end;
-    while (isWhitespace(source[listEnd - 1])) {
-      listEnd--;
+    const by = repeat || of === -1 ? -1 : findWord(text, 'by', of + 2);
+    const list = this.trim(
+      of === -1 ? header.start : header.start + of + 2,
+      by === -1 ? header.end : header.start + by,
+    );
+    const key = by === -1 ? undefined : this.trim(header.start + by + 2, header.end);
+    if (list.start === list.end || (key && key.start === key.end)) {
+      fail(`Expected ${expected} after #${keyword.name}`, header.start);
     }
 
+    // `by index`, or `by` and the name of the index, keeps one entry per position.
+    const keyText = key && source.slice(key.start, key.end);
+    const mode = repeat
+      ? 'repeat'
+      : !key
+        ? 'reference'
+        : keyText === 'index' || keyText === params[1]
+          ? 'position'
+          : 'key';
     // Which parameters Solid passes as accessors.
-    const accessors =
-      keyword.name === 'for' ? [false, true] : keyword.name === 'index' ? [true, false] : [false];
+    const accessors = {
+      repeat: [false],
+      reference: [false, true],
+      position: [true, false],
+      key: [true, true],
+    }[mode];
     const names: string[] = [];
     const derefs: string[] = [];
     params.forEach((param, position) => {
@@ -387,24 +420,35 @@ export class ControlFlowParser {
         names.push(param);
         return;
       }
-      if (!/^[A-Za-z_$][\w$]*$/.test(param)) {
-        fail(`#${keyword.name} needs an identifier for "${param}"`, header.start);
+      if (IDENTIFIER.test(param)) {
+        names.push(`__${param}`);
+        derefs.push(`const ${param} = $derefMemo(__${param});`);
+        return;
       }
-      const parameter = `__${param}`;
-      names.push(parameter);
-      derefs.push(`const ${param} = $derefMemo(${parameter});`);
+      if (position === 1) {
+        fail(`The index of #for must be an identifier`, header.start);
+      }
+      // A destructured item reads its properties when they are used.
+      names.push('__item');
+      derefs.push(
+        `const __itemValue = $derefMemo(__item); const ${param} = $destructure(__itemValue);`,
+      );
     });
     const callback = derefs.length
       ? `{(${names.join(', ')}) => { ${derefs.join(' ')} return <>`
       : `{(${names.join(', ')}) => <>`;
-    const tag = keyword.name === 'repeat' ? 'Repeat' : 'For';
+    const tag = repeat ? 'Repeat' : 'For';
     const close = `</>${derefs.length ? '; }' : ''}}</${tag}>`;
-    const prop = keyword.name === 'repeat' ? 'count' : 'each';
-    const keyed = keyword.name === 'index' ? ' keyed={false}' : '';
+    const prop = repeat ? 'count' : 'each';
 
-    this.update(keyword.start, listStart, `<${tag} ${prop}={`);
-    this.props.push({ name: prop, start: listStart, end: listEnd });
-    this.update(listEnd, header.end + 1, `}${keyed}`);
+    this.update(keyword.start, list.start, `<${tag} ${prop}={`);
+    this.props.push({ name: prop, start: list.start, end: list.end });
+    if (mode === 'key') {
+      this.update(list.end, key!.start, `} keyed={(${params[0]}) => (`);
+      this.update(key!.end, header.end + 1, ')}');
+    } else {
+      this.update(list.end, header.end + 1, mode === 'position' ? '} keyed={false}' : '}');
+    }
     const body = this.parseBody(header.end + 1, keyword.name);
     this.update(header.end + 1, body.start, `>${callback}`);
 
@@ -509,7 +553,7 @@ export class ControlFlowParser {
         source.slice(header.start, header.end),
         ',',
       ).map((param) => param.trim());
-      if (!error || rest.length > 0 || !/^[A-Za-z_$][\w$]*$/.test(error)) {
+      if (!error || rest.length > 0 || !IDENTIFIER.test(error)) {
         fail('Expected "(error)" or "(error, reset)" after #catch', header.start);
       }
       // The error is an accessor, so it becomes a reactive variable.

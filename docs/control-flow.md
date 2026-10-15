@@ -69,22 +69,38 @@ Without `#else`, the block renders nothing when the condition is false.
 </For>
 ```
 
-- The item is the value from the list. Each item keeps its elements when the list is reordered.
+- The item is the value from the list.
 - The index is optional. Solid passes it as an accessor, and the compiler turns it into a reactive variable, so you write `index`, not `index()`.
 - The item can be destructured: `#for ({ id, title } of todos)`.
 - `#else` renders when the list is empty.
 
-## `#index`
+### Keys
+
+By default, each item keeps its elements while the same value is in the list, so reordering moves the elements. When an item is replaced with a new object, its elements are created again. `by` sets what identifies an item instead:
 
 ```html
-#index (row, i of rows) {
+#for (todo of todos by todo.id) {
+  <li>{todo.title}</li>
+}
+```
+
+`by todo.id` compiles to `keyed={(todo) => (todo.id)}`. An item keeps its elements while an item with the same key is in the list, even when the item is a new object. The item can change, so Solid passes it as an accessor, and the compiler turns it into a reactive variable. You still write `todo.title`.
+
+`by index` keeps one set of elements per position. The item at each position can change, and the index is a plain number:
+
+```html
+#for (row, i of rows by index) {
   <input value=row onInput=((event) => update(i, event.currentTarget.value))>
 }
 ```
 
-`#index` compiles to `<For keyed={false}>`. Each position keeps its elements, and the item at that position changes. Solid passes the item as an accessor, and the compiler turns it into a reactive variable, so you write `row`, not `row()`. The index is a plain number. `#index` supports `#else`.
+`by index` compiles to `keyed={false}`. `by` followed by the name of the index, such as `by i`, does the same.
 
-The item of `#index` must be an identifier. It cannot be destructured.
+| Header                   | Elements are kept for | `item`              | `i`                 |
+| ------------------------ | --------------------- | ------------------- | ------------------- |
+| `(item, i of list)`      | Each value            | A value             | A reactive variable |
+| `(item, i of list by k)` | Each key              | A reactive variable | A reactive variable |
+| `(item, i of list by i)` | Each position         | A reactive variable | A number            |
 
 ## `#repeat`
 
@@ -216,7 +232,7 @@ The header is `(order)` or `(order, collapsed)`, and both are optional. With `co
 
 `#` starts a block only when all of these are true:
 
-- A known keyword follows: `if`, `for`, `index`, `repeat`, `switch`, `try`, `loading`, `reveal`, `portal` or `key`.
+- A known keyword follows: `if`, `for`, `repeat`, `switch`, `try`, `loading`, `reveal`, `portal` or `key`.
 - The keyword is followed by `(` or `{`.
 - The `#` does not come right after a letter, a digit, `_` or `$`.
 

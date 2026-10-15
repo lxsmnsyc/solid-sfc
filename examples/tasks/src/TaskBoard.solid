@@ -179,7 +179,8 @@
   </div>
 
   <ul>
-    #for (task of visible) {
+    <!-- "by task.id" keeps the element of a task when the task is replaced with an edited copy. -->
+    #for (task of visible by task.id) {
       <TaskItem
         {task}
         onToggle=(() => update(task.id, { done: !task.done }))

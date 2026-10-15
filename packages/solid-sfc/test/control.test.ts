@@ -89,10 +89,31 @@ describe('#for', () => {
   });
 });
 
-describe('#index', () => {
-  it('compiles to <For keyed={false}> and reads the item without a call', () => {
-    expect(markup('#index (row, i of rows) { <p>{row} {i}</p> }')).toBe(
+describe('#for by', () => {
+  it('keys items with a key function', () => {
+    expect(markup('#for (user, i of users by user.id) { <p>{user.name} {i}</p> }')).toBe(
+      '<_For each={users} keyed={(user) => (user.id)}>{(__user, __i) => { const user = __user; const i = __i; return <> <p>{user().name} {i()}</p> </>; }}</_For>',
+    );
+  });
+
+  it('keeps one entry per position with by index', () => {
+    expect(markup('#for (row, i of rows by index) { <p>{row} {i}</p> }')).toBe(
       '<_For each={rows} keyed={false}>{(__row, i) => { const row = __row; return <> <p>{row()} {i}</p> </>; }}</_For>',
+    );
+    expect(markup('#for (row, n of rows by n) { <p>{row}</p> }')).toBe(
+      '<_For each={rows} keyed={false}>{(__row, n) => { const row = __row; return <> <p>{row()}</p> </>; }}</_For>',
+    );
+  });
+
+  it('destructures items that are accessors', () => {
+    expect(markup('#for ({ id, name } of users by id) { <p>{name}</p> }')).toBe(
+      '<_For each={users} keyed={({ id, name }) => (id)}>{(__item) => { const __itemValue = __item; const id = () => __itemValue().id, name = () => __itemValue().name; return <> <p>{name()}</p> </>; }}</_For>',
+    );
+  });
+
+  it('moves #else to the fallback', () => {
+    expect(markup('#for (row of rows by index) { <p /> } #else { <q /> }')).toBe(
+      '<_For each={rows} keyed={false} fallback={<> <q /> </>}>{(__row) => { const row = __row; return <> <p /> </>; }}</_For>',
     );
   });
 });
@@ -231,7 +252,8 @@ describe('errors', () => {
     ['#else { }', '#else must follow its block'],
     ['#for (item in list) { }', 'Expected "item of list"'],
     ['#for (a, b, c of list) { }', 'Expected "item of list"'],
-    ['#index ({ a } of list) { }', '#index needs an identifier'],
+    ['#for (a, { b } of list) { }', 'The index of #for must be an identifier'],
+    ['#for (a of list by ) { }', 'Expected "item of list"'],
     ['#switch { <p /> }', 'Expected #case, #default or "}" in #switch'],
     ['#switch { #default { } #case (a) { } }', '#default must be the last branch'],
     ['#try { <W /> }', '#try needs a #catch block'],

@@ -274,7 +274,7 @@ const state = {
 </script>
 ```
 
-Both declare read-only variables. In markup, the [`#for`, `#index` and `#repeat` blocks](./control-flow.md) are usually clearer.
+Both declare read-only variables. In markup, the [`#for` and `#repeat` blocks](./control-flow.md) are usually clearer.
 
 ## Lifecycle
 
