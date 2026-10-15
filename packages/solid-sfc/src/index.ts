@@ -8,3 +8,4 @@ export type {
 } from './compile.ts';
 export type { Range } from './template.ts';
 export { SFCError } from './error.ts';
+export type { SFCWarning } from './error.ts';

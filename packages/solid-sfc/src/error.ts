@@ -31,3 +31,22 @@ export class SFCError extends Error {
     this.filename = filename;
   }
 }
+
+/** A problem that does not stop compiling, such as an unused CSS selector. */
+export interface SFCWarning {
+  message: string;
+  offset: number;
+  /** The length of the text the warning is about. */
+  length: number;
+  line: number;
+  column: number;
+}
+
+export function createWarning(
+  message: string,
+  source: string,
+  offset: number,
+  length: number,
+): SFCWarning {
+  return { message, offset, length, ...getLocation(source, offset) };
+}

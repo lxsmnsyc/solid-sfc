@@ -74,6 +74,10 @@ export default function solidSFC(options: SolidSFCOptions = {}): Plugin[] {
         }
         const { file } = splitId(id);
         const result = compileFile(code, file);
+        for (const warning of result.warnings) {
+          const location = `${path.relative(root, file)}:${warning.line}:${warning.column}`;
+          this.warn(`${warning.message} (${location})`);
+        }
         let output = result.code;
         if (result.css) {
           output += `\nimport ${JSON.stringify(`./${path.basename(file)}${STYLE_QUERY}`)};`;

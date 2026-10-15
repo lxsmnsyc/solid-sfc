@@ -24,6 +24,16 @@ export interface StyleVariable extends Range {
 // Characters that join an interpolation with the CSS token around it.
 const TOKEN_CHARACTER = /[\w%#.-]/;
 
+/** The scoped part of a selector, used to find selectors that match nothing. */
+export interface ScopedSelector {
+  /** The text of the scoped part, such as `p.item`. */
+  text: string;
+  offset: number;
+  tag: string | undefined;
+  classes: string[];
+  ids: string[];
+}
+
 export interface StyleResult {
   code: string;
   map: SourceMap;
@@ -31,6 +41,7 @@ export interface StyleResult {
   variables: StyleVariable[];
   /** True if at least one block is scoped. */
   scoped: boolean;
+  selectors: ScopedSelector[];
 }
 
 const KEYFRAMES = /^(-\w+-)?keyframes$/i;
@@ -70,7 +81,7 @@ function isGlobal(node: SelectorNode): node is selectorParser.Pseudo {
  * Adds the scope attribute to the last compound selector, before any pseudo
  * element. `:global(...)` is replaced by its content and is not scoped.
  */
-function scopeSelector(selector: Selector, attribute: string): void {
+function scopeSelector(selector: Selector, attribute: string): ScopedSelector | undefined {
   let lastCompound = 0;
   selector.each((node, index) => {
     if (node.type === 'combinator') {
@@ -92,7 +103,23 @@ function scopeSelector(selector: Selector, attribute: string): void {
   });
 
   if (skip || compound.length === 0) {
-    return;
+    return undefined;
+  }
+  const scoped: ScopedSelector = {
+    text: compound.map(String).join('').trim(),
+    offset: compound[0]!.sourceIndex,
+    tag: undefined,
+    classes: [],
+    ids: [],
+  };
+  for (const node of compound) {
+    if (node.type === 'tag') {
+      scoped.tag = node.value.toLowerCase();
+    } else if (node.type === 'class') {
+      scoped.classes.push(node.value);
+    } else if (node.type === 'id') {
+      scoped.ids.push(node.value);
+    }
   }
   const scope = selectorParser.attribute({
     attribute,
@@ -106,6 +133,7 @@ function scopeSelector(selector: Selector, attribute: string): void {
   } else {
     selector.insertAfter(compound[compound.length - 1]!, scope);
   }
+  return scoped;
 }
 
 function renameAnimations(value: string, names: Map<string, string>): string {
@@ -212,8 +240,15 @@ export function processStyles(options: ProcessStylesOptions): StyleResult {
 
   const attribute = getScopeAttribute(scope);
   const animations = new Map<string, string>();
-  const transformSelector = selectorParser((selectors) => {
-    selectors.each((selector) => scopeSelector(selector, attribute));
+  const selectors: ScopedSelector[] = [];
+  let ruleOffset = 0;
+  const transformSelector = selectorParser((nodes) => {
+    nodes.each((selector) => {
+      const scoped = scopeSelector(selector, attribute);
+      if (scoped) {
+        selectors.push({ ...scoped, offset: ruleOffset + scoped.offset });
+      }
+    });
   });
 
   root.walkAtRules(KEYFRAMES, (rule) => {
@@ -233,6 +268,7 @@ export function processStyles(options: ProcessStylesOptions): StyleResult {
     if (parent?.type === 'atrule' && KEYFRAMES.test((parent as AtRule).name)) {
       return;
     }
+    ruleOffset = rule.source?.start?.offset ?? 0;
     rule.selector = transformSelector.processSync(rule.selector);
   });
 
@@ -291,5 +327,6 @@ export function processStyles(options: ProcessStylesOptions): StyleResult {
     map,
     variables,
     scoped: blocks.some((block) => block.attributes.global !== true),
+    selectors,
   };
 }

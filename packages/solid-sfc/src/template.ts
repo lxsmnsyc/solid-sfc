@@ -40,6 +40,9 @@ const BINDINGS: Record<string, { tags: string[]; event: string }> = {
 };
 
 // A `bind:` target is a name, followed by property accesses and indexes.
+// The keys of an object literal: `name:`, `'name':`, `"name":` or a shorthand `name`.
+const OBJECT_KEY = /(?:^|,)\s*(?:([A-Za-z_$][\w$-]*)|'([^']*)'|"([^"]*)")\s*(?=[:,]|$)/g;
+
 const BIND_TARGET = /^[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*|\[[^\]]*\])*$/;
 
 interface Binding {
@@ -66,6 +69,18 @@ export interface TemplateResult {
   bodies: Range[];
   /** `#template` declarations at the top level, which go before the markup. */
   templates: Range[];
+  /** The native elements of the markup, to find CSS selectors that match nothing. */
+  elements: ElementInfo[];
+}
+
+/** What a native element can match in a CSS selector. */
+export interface ElementInfo {
+  tag: string;
+  classes: Set<string>;
+  ids: Set<string>;
+  /** True if a class or an id is set by an expression or a spread. */
+  dynamicClass: boolean;
+  dynamicId: boolean;
 }
 
 /** Where children are parsed. Each mode ends at a different token. */
@@ -134,6 +149,7 @@ export class TemplateParser {
   private readonly control: ControlFlowParser;
   private mergesStyle = false;
   private usesListen = false;
+  private readonly elements: ElementInfo[] = [];
   private readonly generated: GeneratedText[] = [];
 
   constructor(
@@ -195,6 +211,7 @@ export class TemplateParser {
       ],
       bodies: this.control.bodies,
       templates: this.control.templates,
+      elements: this.elements,
     };
   }
 
@@ -307,7 +324,18 @@ export class TemplateParser {
     if (name === 'solid:window' || name === 'solid:document') {
       return this.parseListeners(offset, nameEnd, name.slice(6) as 'window' | 'document');
     }
-    const scope = this.scope && NATIVE_ELEMENT.test(name) ? this.scope : undefined;
+    const native = NATIVE_ELEMENT.test(name);
+    const scope = this.scope && native ? this.scope : undefined;
+    const element: ElementInfo = {
+      tag: name.toLowerCase(),
+      classes: new Set(),
+      ids: new Set(),
+      dynamicClass: false,
+      dynamicId: false,
+    };
+    if (native) {
+      this.elements.push(element);
+    }
     if (scope) {
       this.output.appendLeft(nameEnd, ` ${scope.attribute}`);
     }
@@ -315,6 +343,7 @@ export class TemplateParser {
       nameEnd,
       name,
       scope,
+      element,
     );
     if (scope?.variables && !hasStyle) {
       this.output.appendLeft(attributesEnd, ` style={${scope.variables}()}`);
@@ -393,6 +422,7 @@ export class TemplateParser {
     offset: number,
     tag: string,
     scope: TemplateScope | undefined,
+    element: ElementInfo,
   ): { end: number; attributesEnd: number; selfClosing: boolean; hasStyle: boolean } {
     const { source, output } = this;
     const names = new Set<string>();
@@ -431,9 +461,13 @@ export class TemplateParser {
           hasStyle = true;
           this.mergesStyle = true;
         } else if (IDENTIFIER.test(inner)) {
+          this.collectSelectorValue(element, inner, inner);
           // The scope attribute may end right before this one.
           output.appendLeft(i, `${start === offset ? ' ' : ''}${inner}=`);
-        } else if (!inner.startsWith('...')) {
+        } else if (inner.startsWith('...')) {
+          element.dynamicClass = true;
+          element.dynamicId = true;
+        } else {
           this.fail('Expected a spread or a shorthand attribute', i);
         }
         i = close + 1;
@@ -449,12 +483,15 @@ export class TemplateParser {
           hasStyle = true;
           this.mergesStyle = true;
         } else {
+          this.collectSelectorValue(element, inner, inner);
           output.update(i, i + 1, `${inner}={`);
           output.update(close, close + 1, '}');
         }
         i = close + 1;
       } else if (char === '[') {
         // `[name]=value` becomes `{...{ [name]: value }}`.
+        element.dynamicClass = true;
+        element.dynamicId = true;
         const close = this.scanner.scanExpression(i + 1, ']');
         output.update(i, i + 1, '{...{[');
         const equals = this.scanner.skipWhitespace(close + 1);
@@ -496,10 +533,48 @@ export class TemplateParser {
           if (name === 'type' && '"\''.includes(source[valueStart]!)) {
             type = source.slice(valueStart + 1, i - 1);
           }
+          if (name === 'class' || name === 'id') {
+            this.collectSelectorValue(element, name, source.slice(valueStart, i));
+          }
         } else {
           i = nameEnd;
         }
       }
+    }
+  }
+
+  /**
+   * Records the classes or the id that a `class` or `id` value sets. Strings
+   * and the keys of object literals are known. Other values are dynamic.
+   */
+  private collectSelectorValue(element: ElementInfo, name: string, value: string): void {
+    if (name !== 'class' && name !== 'id') {
+      return;
+    }
+    const names = name === 'class' ? element.classes : element.ids;
+    const quote = value[0];
+    if ((quote === '"' || quote === "'") && value.endsWith(quote)) {
+      for (const item of value.slice(1, -1).split(/\s+/)) {
+        if (item) {
+          names.add(item);
+        }
+      }
+      return;
+    }
+    if (name === 'class' && value.startsWith('{')) {
+      // `class={ active: on, 'is-open': open }` can set its keys.
+      const keys = [...value.slice(1, -1).matchAll(OBJECT_KEY)];
+      if (keys.length > 0 && !value.includes('...') && !value.includes('[')) {
+        for (const key of keys) {
+          names.add(key[1] ?? key[2] ?? key[3]!);
+        }
+        return;
+      }
+    }
+    if (name === 'class') {
+      element.dynamicClass = true;
+    } else {
+      element.dynamicId = true;
     }
   }
 

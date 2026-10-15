@@ -130,11 +130,12 @@ const { code, map, css } = compile(source, {
 | `scope`    | The hash in the `s-<hash>` attribute. It must be unique and the same on every build. The default is a hash of `filename`. |
 | `dev`      | Adds debug names to signals and memos.                                                                                    |
 
-| Result | Description                                                                                             |
-| ------ | ------------------------------------------------------------------------------------------------------- |
-| `code` | TSX with the compile-time functions replaced. It still needs Solid's JSX compiler.                      |
-| `map`  | A source map from `code` to the file.                                                                   |
-| `css`  | `{ code, map }` with the styles of the component, or `undefined` when the file has no `<style>` blocks. |
+| Result     | Description                                                                                                                     |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `code`     | TSX with the compile-time functions replaced. It still needs Solid's JSX compiler.                                              |
+| `map`      | A source map from `code` to the file.                                                                                           |
+| `css`      | `{ code, map }` with the styles of the component, or `undefined` when the file has no `<style>` blocks.                         |
+| `warnings` | Problems that do not stop compiling, such as unused CSS selectors. Each has `message`, `offset`, `length`, `line` and `column`. |
 
 ### `compileStructure`
 

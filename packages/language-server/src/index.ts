@@ -13,7 +13,7 @@ import { create as createCssServices } from 'volar-service-css';
 import { create as createTypeScriptServices } from 'volar-service-typescript';
 import type { URI } from 'vscode-uri';
 
-/** Reports `.solid` syntax errors, which TypeScript does not see. */
+/** Reports `.solid` syntax errors and warnings, which TypeScript does not see. */
 export function createSyntaxDiagnosticsPlugin(): LanguageServicePlugin {
   return {
     name: 'solid-sfc-syntax',
@@ -30,8 +30,16 @@ export function createSyntaxDiagnosticsPlugin(): LanguageServicePlugin {
             return [];
           }
           try {
-            compileStructure(document.getText(), { filename: document.uri });
-            return [];
+            const { warnings } = compileStructure(document.getText(), { filename: document.uri });
+            return warnings.map((warning): Diagnostic => ({
+              range: {
+                start: document.positionAt(warning.offset),
+                end: document.positionAt(warning.offset + warning.length),
+              },
+              message: warning.message,
+              severity: DiagnosticSeverity.Warning,
+              source: 'solid-sfc',
+            }));
           } catch (error) {
             if (!(error instanceof SFCError)) {
               throw error;

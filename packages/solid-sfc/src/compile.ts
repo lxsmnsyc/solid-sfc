@@ -2,12 +2,14 @@ import remapping from '@jridgewell/remapping';
 import { TraceMap, generatedPositionFor, originalPositionFor } from '@jridgewell/trace-mapping';
 import { Bundle, MagicString } from 'magic-string';
 import { KEY_IDENTIFIER } from './control.ts';
-import { SFCError } from './error.ts';
+import { SFCError, createWarning } from './error.ts';
+import type { SFCWarning } from './error.ts';
 import { CompileError, compile as compileLabels } from './labels/index.ts';
 import { PROPS_IDENTIFIER, analyzeInstanceScript, analyzeModuleScript } from './script.ts';
 import type { SourceMap } from './style.ts';
 import { getScopeAttribute, getVariableName, hash, processStyles } from './style.ts';
-import type { Block, GeneratedText, Range, TemplateScope } from './template.ts';
+import type { ScopedSelector } from './style.ts';
+import type { Block, ElementInfo, GeneratedText, Range, TemplateScope } from './template.ts';
 import { LISTEN_IDENTIFIER, TemplateParser } from './template.ts';
 
 export type { SourceMap };
@@ -30,6 +32,8 @@ export interface CompileResult {
   map: SourceMap;
   /** The stylesheet of the component, if it has `<style>` blocks. */
   css: { code: string; map: SourceMap } | undefined;
+  /** Problems that do not stop compiling, such as unused CSS selectors. */
+  warnings: SFCWarning[];
 }
 
 /**
@@ -117,7 +121,7 @@ export function compileStructure(source: string, options: CompileOptions = {}): 
     : undefined;
 
   const output = new MagicString(source, { filename });
-  const { markup, mergesStyle, usesKey, usesListen, generated, bodies, templates } =
+  const { markup, mergesStyle, usesKey, usesListen, generated, bodies, templates, elements } =
     new TemplateParser(source, output, fail, templateScope).parse();
 
   const bundle = new Bundle({ separator: '\n' });
@@ -224,9 +228,41 @@ export function compileStructure(source: string, options: CompileOptions = {}): 
     code,
     map,
     css: css && { code: css.code, map: css.map },
+    warnings: findUnusedSelectors(source, css?.selectors ?? [], elements),
     generated: mapGenerated(code, map, source, generated),
     bodies,
   };
+}
+
+/** True if the scoped part of a selector can match an element. */
+function matches(selector: ScopedSelector, element: ElementInfo): boolean {
+  return (
+    (selector.tag === undefined || selector.tag === '*' || selector.tag === element.tag) &&
+    (element.dynamicClass || selector.classes.every((name) => element.classes.has(name))) &&
+    (element.dynamicId || selector.ids.every((name) => element.ids.has(name)))
+  );
+}
+
+/**
+ * Warns about scoped selectors that no element of the markup can match. Only
+ * the scoped part of a selector is checked, because the rest can match the
+ * elements of other components.
+ */
+function findUnusedSelectors(
+  source: string,
+  selectors: ScopedSelector[],
+  elements: ElementInfo[],
+): SFCWarning[] {
+  return selectors
+    .filter((selector) => !elements.some((element) => matches(selector, element)))
+    .map((selector) =>
+      createWarning(
+        `Unused CSS selector "${selector.text}"`,
+        source,
+        selector.offset,
+        selector.text.length,
+      ),
+    );
 }
 
 function getLineOffsets(text: string): number[] {
@@ -283,7 +319,7 @@ function mapGenerated(
 /** Compiles a `.solid` file into a TSX module. */
 export function compile(source: string, options: CompileOptions = {}): CompileResult {
   const fail = createFail(source, options.filename);
-  const { code: structure, map: structureMap, css } = compileStructure(source, options);
+  const { code: structure, map: structureMap, css, warnings } = compileStructure(source, options);
 
   // Compile-time functions are replaced on the generated TSX, because the
   // markup expressions are only valid JavaScript after the first step.
@@ -317,5 +353,6 @@ export function compile(source: string, options: CompileOptions = {}): CompileRe
     code: ctf.code,
     map: { ...map, version: 3, file: options.filename } as SourceMap,
     css: css && { code: css.code, map: css.map },
+    warnings,
   };
 }

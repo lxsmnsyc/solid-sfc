@@ -143,6 +143,21 @@ const __styleVariables = () => ({
 - Interpolations are only allowed in declaration values. They are not allowed in selectors, at-rules, property names or `<style global>` blocks.
 - The expression must not be empty.
 
+## Unused selectors
+
+The compiler warns about scoped selectors that no element in the file can match:
+
+```text
+[plugin solid-sfc] Unused CSS selector ".title" (src/Card.solid:12:3)
+```
+
+The editor shows the same warnings.
+
+- Only the scoped part of a selector is checked. In `.list .item`, the compiler checks `.item`, because `.list` can be an element of another component.
+- Classes from `class="a b"` and from the keys of `class={ active: on }` are known. A `class` or `id` set by an expression, or a spread such as `{...props}`, can be anything, so every class or id selector matches that element.
+- Selectors in `:global(...)` and `<style global>` blocks are not checked.
+- Elements that a child component renders are not scoped, so they never count.
+
 ## Syntax errors
 
 CSS syntax errors point at the line and column in the `.solid` file, for example `Unclosed block (App.solid:12:3)`. Errors from the rules above:

@@ -149,3 +149,51 @@ describe('markup', () => {
     expect(result?.map.mappings.startsWith('AAGA')).toBe(true);
   });
 });
+
+function warnings(template: string): string[] {
+  return compile(template, { scope: 'x' }).warnings.map(
+    (warning) => `${warning.line}:${warning.column} ${warning.message}`,
+  );
+}
+
+describe('unused selectors', () => {
+  it('warns about selectors that no element matches', () => {
+    expect(
+      warnings('<style>\n.a { }\n.b, p.a { }\n#c { }\nli { }\n</style>\n<div class="a" id="d" />'),
+    ).toEqual([
+      '3:1 Unused CSS selector ".b"',
+      '3:5 Unused CSS selector "p.a"',
+      '4:1 Unused CSS selector "#c"',
+      '5:1 Unused CSS selector "li"',
+    ]);
+  });
+
+  it('only checks the scoped part of a selector', () => {
+    expect(warnings('<style>.outside .a { } :global(.x) .a { }</style><p class="a" />')).toEqual(
+      [],
+    );
+  });
+
+  it('reads the keys of object literal classes', () => {
+    expect(
+      warnings("<style>.on.open { } .off { }</style><p class={ on: a, 'open': b } />"),
+    ).toEqual(['1:21 Unused CSS selector ".off"']);
+  });
+
+  it('treats expressions and spreads as any class or id', () => {
+    expect(warnings('<style>.a { } #b { }</style><p class=(name) {...props} />')).toEqual([]);
+    expect(warnings('<style>.a { }</style><p class=cls />')).toEqual([]);
+  });
+
+  it('ignores components, global styles and comments', () => {
+    expect(
+      warnings('<style>/* .x { } */ .a { }</style><style global>.b { }</style><Comp class="a" />'),
+    ).toEqual(['1:21 Unused CSS selector ".a"']);
+  });
+
+  it('checks nested and at-rule selectors', () => {
+    expect(warnings('<style>.a { .b { } } @media print { .c { } }</style><p class="a" />')).toEqual(
+      ['1:13 Unused CSS selector ".b"', '1:37 Unused CSS selector ".c"'],
+    );
+  });
+});
