@@ -58,6 +58,8 @@ export interface TemplateResult {
   mergesStyle: boolean;
   /** True if a `#key` block is used. */
   usesKey: boolean;
+  /** True if `<solid:window>` or `<solid:document>` is used. */
+  usesListen: boolean;
   /** Text that the compiler generates for parts of the source. */
   generated: GeneratedText[];
   /** The bodies of control flow blocks, from `{` to `}`. */
@@ -109,6 +111,9 @@ export interface TemplateScope {
   mergeStyle: string;
 }
 
+/** Helper from `solid-sfc/runtime` used by `<solid:window>` and `<solid:document>`. */
+export const LISTEN_IDENTIFIER = '__listen';
+
 // Lowercase tags are native elements. Components and namespaced tags are not.
 const NATIVE_ELEMENT = /^[a-z][\w-]*$/;
 
@@ -128,6 +133,7 @@ export class TemplateParser {
   private readonly scope: TemplateScope | undefined;
   private readonly control: ControlFlowParser;
   private mergesStyle = false;
+  private usesListen = false;
   private readonly generated: GeneratedText[] = [];
 
   constructor(
@@ -175,6 +181,7 @@ export class TemplateParser {
       markup,
       mergesStyle: this.mergesStyle,
       usesKey: this.control.usesKey,
+      usesListen: this.usesListen,
       generated: [
         // A generated prop is written as `name={` right before its value.
         ...this.control.props.map((prop) => ({
@@ -297,6 +304,9 @@ export class TemplateParser {
       return this.fail('Expected a tag name', offset + 1);
     }
     const nameEnd = offset + 1 + name.length;
+    if (name === 'solid:window' || name === 'solid:document') {
+      return this.parseListeners(offset, nameEnd, name.slice(6) as 'window' | 'document');
+    }
     const scope = this.scope && NATIVE_ELEMENT.test(name) ? this.scope : undefined;
     if (scope) {
       this.output.appendLeft(nameEnd, ` ${scope.attribute}`);
@@ -318,6 +328,51 @@ export class TemplateParser {
     }
     const close = this.parseChildren(end, 'element');
     return this.parseClosingTag(close, name);
+  }
+
+  /**
+   * `<solid:window onKeyDown=close />` becomes
+   * `{__listen('window', 'keydown', close)}`, which adds the listener until
+   * the component or its block is removed.
+   */
+  private parseListeners(offset: number, nameEnd: number, target: 'window' | 'document'): number {
+    const { source, output, scanner } = this;
+    const tag = `<solid:${target}>`;
+    this.usesListen = true;
+    let previous = offset;
+    let i = nameEnd;
+    while (true) {
+      const start = scanner.skipWhitespace(i);
+      if (source.startsWith('/>', start)) {
+        output.remove(previous, start + 2);
+        return start + 2;
+      }
+      if (source[start] === '>') {
+        return this.fail(`${tag} must end with "/>"`, start);
+      }
+      const name = matchAt(ATTRIBUTE_NAME, source, start);
+      if (!name || !/^on[A-Z]/.test(name)) {
+        return this.fail(`${tag} only takes event handlers, such as onKeyDown`, start);
+      }
+      const equals = scanner.skipWhitespace(start + name.length);
+      if (source[equals] !== '=') {
+        return this.fail(`Expected a value for ${name}`, start);
+      }
+      const valueStart = scanner.skipWhitespace(equals + 1);
+      i = this.parseValue(valueStart, 'expression');
+      const event = `'${name.slice(2).toLowerCase()}'`;
+      output.update(previous, valueStart, `{${LISTEN_IDENTIFIER}('${target}', ${event}, `);
+      output.appendLeft(i, ')}');
+      // An unknown event is reported on the attribute name.
+      this.generated.push({
+        text: event,
+        anchor: valueStart,
+        delta: -(event.length + 2),
+        start,
+        end: start + name.length,
+      });
+      previous = i;
+    }
   }
 
   private parseClosingTag(offset: number, name: string): number {

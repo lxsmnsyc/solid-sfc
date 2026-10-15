@@ -8,7 +8,7 @@ import { PROPS_IDENTIFIER, analyzeInstanceScript, analyzeModuleScript } from './
 import type { SourceMap } from './style.ts';
 import { getScopeAttribute, getVariableName, hash, processStyles } from './style.ts';
 import type { Block, GeneratedText, Range, TemplateScope } from './template.ts';
-import { TemplateParser } from './template.ts';
+import { LISTEN_IDENTIFIER, TemplateParser } from './template.ts';
 
 export type { SourceMap };
 
@@ -117,12 +117,8 @@ export function compileStructure(source: string, options: CompileOptions = {}): 
     : undefined;
 
   const output = new MagicString(source, { filename });
-  const { markup, mergesStyle, usesKey, generated, bodies, templates } = new TemplateParser(
-    source,
-    output,
-    fail,
-    templateScope,
-  ).parse();
+  const { markup, mergesStyle, usesKey, usesListen, generated, bodies, templates } =
+    new TemplateParser(source, output, fail, templateScope).parse();
 
   const bundle = new Bundle({ separator: '\n' });
   const addRange = (start: number, end: number, edit?: (snip: MagicString) => void): void => {
@@ -177,6 +173,9 @@ export function compileStructure(source: string, options: CompileOptions = {}): 
 
   if (usesKey) {
     addText(`import { key as ${KEY_IDENTIFIER} } from 'solid-sfc/runtime';`);
+  }
+  if (usesListen) {
+    addText(`import { listen as ${LISTEN_IDENTIFIER} } from 'solid-sfc/runtime';`);
   }
   if (mergesStyle) {
     addText(`import { mergeStyle as ${MERGE_STYLE_IDENTIFIER} } from 'solid-sfc/runtime';`);

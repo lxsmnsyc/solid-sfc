@@ -16,6 +16,14 @@
   let tab = $signal<Tab>('tasks');
   let theme = $signal<'light' | 'dark'>('light');
 
+  // Keys 1 to 3 switch tabs, unless a field has the focus.
+  function switchTab(event: KeyboardEvent) {
+    const item = TABS[Number(event.key) - 1];
+    if (item && !(event.target instanceof HTMLInputElement)) {
+      tab = item.id;
+    }
+  }
+
   // The effect runs again whenever `theme` changes.
   $effect(() => {
     document.documentElement.dataset.theme = theme;
@@ -116,6 +124,9 @@
     color: var(--accent);
   }
 </style>
+
+<!-- Listens to window events while the component is mounted. -->
+<solid:window onKeyDown=switchTab />
 
 <main>
   <header>

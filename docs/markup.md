@@ -128,6 +128,29 @@ For lists and conditions, [control flow blocks](./control-flow.md) are usually s
 </ul>
 ```
 
+## Window and document events
+
+`<solid:window>` and `<solid:document>` listen to events of `window` and `document` while the component is mounted:
+
+```html
+<script lang="ts">
+  function close(event: KeyboardEvent) {
+    if (event.key === 'Escape') {
+      open = false;
+    }
+  }
+</script>
+
+<solid:window onKeyDown=close onResize=measure />
+<solid:document onVisibilityChange=pause />
+```
+
+- They only take event handlers, and they end with `/>`.
+- The event name is the attribute name without `on`, in lowercase: `onKeyDown` listens to `keydown`.
+- The listeners are removed when the component is removed. Inside a block, such as `#if (open) { <solid:window … /> }`, they are removed when the block is.
+- They do nothing on the server.
+- TypeScript checks the event names and the event types of the handlers.
+
 ## Comments
 
 HTML comments are removed from the output:

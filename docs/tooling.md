@@ -171,5 +171,6 @@ Compiled components import helpers from `solid-sfc/runtime`:
 
 - `mergeStyle(style, variables)` merges a `style` attribute with the CSS variables of the component.
 - `key(source, render)` implements `#key`. It renders again when `source()` changes.
+- `listen(target, type, listener)` implements `<solid:window>` and `<solid:document>`.
 
 They are internal. Their names and signatures can change in any release.

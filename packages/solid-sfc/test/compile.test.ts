@@ -104,6 +104,30 @@ describe('bind:', () => {
   });
 });
 
+describe('<solid:window> and <solid:document>', () => {
+  it('compiles each handler to a listener', () => {
+    expect(markup('<solid:window onKeyDown=close onResize=(() => measure()) />')).toBe(
+      "{__listen('window', 'keydown', close)}{__listen('window', 'resize', (() => measure()))}",
+    );
+    expect(markup('<solid:document onVisibilityChange=pause />')).toBe(
+      "{__listen('document', 'visibilitychange', pause)}",
+    );
+  });
+
+  it('imports the runtime helper', () => {
+    const { code } = compile('<solid:window onKeyDown=close />', { filename: 'W.solid' });
+    expect(code).toContain("import { listen as __listen } from 'solid-sfc/runtime';");
+  });
+
+  it.each([
+    ['<solid:window onKeyDown=a>', '<solid:window> must end with "/>"'],
+    ['<solid:window class="a" />', '<solid:window> only takes event handlers'],
+    ['<solid:document onClick />', 'Expected a value for onClick'],
+  ])('rejects %s', (input, message) => {
+    expect(() => compile(input)).toThrow(message);
+  });
+});
+
 describe('children', () => {
   it('removes XML comments', () => {
     expect(markup('<div><!-- note --></div>')).toBe('<div></div>');
