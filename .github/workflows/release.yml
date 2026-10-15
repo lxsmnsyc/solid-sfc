@@ -103,3 +103,36 @@ jobs:
         with:
           pack-dir-artifact-id: ${{ needs.pack.outputs.pack-dir-artifact-id }}
           create-github-releases: true
+
+  publish-extension:
+    name: Publish the VS Code extension
+    needs: select-mode
+    # Changesets versions the extension, so publish it once no changesets are left.
+    if: needs.select-mode.outputs.mode != 'version'
+    runs-on: ubuntu-latest
+    # Add required reviewers to this environment to approve each release.
+    environment: vscode
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          package-manager-cache: false
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - run: pnpm --filter solid-sfc-vscode test
+      - run: pnpm --filter solid-sfc-vscode exec vsce package --no-dependencies --out solid-sfc.vsix
+      # Versions that are already published are skipped.
+      - name: Publish to the Visual Studio Marketplace
+        run: pnpm --filter solid-sfc-vscode exec vsce publish --packagePath solid-sfc.vsix --skip-duplicate
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+      - name: Publish to Open VSX
+        run: pnpm --filter solid-sfc-vscode exec ovsx publish solid-sfc.vsix --skip-duplicate
+        env:
+          OVSX_PAT: ${{ secrets.OVSX_PAT }}

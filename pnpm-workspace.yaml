@@ -8,3 +8,4 @@ minimumReleaseAgeExclude:
 # Only needed to sign extensions, not to package them.
 allowBuilds:
   '@vscode/vsce-sign': false
+  keytar: false

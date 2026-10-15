@@ -59,7 +59,7 @@ TypeScript 7 has no JavaScript API, which the tools need, so `solid-tsc` uses it
 
 ### VS Code
 
-The Solid SFC extension adds:
+Install the Solid SFC extension from the Visual Studio Marketplace or Open VSX. It adds:
 
 - Syntax highlighting for scripts, styles, markup and control flow blocks.
 - Type errors, hover, completion, go-to-definition and rename in scripts and markup.

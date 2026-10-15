@@ -5,12 +5,12 @@
   "format": "auto",
   "changelog": "@changesets/cli/changelog",
   "commit": false,
-  "ignore": [],
+  "ignore": ["tasks"],
   "fixed": [],
   "linked": [],
   "updateInternalDependencies": "patch",
   "privatePackages": {
-    "version": false,
+    "version": true,
     "tag": false
   }
 }

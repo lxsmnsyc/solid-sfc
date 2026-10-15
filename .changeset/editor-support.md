@@ -3,6 +3,7 @@
 '@solid-sfc/language-server': minor
 '@solid-sfc/tsc': minor
 'solid-sfc': minor
+'solid-sfc-vscode': minor
 ---
 
 Add editor and type-checking support for `.solid` files.
