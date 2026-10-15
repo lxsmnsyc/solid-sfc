@@ -119,6 +119,15 @@ describe('#for by', () => {
 });
 
 describe('#repeat', () => {
+  it('accepts a count without an index', () => {
+    expect(markup('#repeat (3) { <i /> }')).toBe(
+      '<_Repeat count={3}>{() => <> <i /> </>}</_Repeat>',
+    );
+    expect(markup('#repeat ( stars ) { <i /> } #else { <p /> }')).toBe(
+      '<_Repeat count={stars} fallback={<> <p /> </>}>{() => <> <i /> </>}</_Repeat>',
+    );
+  });
+
   it('compiles to <Repeat>', () => {
     expect(markup('#repeat (n of count) { <i>{n}</i> } #else { <p /> }')).toBe(
       '<_Repeat count={count} fallback={<> <p /> </>}>{(n) => <> <i>{n}</i> </>}</_Repeat>',

@@ -369,7 +369,7 @@ export class ControlFlowParser {
    * `<For each={list} fallback={<>B</>}>{(item, index) => <>A</>}</For>`.
    * `by` picks what identifies an item: `by item.id` passes a key function,
    * and `by index` keeps one entry per position. `#repeat (index of count)`
-   * uses `<Repeat>`. Parameters that Solid passes as accessors become
+   * uses `<Repeat>`, and its index is optional. Parameters that Solid passes as accessors become
    * reactive variables, so they are read without a call.
    */
   private parseLoop(keyword: Keyword): number {
@@ -377,10 +377,13 @@ export class ControlFlowParser {
     const repeat = keyword.name === 'repeat';
     const header = this.parseHeader(keyword.end, keyword.name);
     const text = source.slice(header.start, header.end);
-    const expected = repeat ? '"index of count"' : '"item of list" or "item, index of list"';
+    const expected = repeat
+      ? '"count" or "index of count"'
+      : '"item of list" or "item, index of list"';
     const of = findWord(text, 'of');
-    if (of === -1) {
-      fail(`Expected ${expected} after #${keyword.name}`, header.start);
+    // `#repeat (count)` needs no index.
+    if (of === -1 && !repeat) {
+      fail(`Expected ${expected} after #for`, header.start);
     }
     const params =
       of === -1 ? [] : splitTopLevel(text.slice(0, of), ',').map((param) => param.trim());

@@ -114,6 +114,14 @@ By default, each item keeps its elements while the same value is in the list, so
 
 `#repeat` compiles to `<Repeat count={stars}>`. It renders the body `stars` times, with `i` from `0` to `stars - 1`.
 
+The index is optional:
+
+```html
+#repeat (3) {
+  <span>★</span>
+}
+```
+
 ## `#switch`
 
 ```html

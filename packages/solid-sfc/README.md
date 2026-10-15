@@ -156,7 +156,7 @@ Control flow blocks start with `#` and a keyword. The block body is markup in `{
 | `#for (item, index of list) { } #else { }` | `<For each={list} fallback>`. `index` is read without a call.                   |
 | `#for (item of list by item.id) { }`       | `<For each={list} keyed={(item) => (item.id)}>`. `item` is read without a call. |
 | `#for (item, index of list by index) { }`  | `<For each={list} keyed={false}>`. `item` is read without a call.               |
-| `#repeat (index of count) { } #else { }`   | `<Repeat count={count} fallback>`                                               |
+| `#repeat (index of count) { } #else { }`   | `<Repeat count={count} fallback>`. The index is optional: `#repeat (3) { }`.    |
 | `#switch { #case (a) { } #default { } }`   | `<Switch>` and `<Match>`. `#default` must be last.                              |
 | `#try { } #catch (error, reset) { }`       | `<Errored fallback>`. `error` is read without a call.                           |
 | `#loading (on) { } #fallback { }`          | `<Loading on fallback>`                                                         |
