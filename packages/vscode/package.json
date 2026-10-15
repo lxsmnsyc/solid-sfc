@@ -24,11 +24,12 @@
     "build": "tsdown",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "package": "vsce package --no-dependencies"
+    "package": "node scripts/package.mjs"
   },
   "devDependencies": {
     "@oxc-parser/binding-wasm32-wasip1": "0.154.0",
     "@solid-sfc/language-server": "workspace:*",
+    "@solid-sfc/typescript-plugin": "workspace:*",
     "@types/node": "^24.0.0",
     "@types/vscode": "~1.100.0",
     "@volar/language-server": "2.4.28",
@@ -42,6 +43,15 @@
     "vscode-textmate": "^9.3.2"
   },
   "contributes": {
+    "typescriptServerPlugins": [
+      {
+        "name": "solid-sfc-typescript-plugin-pack",
+        "enableForWorkspaceTypeScriptVersions": true,
+        "languages": [
+          "solid"
+        ]
+      }
+    ],
     "languages": [
       {
         "id": "solid",

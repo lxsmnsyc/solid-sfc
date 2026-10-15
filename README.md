@@ -12,6 +12,7 @@ Read the [documentation](./docs/README.md) to get started.
 - [`@solid-sfc/language-core`](./packages/language-core) is the Volar language plugin.
 - [`@solid-sfc/tsc`](./packages/tsc) type-checks projects with `.solid` files.
 - [`@solid-sfc/language-server`](./packages/language-server) is the language server.
+- [`@solid-sfc/typescript-plugin`](./packages/typescript-plugin) lets `.ts` files import `.solid` files with their props types in the TypeScript server.
 - [`solid-sfc-vscode`](./packages/vscode) is the VS Code extension.
 
 ## Examples

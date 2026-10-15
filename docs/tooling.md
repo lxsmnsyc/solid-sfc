@@ -69,6 +69,8 @@ Install the Solid SFC extension from the Visual Studio Marketplace or Open VSX. 
 
 The extension includes its own language server and TypeScript, so it needs no setup.
 
+The extension also adds a TypeScript server plugin, so `.ts` and `.tsx` files that import `.solid` files get the props of each component. A missing or wrong prop is an error there too. The plugin needs the JavaScript TypeScript server of TypeScript 5 or 6, which VS Code uses by default. The native TypeScript 7 server does not load plugins.
+
 ### Language server
 
 Other editors can run `@solid-sfc/language-server` over stdio:
@@ -89,6 +91,18 @@ vim.lsp.config('solid_sfc', {
   root_markers = { 'package.json', '.git' },
 })
 vim.lsp.enable('solid_sfc')
+```
+
+### TypeScript server plugin
+
+Other editors that use the TypeScript server can load `@solid-sfc/typescript-plugin` from `tsconfig.json`:
+
+```json
+{
+  "compilerOptions": {
+    "plugins": [{ "name": "@solid-sfc/typescript-plugin" }]
+  }
+}
 ```
 
 ### Other tools

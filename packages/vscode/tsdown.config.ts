@@ -1,4 +1,5 @@
 import { defineConfig } from 'tsdown';
+import { writePluginPack } from './scripts/plugin-pack.mjs';
 
 // VS Code loads CommonJS extensions. Both entries bundle their dependencies,
 // so the extension does not ship node_modules.
@@ -38,5 +39,18 @@ export default defineConfig([
         to: 'dist',
       },
     ],
+  },
+  {
+    entry: { 'typescript-plugin': 'src/typescript-plugin.ts' },
+    format: 'cjs',
+    platform: 'node',
+    target: 'node22',
+    // The TypeScript server provides `typescript`.
+    deps: { neverBundle: ['typescript'], alwaysBundle: [/.*/] },
+    alias: { 'oxc-parser': 'oxc-parser/src-js/wasm.js' },
+    dts: false,
+    sourcemap: true,
+    // The development host loads the extension from this folder.
+    onSuccess: () => writePluginPack('.'),
   },
 ]);

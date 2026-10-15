@@ -126,7 +126,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
       - run: pnpm --filter solid-sfc-vscode test
-      - run: pnpm --filter solid-sfc-vscode exec vsce package --no-dependencies --out solid-sfc.vsix
+      - run: pnpm --filter solid-sfc-vscode run package solid-sfc.vsix
       # Versions that are already published are skipped.
       - name: Publish to the Visual Studio Marketplace
         run: pnpm --filter solid-sfc-vscode exec vsce publish --packagePath solid-sfc.vsix --skip-duplicate

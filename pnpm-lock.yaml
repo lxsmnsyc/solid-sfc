@@ -304,7 +304,7 @@ importers:
         version: 0.154.0
       '@solidjs/vite-plugin':
         specifier: 3.0.0-next.35
-        version: 3.0.0-next.35(@solidjs/web@2.0.0-rc.15(solid-js@2.0.0-rc.15))(solid-js@2.0.0-rc.15)(supports-color@7.2.0)(vite@8.3.4(@types/node@24.19.2)(jiti@1.21.7)(yaml@2.9.1))
+        version: 3.0.0-next.35(@solidjs/web@2.0.0-rc.15(solid-js@2.0.0-rc.15))(solid-js@2.0.0-rc.15)(supports-color@7.2.0)(vite@8.3.4(@types/node@24.19.2)(jiti@1.21.7)(sass@1.105.1)(yaml@2.9.1))
       '@solidjs/web':
         specifier: 2.0.0-rc.15
         version: 2.0.0-rc.15(solid-js@2.0.0-rc.15)
@@ -325,7 +325,7 @@ importers:
         version: 7.0.2
       vite:
         specifier: ^8.3.4
-        version: 8.3.4(@types/node@24.19.2)(jiti@1.21.7)(yaml@2.9.1)
+        version: 8.3.4(@types/node@24.19.2)(jiti@1.21.7)(sass@1.105.1)(yaml@2.9.1)
       vitest:
         specifier: ^5.0.4
         version: 5.0.4(@types/node@24.19.2)(vite@8.3.4(@types/node@24.19.2)(jiti@1.21.7)(yaml@2.9.1))
@@ -352,6 +352,25 @@ importers:
         specifier: ^7.0.2
         version: 7.0.2
 
+  packages/typescript-plugin:
+    dependencies:
+      '@solid-sfc/language-core':
+        specifier: workspace:*
+        version: link:../language-core
+      '@volar/typescript':
+        specifier: 2.4.28
+        version: 2.4.28(typescript@7.0.2)
+    devDependencies:
+      '@types/node':
+        specifier: ^24.0.0
+        version: 24.19.2
+      tsdown:
+        specifier: ^0.23.1
+        version: 0.23.1(@volar/typescript@2.4.28(typescript@7.0.2))(typescript@7.0.2)
+      typescript:
+        specifier: ^7.0.2
+        version: 7.0.2
+
   packages/vscode:
     devDependencies:
       '@oxc-parser/binding-wasm32-wasip1':
@@ -360,6 +379,9 @@ importers:
       '@solid-sfc/language-server':
         specifier: workspace:*
         version: link:../language-server
+      '@solid-sfc/typescript-plugin':
+        specifier: workspace:*
+        version: link:../typescript-plugin
       '@types/node':
         specifier: ^24.0.0
         version: 24.19.2
@@ -4722,22 +4744,6 @@ snapshots:
       - '@tsrx/core'
       - supports-color
 
-  '@solidjs/vite-plugin@3.0.0-next.35(@solidjs/web@2.0.0-rc.15(solid-js@2.0.0-rc.15))(solid-js@2.0.0-rc.15)(supports-color@7.2.0)(vite@8.3.4(@types/node@24.19.2)(jiti@1.21.7)(yaml@2.9.1))':
-    dependencies:
-      '@ampproject/remapping': 2.3.0
-      '@babel/core': 7.29.7(supports-color@7.2.0)
-      '@solidjs/babel-plugin': 2.0.0-rc.14(@babel/core@7.29.7(supports-color@7.2.0))
-      '@solidjs/compiler': 2.0.0-rc.14
-      '@solidjs/web': 2.0.0-rc.15(solid-js@2.0.0-rc.15)
-      '@types/babel__core': 7.20.5
-      merge-anything: 5.1.7
-      solid-js: 2.0.0-rc.15
-      vite: 8.3.4(@types/node@24.19.2)(jiti@1.21.7)(yaml@2.9.1)
-      vitefu: 1.1.3(vite@8.3.4(@types/node@24.19.2)(jiti@1.21.7)(yaml@2.9.1))
-    transitivePeerDependencies:
-      - '@tsrx/core'
-      - supports-color
-
   '@solidjs/web@2.0.0-rc.15(solid-js@2.0.0-rc.15)':
     dependencies:
       seroval: 1.6.7
@@ -6518,26 +6524,9 @@ snapshots:
       sass: 1.105.1
       yaml: 2.9.1
 
-  vite@8.3.4(@types/node@24.19.2)(jiti@1.21.7)(yaml@2.9.1):
-    dependencies:
-      lightningcss: 1.33.0
-      picomatch: 4.0.7
-      postcss: 8.5.30
-      rolldown: 1.2.13
-      tinyglobby: 0.2.17
-    optionalDependencies:
-      '@types/node': 24.19.2
-      fsevents: 2.3.3
-      jiti: 1.21.7
-      yaml: 2.9.1
-
   vitefu@1.1.3(vite@8.3.4(@types/node@24.19.2)(jiti@1.21.7)(sass@1.105.1)(yaml@2.9.1)):
     optionalDependencies:
       vite: 8.3.4(@types/node@24.19.2)(jiti@1.21.7)(sass@1.105.1)(yaml@2.9.1)
-
-  vitefu@1.1.3(vite@8.3.4(@types/node@24.19.2)(jiti@1.21.7)(yaml@2.9.1)):
-    optionalDependencies:
-      vite: 8.3.4(@types/node@24.19.2)(jiti@1.21.7)(yaml@2.9.1)
 
   vitest@5.0.4(@types/node@24.19.2)(vite@8.3.4(@types/node@24.19.2)(jiti@1.21.7)(yaml@2.9.1)):
     dependencies:
