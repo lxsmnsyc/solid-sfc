@@ -16,3 +16,11 @@ pnpm --filter website dev
 ```
 
 `pnpm --filter website build` writes a static site to `dist`. Set `BASE` when the site is served from a subpath, as in `BASE=/solid-sfc/ pnpm --filter website build`. The build includes a `404.html`, so static hosts open deep links.
+
+## Deploying
+
+[`vercel.json`](../vercel.json) at the root of the repository deploys the site to Vercel. It builds the site and the packages it uses with `pnpm --filter "website..." build`, sends the cross-origin isolation headers, and serves `index.html` for the paths of the site. In the Vercel project:
+
+- Keep the root directory at the root of the repository.
+- Set `ENABLE_EXPERIMENTAL_COREPACK=1`, so Vercel installs the pnpm version in `packageManager`.
+- Use Node.js 22 or later.
