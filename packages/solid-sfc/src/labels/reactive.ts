@@ -151,6 +151,33 @@ function rewriteRefCtf(ctx: Ctx, info: ReactiveInfo, ref: Ref, use: RefCtfUse): 
 }
 
 /**
+ * The range of the right side of an assignment, with the parentheses around
+ * it. The parser drops them from the AST, so `a = (b)` has `b` as its right
+ * side, and a rewrite of `b` alone would leave `)` behind.
+ */
+function outerRange(
+  code: string,
+  right: Node,
+  operatorEnd: number,
+): { start: number; end: number } {
+  let start = operatorEnd;
+  while (/\s/.test(code[start] ?? '')) {
+    start++;
+  }
+  const opening = code.slice(start, right.start).split('(').length - 1;
+  let end = right.end;
+  for (let count = 0; count < opening; count++) {
+    while (/\s/.test(code[end] ?? '')) {
+      end++;
+    }
+    if (code[end] === ')') {
+      end++;
+    }
+  }
+  return { start, end };
+}
+
+/**
  * Rewrites a write to a signal binding into a setter call:
  * `count++` compiles to `setcount_1(current_1 => ++current_1)`, compound
  * assignment to the functional-update form, and plain `=` to
@@ -175,7 +202,11 @@ function rewriteWrite(ctx: Ctx, binding: Binding, info: ReactiveInfo, ref: Ref):
     ctx.error(ref.node, `Unsupported write to reactive variable "${binding.name}"`);
   }
   const assign = parent;
-  const right = assign.right;
+  const right = outerRange(
+    code,
+    assign.right,
+    code.indexOf(assign.operator, ref.node.end) + assign.operator.length,
+  );
   if (assign.operator !== '=') {
     // Compound assignment: functional update over the previous value.
     const current = ctx.unique('current');
@@ -183,7 +214,7 @@ function rewriteWrite(ctx: Ctx, binding: Binding, info: ReactiveInfo, ref: Ref):
     s.appendLeft(right.end, ')');
     return;
   }
-  if (containsAwaitOrYield(right)) {
+  if (containsAwaitOrYield(assign.right)) {
     const tmp = ctx.unique('tmp');
     const grand = ref.parents[ref.parents.length - 2];
     if (grand?.type === 'ExpressionStatement') {

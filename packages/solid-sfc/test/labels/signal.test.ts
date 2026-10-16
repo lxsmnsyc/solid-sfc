@@ -24,6 +24,16 @@ describe('$signal', () => {
     expect(output).toContain('(() => start(), Object.assign({ name: "count" }, options()))');
     expect(output).toContain('(() => start(), { name: "other" })');
   });
+  it('keeps the parentheses around the value of a write', () => {
+    expect(transform('let a = $signal(1);\na = (2);')).toContain('seta_1(() => (2));');
+    expect(transform('let a = $signal(1);\nconst f = () => (a = ( 2 ));')).toContain(
+      'const f = () => (seta_1(() => ( 2 )));',
+    );
+    expect(transform('let a = $signal(1);\na += (2);')).toContain('current_1 += (2))');
+    expect(transform('let a = $signal(1);\nasync function f() { a = (await g()); }')).toContain(
+      'const tmp_1 = (await g());',
+    );
+  });
   it('rewrites reads', () => {
     expect(
       transform(`
