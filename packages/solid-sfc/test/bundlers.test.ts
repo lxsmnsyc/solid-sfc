@@ -21,31 +21,37 @@ afterAll(() => {
   rmSync(outputs, { recursive: true, force: true });
 });
 
-/** The text of every file a bundler wrote, by extension. */
-function read(dir: string): { js: string; css: string } {
+/** The JavaScript that a bundler wrote. */
+function read(dir: string): string {
   const files = readdirSync(dir, { recursive: true }) as string[];
-  const text = (...extensions: string[]) =>
-    files
-      .filter((file) => extensions.some((extension) => file.endsWith(extension)))
-      .map((file) => readFileSync(path.join(dir, file), 'utf8'))
-      .join('\n');
-  return { js: text('.js', '.mjs'), css: text('.css') };
+  expect(files.filter((file) => file.endsWith('.css'))).toEqual([]);
+  return files
+    .filter((file) => file.endsWith('.js') || file.endsWith('.mjs'))
+    .map((file) => readFileSync(path.join(dir, file), 'utf8'))
+    .join('\n');
 }
 
-/** Checks that the components compiled to Solid's DOM output, with scoped styles. */
-function expectApp({ js, css }: { js: string; css: string }): void {
+/**
+ * Checks that the components compiled to Solid's DOM output, and that each
+ * one adds its scoped stylesheet with `useStyle`.
+ */
+function expectApp(js: string): void {
   // Solid's compiler turns the markup into templates.
   expect(js).toMatch(/<h1 s-[a-z0-9]+>/);
   expect(js).toContain('Bundled');
   expect(js).not.toContain('$signal');
   expect(js).not.toMatch(/#for|[^$]\$props\(/);
-  expect(css).toMatch(/h1\[s-[a-z0-9]+\]/);
-  expect(css).toContain('rebeccapurple');
-  expect(css).toMatch(/var\(--s-[a-z0-9]+-0\)/);
+  expect(js).toMatch(/useStyle/);
+  expect(js).toMatch(/h1\[s-[a-z0-9]+\]/);
+  expect(js).toContain('rebeccapurple');
+  expect(js).toMatch(/var\(--s-[a-z0-9]+-0\)/);
 }
+
+const EXTERNAL = ['solid-js', '@solidjs/web', 'solid-sfc/runtime'];
 
 describe('bundlers', () => {
   it('esbuild', async () => {
+    expect.hasAssertions();
     const { build } = await import('esbuild');
     const outdir = path.join(outputs, 'esbuild');
     await build({
@@ -53,13 +59,11 @@ describe('bundlers', () => {
       bundle: true,
       outdir,
       plugins: [esbuildPlugin()],
-      external: ['solid-js', '@solidjs/web', 'solid-sfc/runtime'],
+      external: EXTERNAL,
       format: 'esm',
       logLevel: 'silent',
     });
-    const output = read(outdir);
-    expect(output.css).not.toContain('sourceMappingURL');
-    expectApp(output);
+    expectApp(read(outdir));
   });
 
   it.each([
@@ -68,27 +72,13 @@ describe('bundlers', () => {
   ] as const)('%s', async (_, plugin, load) => {
     expect.hasAssertions();
     const bundle = await load();
-    let css = '';
-    // Rollup and Rolldown need a plugin for stylesheets. This one collects them.
-    const styles = {
-      name: 'styles',
-      transform(code: string, id: string) {
-        if (!id.endsWith('.css')) {
-          return null;
-        }
-        css += code;
-        // Rolldown reads `.css` modules as CSS unless the type is set.
-        return { code: 'export {};', map: null, moduleType: 'js' };
-      },
-    };
     const build = await bundle({
       input: entry,
-      plugins: [plugin(), styles],
+      plugins: [plugin()],
       external: [/^solid-js/, /^@solidjs\//, /^solid-sfc\//],
     } as never);
     const { output } = await build.generate({ format: 'esm' });
-    const js = output.map((chunk) => ('code' in chunk ? chunk.code : '')).join('\n');
-    expectApp({ js, css });
+    expectApp(output.map((chunk) => ('code' in chunk ? chunk.code : '')).join('\n'));
   });
 
   it.each([
@@ -111,11 +101,9 @@ describe('bundlers', () => {
       output: { path: outdir, module: true },
       optimization: { minimize: false },
       plugins: [plugin()],
-      externals: { 'solid-js': 'solid-js', '@solidjs/web': '@solidjs/web' },
+      externals: Object.fromEntries(EXTERNAL.map((module) => [module, module])),
       externalsType: 'module',
-      experiments: { css: true, outputModule: true },
-      // The stylesheet of a component ends with `.css`, like any other.
-      module: { rules: [{ test: /\.css$/, type: 'css' }] },
+      experiments: { outputModule: true },
     });
     await new Promise<void>((resolve, reject) => {
       compiler.run((error, stats) => {

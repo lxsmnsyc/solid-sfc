@@ -38,6 +38,14 @@ export interface CompileOptions {
   scope?: string;
   /** Adds debug names to signals and memos. */
   dev?: boolean;
+  /**
+   * Returns a module whose default export is the stylesheet of the
+   * component, as a string, for the language of its `<style>` blocks. The
+   * component imports its stylesheet from it instead of holding the CSS, so
+   * the bundler can process the CSS, such as compiling Sass. Bundler plugins
+   * set it.
+   */
+  stylesheet?: (lang: StyleLang) => string;
 }
 
 export interface CompileResult {
@@ -77,6 +85,8 @@ export interface StructureResult extends CompileResult {
 }
 
 const VARIABLES_IDENTIFIER = '__styleVariables';
+const STYLESHEET_IDENTIFIER = '__stylesheet';
+const USE_STYLE_IDENTIFIER = '__useStyle';
 const MERGE_STYLE_IDENTIFIER = '__mergeStyle';
 
 function getComponentName(filename: string | undefined): string {
@@ -134,6 +144,9 @@ export function compileStructure(source: string, options: StructureOptions = {})
     styles.length > 0
       ? processStyles({ source, blocks: styles, scope, filename, fail })
       : undefined;
+  // The stylesheet of the file has the name of its scope, even when no
+  // style is scoped.
+  const styleId = getScopeAttribute(scope);
   const templateScope: TemplateScope | undefined = css?.scoped
     ? {
         attribute: getScopeAttribute(scope),
@@ -253,7 +266,10 @@ export function compileStructure(source: string, options: StructureOptions = {})
       );
     }
 
+    // The editor does not need the stylesheet.
+    const sheet = css && !options.typeCheck;
     const runtime = [
+      sheet && `useStyle as ${USE_STYLE_IDENTIFIER}`,
       usesKey && `key as ${KEY_IDENTIFIER}`,
       usesListen && `listen as ${LISTEN_IDENTIFIER}`,
       usesSelectValues && `selectValues as ${SELECT_VALUES_IDENTIFIER}`,
@@ -266,7 +282,19 @@ export function compileStructure(source: string, options: StructureOptions = {})
       addText(`import { dynamic as ${DYNAMIC_IDENTIFIER} } from '@solidjs/web';`);
     }
 
+    if (sheet) {
+      addText(
+        options.stylesheet
+          ? `import ${STYLESHEET_IDENTIFIER} from ${JSON.stringify(options.stylesheet(css.lang))};`
+          : `const ${STYLESHEET_IDENTIFIER} = ${JSON.stringify(css.code)};`,
+      );
+    }
+
     addText(`export default function ${getComponentName(filename)}${generics}(${parameters}) {`);
+    if (sheet) {
+      // The stylesheet is in the document while the component is rendered.
+      addText(`  ${USE_STYLE_IDENTIFIER}(${JSON.stringify(styleId)}, ${STYLESHEET_IDENTIFIER});`);
+    }
 
     // The variables come first, because markup in the script can use them
     // while the script runs.
@@ -339,6 +367,18 @@ export function compileStructure(source: string, options: StructureOptions = {})
     warnings: [
       ...findUnusedSelectors(source, css?.selectors ?? [], elements),
       ...checkAccessibility(source, elements),
+      // Only a bundler can compile Sass and Less.
+      ...(css && css.lang !== 'css' && !options.stylesheet && !options.typeCheck
+        ? [
+            createWarning(
+              'css-preprocessor',
+              `<style lang="${css.lang}"> is only compiled by a bundler plugin. The stylesheet is used as it is.`,
+              source,
+              styles[0]!.start,
+              '<style'.length,
+            ),
+          ]
+        : []),
     ].toSorted((a, b) => a.offset - b.offset),
     generated: mapGenerated(code, map, source, generated),
     bodies,

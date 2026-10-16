@@ -18,7 +18,7 @@ The plugin compiles `.solid` files in these steps:
 2. Remove TypeScript types with Oxc.
 3. Compile the JSX with `@solidjs/vite-plugin`, which the plugin includes. It also adds HMR and start mode.
 
-The CSS of each component is a separate module, `App.solid?solid-sfc&type=style&lang.css`, which Vite processes like any CSS file, including SCSS and Less.
+The CSS of each component is a separate module, `App.solid?solid-sfc&type=style&inline&lang.css`. Vite processes it like any CSS file, including SCSS and Less, and `inline` makes it export the result as a string. The component adds it to the page while it is rendered. See [Styles](./styles.md).
 
 ### Server-side rendering
 
@@ -108,11 +108,7 @@ The other bundlers import from `solid-sfc/rolldown`, `solid-sfc/webpack`, `solid
 
 ### Stylesheets
 
-The stylesheet of each component is a module whose name ends with `.css`, `.scss` or `.less`, so the bundler handles it with its usual rules:
-
-- esbuild bundles it into the CSS output.
-- webpack and Rspack need a rule for `.css` files, such as `{ test: /\.css$/, type: 'css' }` with `experiments.css`, or `css-loader`. SCSS and Less need their loaders too.
-- Rollup and Rolldown need a CSS plugin. Rolldown reads `.css` modules as CSS, which it does not bundle, so the plugin must set `moduleType: 'js'` on what it returns.
+The stylesheet of each component is a JavaScript module, `App.solid?solid-sfc&type=style&lang.css.js`, whose default export is the CSS. The component adds it to the page while it is rendered, so the bundler needs no CSS rules or plugins. The plugin compiles SCSS and Less with the `sass` or `less` package, which the project installs.
 
 ## Type checking
 
@@ -233,22 +229,23 @@ const { code, map, css } = compile(source, {
 });
 ```
 
-| Option     | Description                                                                                                               |
-| ---------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `filename` | Used for error messages, the source maps and the component name.                                                          |
-| `scope`    | The hash in the `s-<hash>` attribute. It must be unique and the same on every build. The default is a hash of `filename`. |
-| `dev`      | Adds debug names to signals and memos.                                                                                    |
+| Option       | Description                                                                                                                                                          |
+| ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `filename`   | Used for error messages, the source maps and the component name.                                                                                                     |
+| `scope`      | The hash in the `s-<hash>` attribute. It must be unique and the same on every build. The default is a hash of `filename`.                                            |
+| `dev`        | Adds debug names to signals and memos.                                                                                                                               |
+| `stylesheet` | Returns a module, for the `lang` of the styles, whose default export is the stylesheet. The component imports it instead of holding the CSS. Bundler plugins set it. |
 
-| Result     | Description                                                                                                                                                        |
-| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `code`     | TSX with the compile-time functions replaced. It still needs Solid's JSX compiler.                                                                                 |
-| `map`      | A source map from `code` to the file.                                                                                                                              |
-| `css`      | `{ code, map }` with the styles of the component, or `undefined` when the file has no `<style>` blocks.                                                            |
-| `warnings` | Problems that do not stop compiling, such as unused CSS selectors and accessibility problems. Each has `code`, `message`, `offset`, `length`, `line` and `column`. |
+| Result     | Description                                                                                                                                                                |
+| ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `code`     | TSX with the compile-time functions replaced. It still needs Solid's JSX compiler.                                                                                         |
+| `map`      | A source map from `code` to the file.                                                                                                                                      |
+| `css`      | `{ code, map, lang }` with the styles of the component, or `undefined` when the file has no `<style>` blocks. The component already adds them to the page with `useStyle`. |
+| `warnings` | Problems that do not stop compiling, such as unused CSS selectors and accessibility problems. Each has `code`, `message`, `offset`, `length`, `line` and `column`.         |
 
 ### `compileStructure`
 
-`compileStructure` takes the same options and returns the TSX before the compile-time functions are replaced. Type checking uses this code, because the global declarations of the compile-time functions already describe it.
+`compileStructure` takes the same options and returns the TSX before the compile-time functions are replaced. Type checking uses this code with `typeCheck: true`, because the global declarations of the compile-time functions already describe it. With `typeCheck`, `#if` is a conditional expression, so TypeScript narrows inside its branches, and the stylesheet is left out.
 
 It also returns `generated`. Some code in the TSX has no text in the file, such as the `each` prop that `#for` generates, or the assignment that `bind:value` generates. TypeScript can report errors on that code, so each entry maps it to the text in the file that it comes from. `@solid-sfc/language-core` adds these to its mappings, so the errors show up in the file.
 

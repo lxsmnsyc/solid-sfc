@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { compile } from '../src/index.ts';
+import { compile, compileStructure } from '../src/index.ts';
 
 function css(style: string, attributes = ''): string {
   const result = compile(`<style${attributes}>${style}</style>`, { scope: 'x' });
@@ -80,7 +80,7 @@ describe('variables', () => {
     const { code } = compile('<style>a { color: ${color} }</style><a href="#" />', {
       scope: 'x',
     });
-    expect(code).not.toContain('solid-sfc/runtime');
+    expect(code).not.toContain('mergeStyle');
     expect(code).toContain("'--s-x-0': (color),");
     expect(code).toContain('<a s-x href="#" style={__styleVariables()} />');
   });
@@ -103,7 +103,9 @@ describe('variables', () => {
 
   it('imports the merge helper when needed', () => {
     const { code } = compile('<style>a { color: ${c} }</style><a style="" />');
-    expect(code).toContain("import { mergeStyle as __mergeStyle } from 'solid-sfc/runtime';");
+    expect(code).toContain(
+      "import { useStyle as __useStyle, mergeStyle as __mergeStyle } from 'solid-sfc/runtime';",
+    );
   });
 
   it.each([
@@ -214,6 +216,11 @@ describe('unused selectors', () => {
 });
 
 describe('preprocessors', () => {
+  it('warns that only a bundler plugin compiles them', () => {
+    const result = compile('<style lang="scss">p { }</style><p />', { scope: 'x' });
+    expect(result.warnings.map((warning) => warning.code)).toEqual(['css-preprocessor']);
+  });
+
   it('scopes SCSS at the start of compounds, so suffixes join the parent', () => {
     const { css: stylesheet } = compile(
       '<style lang="scss">\n.card { &__title { } .body { } }\np { }\n%shared { }\n</style><p class="card card__title body" />',
@@ -247,6 +254,7 @@ describe('preprocessors', () => {
   it('does not check selectors that a preprocessor builds', () => {
     const result = compile('<style lang="scss">.btn-#{$c} { } %p { }</style><p />', {
       scope: 'x',
+      stylesheet: () => './Component.scss',
     });
     expect(result.warnings).toEqual([]);
   });
@@ -259,5 +267,30 @@ describe('preprocessors', () => {
     ['<style lang="stylus"></style>', 'Unsupported style lang "stylus"'],
   ])('rejects %s', (input, message) => {
     expect(() => compile(input)).toThrow(message);
+  });
+});
+
+describe('stylesheet', () => {
+  it('adds the stylesheet with useStyle', () => {
+    const { code } = compile('<style>p { color: red }</style><p />', { scope: 'x' });
+    expect(code).toContain('const __stylesheet = "p[s-x] { color: red }\\n";');
+    expect(code).toContain('  __useStyle("s-x", __stylesheet);');
+  });
+
+  it('imports the stylesheet from the module that the bundler gives', () => {
+    const { code } = compile('<style lang="scss">p { color: red }</style><p />', {
+      scope: 'x',
+      stylesheet: (lang) => `./A.solid?style.${lang}`,
+    });
+    expect(code).toContain('import __stylesheet from "./A.solid?style.scss";');
+    expect(code).not.toContain('color: red');
+  });
+
+  it('adds no stylesheet for type-checking', () => {
+    const { code } = compileStructure('<style>p { color: red }</style><p />', {
+      scope: 'x',
+      typeCheck: true,
+    });
+    expect(code).not.toContain('useStyle');
   });
 });

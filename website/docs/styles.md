@@ -14,7 +14,25 @@
 </ul>
 ```
 
-The styles become a CSS file that Vite bundles, so nothing is added to the page at runtime. In development, Vite updates them without reloading the page.
+The styles of a component are added to the page while the component is rendered, as in solid-styled:
+
+- The first instance of a component adds a `<style s:id="s-x1y2z3">` to the head. The last instance to be removed removes it. A page only loads the CSS of the components it shows.
+- On the server, the stylesheet goes into the head of the document, so the page is styled before scripts run. When the page hydrates, the components use that `<style>` instead of adding another.
+- The bundler still processes the CSS, so Vite's PostCSS setup and minification apply. The CSS ships inside the JavaScript of the component, and the build writes no `.css` file for it.
+
+The compiled component calls `useStyle` from `solid-sfc/runtime` at its start:
+
+```tsx
+import { useStyle as __useStyle } from 'solid-sfc/runtime';
+import __stylesheet from './List.solid?solid-sfc&type=style&inline&lang.css';
+
+export default function List() {
+  __useStyle('s-x1y2z3', __stylesheet);
+  // ...
+}
+```
+
+Without a bundler plugin, as in `compile()`, the stylesheet is a string in the module.
 
 ## How scoping works
 
@@ -170,7 +188,7 @@ pnpm add -D sass
 </style>
 ```
 
-The compiler scopes the selectors in the SCSS or Less source, and Vite compiles the result, so Vite's `css.preprocessorOptions` apply.
+The compiler scopes the selectors in the SCSS or Less source, and the bundler plugin compiles the result. In Vite, Vite compiles it, so `css.preprocessorOptions` apply. With the other bundlers, the plugin compiles it with the `sass` or `less` package of the project. `compile()` on its own cannot compile them, and warns with `css-preprocessor`.
 
 - The scope attribute goes at the start of each compound, so a suffix like `&__title` joins the parent: `[s-x1y2z3].card__title`.
 - Placeholder selectors such as `%shared` are not scoped. The selectors that `@extend` them are.

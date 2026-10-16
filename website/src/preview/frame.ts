@@ -8,9 +8,8 @@ import * as solid from 'solid-js';
 import * as runtime from 'solid-sfc/runtime';
 
 export interface PreviewMessage {
-  /** The component as JavaScript, an ES module. */
+  /** The component as JavaScript, an ES module. It adds its own stylesheet. */
   code: string;
-  css: string;
 }
 
 const MODULES: Record<string, unknown> = {
@@ -59,14 +58,13 @@ function importModule(source: string): unknown {
   const module = MODULES[source];
   if (!module) {
     throw new Error(
-      `The preview cannot import "${source}". It can import solid-js and @solidjs/web.`,
+      `The preview cannot import "${source}". It can import solid-js, @solidjs/web and solid-sfc/runtime.`,
     );
   }
   return module;
 }
 
 const root = document.getElementById('root')!;
-const style = document.head.appendChild(document.createElement('style'));
 let dispose: (() => void) | undefined;
 
 function showError(error: unknown): void {
@@ -76,11 +74,11 @@ function showError(error: unknown): void {
   root.replaceChildren(message);
 }
 
-function run({ code, css }: PreviewMessage): void {
+function run({ code }: PreviewMessage): void {
+  // Removing the last component also removes its stylesheet.
   dispose?.();
   dispose = undefined;
   root.replaceChildren();
-  style.textContent = css;
   try {
     const exports: { default?: (props: object) => solid.Element } = {};
     // oxlint-disable-next-line typescript/no-implied-eval -- running the playground's code is the point.

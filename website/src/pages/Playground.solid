@@ -102,7 +102,7 @@
       try {
         const code = build.buildPreview(result.code);
         previewError = '';
-        frame?.contentWindow?.postMessage({ code, css: result.css }, location.origin);
+        frame?.contentWindow?.postMessage({ code }, location.origin);
       } catch (error) {
         previewError = error instanceof Error ? error.message : String(error);
       }

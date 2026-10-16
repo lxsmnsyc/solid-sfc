@@ -6,6 +6,7 @@
 import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 import remapping from '@jridgewell/remapping';
 import { transform as transformJSX } from '@solidjs/compiler';
 import type { TransformOptions as SolidCompilerOptions } from '@solidjs/compiler';
@@ -40,11 +41,42 @@ export interface FactoryOptions extends SolidSFCPluginOptions {
 }
 
 export const EXTENSION = '.solid';
-// Bundlers process the stylesheet by the extension at the end, such as `.scss`.
-const STYLE_QUERY = /\?solid-sfc&type=style&lang\.(?:css|scss|less)$/;
+/**
+ * The stylesheet of a component is a module whose default export is the CSS.
+ * In Vite, `inline` makes Vite's CSS pipeline compile it and export the
+ * result, and the extension at the end, such as `.scss`, picks the language.
+ * Other bundlers get a JavaScript module that the plugin compiles.
+ */
+const STYLE_QUERY = /\?solid-sfc&type=style(?:&inline)?&lang\.(css|scss|less)(\.js)?$/;
 
-function styleQuery(lang: string): string {
-  return `?solid-sfc&type=style&lang.${lang}`;
+function styleQuery(lang: string, vite: boolean): string {
+  return vite
+    ? `?solid-sfc&type=style&inline&lang.${lang}`
+    : `?solid-sfc&type=style&lang.${lang}.js`;
+}
+
+/** Imports a package that the project may not install. */
+async function importOptional(name: string, file: string, lang: string): Promise<any> {
+  try {
+    const module = await import(name);
+    return module.default ?? module;
+  } catch {
+    throw new Error(`Install "${name}" to compile <style lang="${lang}"> (${file})`);
+  }
+}
+
+/** Compiles Sass and Less with the packages that the project installs. */
+async function preprocess(code: string, lang: string, file: string): Promise<string> {
+  if (lang === 'scss') {
+    const sass = await importOptional('sass', file, lang);
+    return sass.compileString(code, { url: pathToFileURL(file), syntax: 'scss' }).css;
+  }
+  if (lang === 'less') {
+    const less = await importOptional('less', file, lang);
+    const result = await less.render(code, { filename: file });
+    return result.css;
+  }
+  return code;
 }
 
 function splitId(id: string): { file: string; query: string } {
@@ -78,12 +110,16 @@ export const factory: UnpluginFactory<FactoryOptions | undefined> = (options = {
   let dev = options.dev ?? process.env.NODE_ENV !== 'production';
   const jsx = options.jsx ?? true;
 
+  const vite = meta.framework === 'vite';
+  // The path from the root is the same on every machine.
+  const scopeOf = (file: string): string =>
+    hash(path.relative(root, file).split(path.sep).join('/'));
   const compileFile = (code: string, file: string): CompileResult =>
     compile(code, {
       filename: file,
       dev,
-      // The path from the root is the same on every machine.
-      scope: hash(path.relative(root, file).split(path.sep).join('/')),
+      scope: scopeOf(file),
+      stylesheet: (lang) => `./${path.basename(file)}${styleQuery(lang, vite)}`,
     });
 
   return {
@@ -113,13 +149,16 @@ export const factory: UnpluginFactory<FactoryOptions | undefined> = (options = {
     async load(id) {
       const { file } = splitId(id);
       // Compile again instead of caching, so the CSS always matches the file.
-      const { css } = compileFile(await readFile(file, 'utf8'), file);
-      if (!css) {
-        return '';
+      const { css } = compile(await readFile(file, 'utf8'), {
+        filename: file,
+        scope: scopeOf(file),
+      });
+      if (vite) {
+        // Vite's CSS pipeline compiles the stylesheet.
+        return css ? { code: css.code, map: css.map } : '';
       }
-      // esbuild writes the map of a stylesheet as a `//` comment, which CSS
-      // does not have.
-      return meta.framework === 'esbuild' ? css.code : { code: css.code, map: css.map };
+      const sheet = css ? await preprocess(css.code, css.lang, file) : '';
+      return `export default ${JSON.stringify(sheet)};`;
     },
     transformInclude(id) {
       return isSFC(id);
@@ -149,10 +188,6 @@ export const factory: UnpluginFactory<FactoryOptions | undefined> = (options = {
         }
       }
       const map = remapping(maps as never, () => null) as unknown as SourceMap;
-      if (result.css) {
-        const style = `./${path.basename(file)}${styleQuery(result.css.lang)}`;
-        output += `\nimport ${JSON.stringify(style)};`;
-      }
       return { code: output, map };
     },
   };
