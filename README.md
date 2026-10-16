@@ -33,6 +33,8 @@ pnpm typecheck
 
 Add a changeset for each user-facing change with `pnpm changeset`.
 
+`pnpm vscode` builds the packages and opens `examples/tasks` in a VS Code window that runs the extension from `packages/vscode`. Run it again after a change, or rebuild and run "Developer: Reload Window" in that window.
+
 ## License
 
 MIT © [lxsmnsyc](https://github.com/lxsmnsyc)

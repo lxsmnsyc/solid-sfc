@@ -10,6 +10,7 @@
     "lint:fix": "oxlint --fix",
     "format": "oxfmt",
     "format:check": "oxfmt --check",
+    "vscode": "pnpm build && code --new-window --extensionDevelopmentPath=\"$PWD/packages/vscode\" examples/tasks",
     "changeset": "changeset",
     "version": "changeset version",
     "release": "pnpm build && changeset publish"
