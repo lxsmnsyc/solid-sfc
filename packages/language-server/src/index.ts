@@ -1,18 +1,24 @@
 import {
   createSolidLanguagePlugin,
   getClosingTag,
+  getCodeActions,
+  getCompletions,
   getDocumentSymbols,
   getFoldingRanges,
 } from '@solid-sfc/language-core';
 import type { DocumentSymbol as SolidSymbol } from '@solid-sfc/language-core';
 import type {
+  CodeAction,
+  CompletionItem,
   Diagnostic,
   DocumentSymbol,
   FoldingRange,
   LanguageServicePlugin,
 } from '@volar/language-server';
 import {
+  CompletionItemKind,
   DiagnosticSeverity,
+  InsertTextFormat,
   FoldingRangeKind,
   SymbolKind,
   createConnection,
@@ -183,6 +189,76 @@ export function createAutoCloseTagPlugin(): LanguageServicePlugin {
   };
 }
 
+/** Completes control flow keywords and `solid:` elements in the markup. */
+export function createCompletionPlugin(): LanguageServicePlugin {
+  return {
+    name: 'solid-sfc-completion',
+    capabilities: {
+      completionProvider: { triggerCharacters: ['#', ':'] },
+    },
+    create() {
+      return {
+        provideCompletionItems(document, position) {
+          if (document.languageId !== 'solid') {
+            return undefined;
+          }
+          const offset = document.offsetAt(position);
+          const items = getCompletions(document.getText(), offset).map((item): CompletionItem => ({
+            label: item.label,
+            detail: item.detail,
+            kind: CompletionItemKind.Keyword,
+            insertTextFormat: InsertTextFormat.Snippet,
+            textEdit: {
+              range: { start: document.positionAt(item.start), end: position },
+              newText: item.snippet,
+            },
+          }));
+          return { isIncomplete: false, items };
+        },
+      };
+    },
+  };
+}
+
+/** Wraps markup in a block, or extracts it to a `#template`. */
+export function createCodeActionPlugin(): LanguageServicePlugin {
+  return {
+    name: 'solid-sfc-code-actions',
+    capabilities: {
+      codeActionProvider: { codeActionKinds: ['refactor.rewrite', 'refactor.extract'] },
+    },
+    create() {
+      return {
+        provideCodeActions(document, range) {
+          if (document.languageId !== 'solid') {
+            return undefined;
+          }
+          const actions = getCodeActions(
+            document.getText(),
+            document.offsetAt(range.start),
+            document.offsetAt(range.end),
+          );
+          return actions.map((action): CodeAction => ({
+            title: action.title,
+            kind: action.kind,
+            edit: {
+              changes: {
+                [document.uri]: action.edits.map((edit) => ({
+                  range: {
+                    start: document.positionAt(edit.start),
+                    end: document.positionAt(edit.end),
+                  },
+                  newText: edit.text,
+                })),
+              },
+            },
+          }));
+        },
+      };
+    },
+  };
+}
+
 /**
  * Starts the language server over the connection the client opened.
  * TypeScript 7 has no JavaScript API, so the server uses its own copy of the
@@ -212,6 +288,8 @@ export function startServer(): void {
         createFoldingPlugin(),
         createDocumentSymbolPlugin(),
         createAutoCloseTagPlugin(),
+        createCompletionPlugin(),
+        createCodeActionPlugin(),
       ],
     ),
   );

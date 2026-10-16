@@ -104,7 +104,10 @@ Install the Solid SFC extension from the Visual Studio Marketplace or Open VSX. 
 - An outline with the `<script>` blocks and their declarations, the `<style>` blocks and their rules, and `#template` declarations.
 - Closing tags inserted after the `>` of an opening tag. The `solid.autoClosingTags` setting turns this off.
 - Emmet abbreviations in markup, as in HTML.
-- Snippets for control flow blocks, such as `#if`, `#for` and `#try`, and for `script`, `style` and a whole `component`.
+- Completions for control flow blocks after `#`, such as `#if`, `#for` and `#try`, and for `solid:` elements after `<solid:`.
+- Code actions on selected markup: wrap it in `#if`, `#for`, `#loading` or `#try`, or extract it to a `#template`. In a block, the template goes at the start of the block, so it can use the variables of the block.
+- Go-to-definition and rename for `#template` names.
+- Snippets for `script`, `style` and a whole `component`.
 
 The extension includes its own language server and TypeScript, so it needs no setup.
 
