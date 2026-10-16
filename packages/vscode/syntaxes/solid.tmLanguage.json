@@ -270,6 +270,9 @@
           "include": "#closing-tag"
         },
         {
+          "include": "#script"
+        },
+        {
           "include": "#tag"
         },
         {

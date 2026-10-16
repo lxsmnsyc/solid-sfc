@@ -244,6 +244,37 @@ The header is `(order)` or `(order, collapsed)`, and both are optional. With `co
 
 `#key` renders its body again when the value changes. Elements and state inside the body are created again. Equal values do not render again.
 
+## Scripts in blocks
+
+A `<script>` at the start of a block runs each time the block body is created: once for each item of `#for`, or each time an `#if` branch is shown. Its variables are visible in the markup of the block.
+
+```html
+#for (item of items by item.id) {
+  <script>
+    let open = $signal(false);
+    const size = $memo(item.name.length);
+
+    function toggle() {
+      open = !open;
+    }
+  </script>
+  <button onClick=toggle>{item.name} ({size})</button>
+  #if (open) {
+    <Details {item} />
+  }
+}
+```
+
+Each item gets its own `open` signal, and an `$effect` in the script is removed with its item.
+
+- The script comes first in the block, before the markup. Only whitespace, comments and `#template` declarations may come before it.
+- It takes no attributes. It uses the same language as the rest of the file.
+- It cannot import modules or call `$props()`. Those belong in the component script at the top of the file.
+- It works in every block body, including `#else`, `#catch` and `#template` bodies.
+- A `<script>` inside an element is an error.
+
+The editor treats a `<script>` at the start of a line as the component script, and an indented one as the script of a block.
+
 ## `#const`
 
 `#const` declares a value inside a block, from the item of a loop or another value of the block:

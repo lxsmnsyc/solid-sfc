@@ -183,6 +183,32 @@ export class Scanner {
   }
 
   /**
+   * Scans the code of a `<script>` from `offset` and returns the offset of
+   * the `</script` that ends it. A `</script` in a string, a template or a
+   * comment does not end it.
+   */
+  scanScript(offset: number): number {
+    const { source } = this;
+    let i = offset;
+    while (i < source.length) {
+      const char = source[i]!;
+      if (source.startsWith('</script', i)) {
+        return i;
+      }
+      if (char === '"' || char === "'") {
+        i = this.skipString(i);
+      } else if (char === '`') {
+        i = this.skipTemplate(i);
+      } else if (char === '/' && (source[i + 1] === '/' || source[i + 1] === '*')) {
+        i = this.skipComment(i);
+      } else {
+        i++;
+      }
+    }
+    return this.hooks.error('Expected </script>', offset);
+  }
+
+  /**
    * Scans an expression that starts at `offset` and returns the offset of
    * the unmatched `close` character that ends it. A `;` close ends at the
    * first `;` outside brackets.

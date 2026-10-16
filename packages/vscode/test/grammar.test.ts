@@ -167,6 +167,14 @@ describe('control flow', () => {
     expect(scopeOf(source, 1, 'a')).toContain('entity.name.tag.solid');
   });
 
+  it('embeds TSX in a <script> of a block', () => {
+    const source =
+      '#for (item of items) {\n  <script>\n    let open = $signal(false);\n  </script>\n  <p />\n}';
+    expect(scopeOf(source, 1, 'script')).toContain('entity.name.tag.script.solid');
+    expect(scopeOf(source, 2, 'let open = $signal(false);')).toContain('source.tsx');
+    expect(scopeOf(source, 4, 'p')).toContain('entity.name.tag.solid');
+  });
+
   it('nests blocks', () => {
     const source = '#if (a) {\n  #for (x of xs) {\n    <b />\n  }\n}\n<c />';
     expect(scopeOf(source, 1, 'for')).toContain('keyword.control.flow.solid');

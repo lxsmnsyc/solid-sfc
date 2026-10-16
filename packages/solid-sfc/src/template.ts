@@ -280,6 +280,11 @@ export class TemplateParser {
           const block = this.parseBlock(i);
           blocks.push(block);
           i = block.end;
+        } else if (/^<script[\s>]/.test(source.slice(i, i + 8))) {
+          if (mode !== 'block') {
+            this.fail('<script> must be at the top level or directly inside a block', i);
+          }
+          i = this.control.parseScript(i);
         } else {
           i = this.parseElement(i);
         }

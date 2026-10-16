@@ -138,3 +138,26 @@ export function analyzeInstanceScript(code: string, offset: number, fail: Fail):
 
   return { hoisted, propsCalls, propsType };
 }
+
+/**
+ * Checks a `<script>` in a block. It runs inside the markup, so it cannot
+ * import modules or read the props.
+ */
+export function analyzeBlockScript(code: string, offset: number, fail: Fail): void {
+  const program = parse(code, offset, fail);
+  for (const statement of program.body as unknown as Node[]) {
+    if (statement.type.endsWith('Declaration') && /^(Import|Export)/.test(statement.type)) {
+      fail('A <script> in a block cannot import or export', offset + statement.start);
+    }
+  }
+  walk(program as unknown as Node, (node) => {
+    if (
+      node.type === 'CallExpression' &&
+      isNode(node.callee) &&
+      node.callee.type === 'Identifier' &&
+      node.callee.name === '$props'
+    ) {
+      fail('$props() belongs in the component script', offset + node.start);
+    }
+  });
+}

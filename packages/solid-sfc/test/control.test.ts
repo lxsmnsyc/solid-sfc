@@ -283,6 +283,33 @@ describe('#hydration and #no-hydration', () => {
   });
 });
 
+describe('<script> in blocks', () => {
+  it('runs its statements before the markup of the block', () => {
+    expect(
+      markup('#for (n of list) { <script>let open = $signal(false);</script> <i>{open}</i> }'),
+    ).toBe(
+      '<_For each={list}>{(n) => <>{(() => { let [open, setopen_1] = _createSignal(false);; return <> <i>{open()}</i> </>; })()}</>}</_For>',
+    );
+  });
+
+  it('works next to templates and in template bodies', () => {
+    expect(
+      markup('#if (a) { <script>const x = 1</script> #template t() { <b /> } {t()}{x} }'),
+    ).toBe(
+      '{(a) ? <>{(() => { const x = 1; const t = () => <> <b /> </>; return <> {t()}{x} </>; })()}</> : null}',
+    );
+    expect(markup('{t(1)}#template t(n) { <script>const d = n * 2;</script><i>{d}</i> }')).toBe(
+      '{t(1)}',
+    );
+  });
+
+  it('is not ended by </script> in a string', () => {
+    expect(markup('#if (a) { <script>const s = "</script>";</script>{s} }')).toBe(
+      '{(a) ? <>{(() => { const s = "</script>";; return <>{s} </>; })()}</> : null}',
+    );
+  });
+});
+
 describe('#key', () => {
   it('uses the runtime helper', () => {
     expect(markup('#key (id) { <P /> }')).toBe('{__key(() => (id), () => <> <P /> </>)}');
@@ -344,6 +371,18 @@ describe('errors', () => {
     ['#portal (a, b) { }', 'Expected "(mount)" after #portal'],
     ['#reveal (a, b, c) { }', 'Expected "(order, collapsed)" after #reveal'],
     ['#loading (a, b) { }', 'Expected "(on)" after #loading'],
+    [
+      '<div><script>a</script></div>',
+      '<script> must be at the top level or directly inside a block',
+    ],
+    ['#if (a) { <p /> <script>a</script> }', '<script> must come before the markup of its block'],
+    ['#if (a) { <script lang="ts">a</script> }', 'A <script> in a block takes no attributes'],
+    [
+      '#if (a) { <script>import a from "a";</script> }',
+      'A <script> in a block cannot import or export',
+    ],
+    ['#if (a) { <script>$props();</script> }', '$props() belongs in the component script'],
+    ['#if (a) { <script>let a = 1 }', 'Expected </script>'],
     ['#no-hydration (a) { }', '#no-hydration takes no header'],
     ['#const x = 1;', '#const must be directly inside a block'],
     ['<p>#const x = 1;</p>', '#const must be directly inside a block'],

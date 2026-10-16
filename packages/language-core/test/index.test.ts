@@ -248,6 +248,17 @@ describe('outline', () => {
   });
 });
 
+describe('scripts of blocks', () => {
+  it('leaves them out of the outline and the fallback script', () => {
+    const file =
+      '<script>\n  let a = 1;\n</script>\n#if (a) {\n  <script>\n    let b = 2;\n  </script>\n  <p>{b}\n}';
+    expect(getDocumentSymbols(file).map((symbol) => symbol.name)).toEqual(['<script>']);
+    const code = embedded(file, 'tsx');
+    expect(textOf(code)).toContain('let a = 1;');
+    expect(textOf(code)).not.toContain('let b = 2;');
+  });
+});
+
 describe('closing tags', () => {
   it.each([
     ['<div>', '</div>'],

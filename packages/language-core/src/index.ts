@@ -135,10 +135,14 @@ export function mappingsFromSourceMap(
   return mappings;
 }
 
-/** Finds `<script>` and `<style>` blocks without parsing the markup. */
+/**
+ * Finds `<script>` and `<style>` blocks without parsing the markup. A block
+ * at the top level starts a line. An indented `<script>` is a script of a
+ * control flow block, which only runs inside the markup.
+ */
 function findBlocks(source: string, tag: 'script' | 'style') {
   const blocks: { attributes: string; start: number; end: number }[] = [];
-  const pattern = new RegExp(`<${tag}(\\s[^>]*)?>([\\s\\S]*?)</${tag}\\s*>`, 'g');
+  const pattern = new RegExp(`^<${tag}(\\s[^>]*)?>([\\s\\S]*?)</${tag}\\s*>`, 'gm');
   for (const match of source.matchAll(pattern)) {
     const start = match.index + match[0].indexOf('>') + 1;
     blocks.push({ attributes: match[1] ?? '', start, end: start + match[2]!.length });
@@ -455,7 +459,8 @@ function getScriptSymbols(code: string, offset: number, lang: 'ts' | 'js'): Docu
  */
 export function getDocumentSymbols(source: string): DocumentSymbol[] {
   const symbols: DocumentSymbol[] = [];
-  for (const match of source.matchAll(/<(script|style)\b([^>]*)>([\s\S]*?)<\/\1\s*>/g)) {
+  // Top-level blocks start a line. Indented scripts belong to control flow blocks.
+  for (const match of source.matchAll(/^<(script|style)\b([^>]*)>([\s\S]*?)<\/\1\s*>/gm)) {
     const [whole, tag, attributes = '', content = ''] = match;
     const name = `<${tag}${attributes.replace(/\s+/g, ' ').trimEnd()}>`;
     const contentStart = match.index + whole.indexOf('>') + 1;

@@ -5,6 +5,7 @@
 import type { MagicString } from 'magic-string';
 import type { Scanner } from './scanner.ts';
 import { isIdentifierPart, isWhitespace } from './scanner.ts';
+import { analyzeBlockScript } from './script.ts';
 
 /** Helper from `solid-sfc/runtime` used by `#key`. */
 export const KEY_IDENTIFIER = '__key';
@@ -649,11 +650,45 @@ export class ControlFlowParser {
    * level. Declarations come before the markup of their block.
    */
   private declarationFrame(keyword: Keyword): Frame | undefined {
+    return this.frameAt(`#${keyword.name}`, keyword.start);
+  }
+
+  private frameAt(name: string, offset: number): Frame | undefined {
     const frame = this.frames.at(-1);
-    if (frame && this.skipTrivia(frame.declarationsEnd ?? frame.start) !== keyword.start) {
-      this.host.fail(`#${keyword.name} must come before the markup of its block`, keyword.start);
+    if (frame && this.skipTrivia(frame.declarationsEnd ?? frame.start) !== offset) {
+      this.host.fail(`${name} must come before the markup of its block`, offset);
     }
     return frame;
+  }
+
+  /**
+   * A `<script>` directly in a block runs its statements each time the block
+   * body is created, such as once for each item of `#for`. Its variables are
+   * visible in the markup of the block.
+   */
+  parseScript(offset: number): number {
+    const { source, fail } = this.bind();
+    const { scanner } = this.host;
+    const frame = this.frameAt('<script>', offset);
+    if (!frame) {
+      return fail('<script> must be at the top level or directly inside a block', offset);
+    }
+    const tagEnd = scanner.skipWhitespace(offset + '<script'.length);
+    if (source[tagEnd] !== '>') {
+      fail('A <script> in a block takes no attributes', tagEnd);
+    }
+    const contentStart = tagEnd + 1;
+    const contentEnd = scanner.scanScript(contentStart);
+    const close = scanner.skipWhitespace(contentEnd + '</script'.length);
+    if (source[close] !== '>') {
+      fail('Expected ">"', close);
+    }
+    analyzeBlockScript(source.slice(contentStart, contentEnd), contentStart, fail);
+    this.update(offset, contentStart, '');
+    // The code may not end with `;`.
+    this.update(contentEnd, close + 1, ';');
+    frame.declarationsEnd = close + 1;
+    return close + 1;
   }
 
   /**
