@@ -281,8 +281,20 @@ describe('markup in scripts', () => {
     expect(output).toContain('const el = <A b={a()} />;');
   });
 
-  it('explains type parameters that start an element', () => {
-    expect(() => compile('<script>const id = <T>(value: T) => value;</script>')).toThrow(
+  it('reads <T>( as type parameters before => or a return type', () => {
+    const output = script(`
+      let pick: <T>(items: T[]) => T;
+      const id = <T>(value: T): T => value;
+      const first = <T>(items: T[]) => items[0];
+      const label = <b>(new)</b>;
+    `);
+    expect(output).toContain('let pick: <T,>(items: T[]) => T;');
+    expect(output).toContain('const id = <T,>(value: T): T => value;');
+    expect(output).toContain('const label = <b>(new)</b>;');
+  });
+
+  it('explains type assertions that start an element', () => {
+    expect(() => compile('<script>const n = <number>x;</script>')).toThrow(
       'Write type parameters as <T,>',
     );
   });

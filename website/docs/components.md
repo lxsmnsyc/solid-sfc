@@ -141,10 +141,11 @@ Elements in a script use the same syntax as the markup, not plain JSX. They are 
 </script>
 ```
 
-As in a `.tsx` file, `<` in a place where a value is expected starts an element. Write type parameters of an arrow function as `<T,>` or `<T extends U>`, and type assertions as `value as T`:
+`<` in a place where a value is expected starts an element, except before type parameters. `<T,>`, `<T extends U>` and `<T>(…)` followed by `=>` or a return type are type parameters, so generic functions and function types work as in a `.ts` file. Write type assertions as `value as T`:
 
 ```ts
-const id = <T,>(value: T) => value;
+const id = <T>(value: T): T => value;
+let pick: <T>(items: T[]) => T;
 const count = input as number;
 ```
 

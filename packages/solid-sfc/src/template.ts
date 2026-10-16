@@ -231,6 +231,7 @@ export class TemplateParser {
     this.scanner = new Scanner(source, {
       error: fail,
       element: (offset) => this.parseElement(offset),
+      typeParameter: (nameEnd) => this.output.appendLeft(nameEnd, ','),
     });
     this.control = new ControlFlowParser({
       source,

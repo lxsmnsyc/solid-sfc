@@ -25,6 +25,8 @@ const OPERAND_KEYWORDS = new Set([
 
 // `<T,>`, `<T extends U>`, `<T = U>` and `<const T>` start type parameters.
 const TYPE_PARAMETERS = /(?:const\s+)?[A-Za-z_$][\w$]*\s*(?:,|=|extends\b)/y;
+// `<T>(`, which starts a generic function when `=>` or `:` follows its parameters.
+const GENERIC_FUNCTION = /<[A-Za-z_$][\w$]*>\s*\(/y;
 
 const CLOSING: Record<string, string> = {
   '(': ')',
@@ -52,6 +54,11 @@ export interface ScannerHooks {
    * offset right after the element.
    */
   element(offset: number): number;
+  /**
+   * Called for the type parameter `T` of `<T>(…) =>`, with the offset after
+   * its name. TSX reads `<T>` there as an element, so a `,` follows it.
+   */
+  typeParameter?(nameEnd: number): void;
 }
 
 export class Scanner {
@@ -197,7 +204,48 @@ export class Scanner {
       return false;
     }
     TYPE_PARAMETERS.lastIndex = offset + 1;
-    return !TYPE_PARAMETERS.test(this.source) && this.expectsOperand(start, offset);
+    return (
+      !TYPE_PARAMETERS.test(this.source) &&
+      !this.isGenericFunction(offset) &&
+      this.expectsOperand(start, offset)
+    );
+  }
+
+  /**
+   * True for `<T>(…) =>` and `<T>(…): R`, the type parameters of a function
+   * or a function type. Markup such as `<b>(note)</b>` has neither after the
+   * parentheses.
+   */
+  private isGenericFunction(offset: number): boolean {
+    const { source } = this;
+    GENERIC_FUNCTION.lastIndex = offset;
+    const match = GENERIC_FUNCTION.exec(source);
+    if (!match) {
+      return false;
+    }
+    // Finds the parenthesis that closes the parameters, outside strings.
+    let depth = 0;
+    let i = offset + match[0].length - 1;
+    for (; i < source.length; i++) {
+      const char = source[i]!;
+      if (char === '"' || char === "'" || char === '`') {
+        const end = source.indexOf(char, i + 1);
+        if (end === -1) {
+          return false;
+        }
+        i = end;
+      } else if (char === '(') {
+        depth++;
+      } else if (char === ')' && --depth === 0) {
+        break;
+      }
+    }
+    const next = this.skipWhitespace(i + 1);
+    if (!source.startsWith('=>', next) && source[next] !== ':') {
+      return false;
+    }
+    this.hooks.typeParameter?.(offset + match[0].indexOf('>'));
+    return true;
   }
 
   /**
