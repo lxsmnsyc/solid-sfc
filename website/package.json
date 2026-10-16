@@ -12,6 +12,8 @@
   },
   "dependencies": {
     "@oxc-parser/binding-wasm32-wasi": "0.154.0",
+    "@oxc-transform/binding-wasm32-wasip1": "0.154.0",
+    "@solidjs/compiler-wasm32-wasi": "2.0.0-rc.15",
     "@solidjs/web": "2.0.0-rc.15",
     "@twinkleplop/bash": "0.1.7",
     "@twinkleplop/core": "0.3.1",
@@ -20,6 +22,7 @@
     "@twinkleplop/theme-github": "0.2.4",
     "@twinkleplop/tsx": "0.1.7",
     "@twinkleplop/typescript": "0.1.7",
+    "oxc-transform": "0.154.0",
     "solid-js": "2.0.0-rc.15",
     "solid-sfc": "workspace:*"
   },

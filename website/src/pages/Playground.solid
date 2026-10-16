@@ -1,10 +1,11 @@
 <script>
+  import { onCleanup } from 'solid-js';
   import { compile } from 'solid-sfc';
   import type { SFCWarning } from 'solid-sfc';
   import { examples } from '../examples.ts';
   import { highlight } from '../highlight/index.ts';
 
-  type Tab = 'tsx' | 'css' | 'warnings';
+  type Tab = 'preview' | 'tsx' | 'css' | 'warnings';
   type Output =
     | { ok: true; code: string; css: string; warnings: SFCWarning[] }
     | { ok: false; error: string };
@@ -37,12 +38,12 @@
   }
 
   let source = $signal(decode(location.hash.slice(1)) ?? examples[0]!.source);
-  let tab = $signal<Tab>('tsx');
+  let tab = $signal<Tab>('preview');
   let copied = $signal(false);
   const output = $memo(run(source));
 
   const highlighted = $memo(
-    output.ok && tab !== 'warnings'
+    output.ok && (tab === 'tsx' || tab === 'css')
       ? highlight(tab === 'tsx' ? output.code : output.css || '/* No styles */', tab)
       : undefined,
   );
@@ -58,6 +59,52 @@
 
   $effect(() => {
     history.replaceState(null, '', `#${encode(source)}`);
+  });
+
+  // The preview compiles the JSX with WebAssembly compilers, which load
+  // when the preview first opens, and runs the result in a frame.
+  type Builder = typeof import('../preview/build.ts');
+  let builder = $signal<Builder | undefined>(undefined);
+  let frameReady = $signal(false);
+  let previewError = $signal('');
+  let frame: HTMLIFrameElement | undefined;
+  const previewUrl = `${import.meta.env.BASE_URL}preview.html`;
+
+  $effect(() => {
+    if (tab === 'preview' && !builder) {
+      void import('../preview/build.ts').then((module) => {
+        builder = module;
+      });
+    }
+  });
+
+  function onMessage(event: MessageEvent) {
+    if (event.source === frame?.contentWindow && event.data?.ready) {
+      frameReady = true;
+    }
+  }
+  addEventListener('message', onMessage);
+  onCleanup(() => removeEventListener('message', onMessage));
+
+  // Waits for a pause in typing before the preview runs the new code.
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  $effect(() => {
+    const result = output;
+    const ready = tab === 'preview' && frameReady && builder;
+    clearTimeout(timer);
+    if (!ready || !result.ok) {
+      return;
+    }
+    const build = builder!;
+    timer = setTimeout(() => {
+      try {
+        const code = build.buildPreview(result.code);
+        previewError = '';
+        frame?.contentWindow?.postMessage({ code, css: result.css }, location.origin);
+      } catch (error) {
+        previewError = error instanceof Error ? error.message : String(error);
+      }
+    }, 250);
   });
 
   $effect(() => {
@@ -234,6 +281,26 @@
     overflow: auto;
   }
 
+  .preview {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+
+  /* The frame takes the space under the status line, if there is one. */
+  iframe {
+    flex: 1;
+    width: 100%;
+    border: none;
+    background: white;
+  }
+
+  .status {
+    margin: 0;
+    padding: 0.5rem 1.5rem;
+    color: var(--muted);
+  }
+
   .error {
     color: #d33f49;
     white-space: pre-wrap;
@@ -312,6 +379,14 @@
     </div>
     <section class="output" aria-label="Output">
       <div role="tablist">
+        <button
+          type="button"
+          role="tab"
+          aria-selected=(tab === 'preview' ? 'true' : 'false')
+          onClick=(() => (tab = 'preview'))
+        >
+          Preview
+        </button>
         <button type="button" role="tab" aria-selected=(tab === 'tsx' ? 'true' : 'false') onClick=(() => (tab = 'tsx'))>
           TSX
         </button>
@@ -333,6 +408,23 @@
       <div role="tabpanel">
         #if (!output.ok) {
           <pre class="error">{output.ok ? '' : output.error}</pre>
+        } #else if (tab === 'preview') {
+          <div class="preview">
+            #if (previewError) {
+              <pre class="error">{previewError}</pre>
+            } #else if (!builder) {
+              <p class="status">Loading Solid's compiler…</p>
+            }
+            <!-- A new frame tells the playground when it is ready. -->
+            <iframe
+              title="Preview"
+              src=previewUrl
+              ref=((element: HTMLIFrameElement) => {
+                frame = element;
+                frameReady = false;
+              })
+            />
+          </div>
         } #else if (highlighted) {
           <div class="code" innerHTML=highlighted />
         } #else if (tab === 'tsx') {

@@ -37,8 +37,21 @@ export default defineConfig({
   server: { headers: isolation },
   preview: { headers: isolation },
   // The WebAssembly packages load their files relative to their own modules.
-  optimizeDeps: { exclude: ['oxc-parser', '@oxc-parser/binding-wasm32-wasi'] },
+  optimizeDeps: {
+    exclude: [
+      'oxc-parser',
+      '@oxc-parser/binding-wasm32-wasi',
+      'oxc-transform',
+      '@oxc-transform/binding-wasm32-wasip1',
+      '@solidjs/compiler-wasm32-wasi',
+    ],
+  },
   worker: { format: 'es' },
   // The playground chunk holds the compiler and PostCSS.
-  build: { target: 'es2023', chunkSizeWarningLimit: 700 },
+  build: {
+    target: 'es2023',
+    chunkSizeWarningLimit: 700,
+    // The preview frame of the playground is a page of its own.
+    rolldownOptions: { input: { main: 'index.html', preview: 'preview.html' } },
+  },
 });
