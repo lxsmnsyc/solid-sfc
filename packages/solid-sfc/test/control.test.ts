@@ -7,8 +7,15 @@ function markup(template: string): string {
   const { code } = compile(template, { filename: 'Flow.solid' });
   const { errors } = parseSync('out.tsx', code, { lang: 'tsx', sourceType: 'module' });
   expect(errors.map((error) => error.message)).toEqual([]);
-  const start = code.indexOf('return (<>') + 'return (<>'.length;
-  return code.slice(start, code.lastIndexOf('</>);')).replace(/\n\s*/g, ' ').trim();
+  const start = code.indexOf('<>', code.indexOf('  return (')) + '<>'.length;
+  return code.slice(start, code.lastIndexOf('</>')).replace(/\n\s*/g, ' ').trim();
+}
+
+/** The markup that type-checking sees. */
+function structure(template: string): string {
+  const { code } = compileStructure(template, { typeCheck: true });
+  const start = code.indexOf('<>', code.indexOf('return (')) + '<>'.length;
+  return code.slice(start, code.lastIndexOf('</>')).replace(/\n\s*/g, ' ').trim();
 }
 
 function imports(template: string): string {
@@ -19,37 +26,50 @@ function imports(template: string): string {
 }
 
 describe('#if', () => {
-  it('compiles to a conditional expression', () => {
-    expect(markup('#if (a) { <p /> }')).toBe('{(a) ? <> <p /> </> : null}');
+  it('compiles to <Show>', () => {
+    expect(markup('#if (a) { <p /> }')).toBe('<_Show when={a}> <p /> </_Show>');
+    expect(markup('#if (a) { <p /> } #else { <r /> }')).toBe(
+      '<_Show when={a} fallback={<> <r /> </>}> <p /> </_Show>',
+    );
   });
 
-  it('chains #else if and #else', () => {
+  it('chains #else if and #else with <Switch> and <Match>', () => {
     expect(markup('#if (a) { <p /> } #else if (b) { <q /> } #else { <r /> }')).toBe(
+      '<_Switch fallback={<> <r /> </>}> <_Match when={a}> <p /> </_Match> <_Match when={b}> <q /> </_Match> </_Switch>',
+    );
+    expect(markup('#if (a) { <p /> } #else if (b) { <q /> }')).toBe(
+      '<_Switch> <_Match when={a}> <p /> </_Match> <_Match when={b}> <q /> </_Match> </_Switch>',
+    );
+  });
+
+  it('compiles to conditional expressions for type-checking', () => {
+    expect(structure('#if (a) { <p /> }')).toBe('{(a) ? <> <p /> </> : null}');
+    expect(structure('#if (a) { <p /> } #else if (b) { <q /> } #else { <r /> }')).toBe(
       '{(a) ? <> <p /> </> : (b) ? <> <q /> </> : <> <r /> </>}',
     );
   });
 
   it('allows comments between branches', () => {
     expect(markup('#if (a) { <p /> } <!-- note --> #else { <r /> }')).toBe(
-      '{(a) ? <> <p /> </> : <> <r /> </>}',
+      '<_Show when={a} fallback={<> <r /> </>}> <p /> </_Show>',
     );
   });
 
   it('nests inside elements and other blocks', () => {
     expect(markup('<div>#if (a) { #if (b) { <p /> } }</div>')).toBe(
-      '<div>{(a) ? <> {(b) ? <> <p /> </> : null} </> : null}</div>',
+      '<div><_Show when={a}> <_Show when={b}> <p /> </_Show> </_Show></div>',
     );
   });
 
   it('works inside JSX in expressions', () => {
     expect(markup('<ul>{list.map((x) => <li>#if (x) { <b /> }</li>)}</ul>')).toBe(
-      '<ul>{list.map((x) => <li>{(x) ? <> <b /> </> : null}</li>)}</ul>',
+      '<ul>{list.map((x) => <li><_Show when={x}> <b /> </_Show></li>)}</ul>',
     );
   });
 
   it('reads reactive variables in conditions', () => {
     expect(markup('<script>let a = $signal(0);</script>#if (a > 1) { <p>{a}</p> }')).toBe(
-      '{(a() > 1) ? <> <p>{a()}</p> </> : null}',
+      '<_Show when={a() > 1}> <p>{a()}</p> </_Show>',
     );
   });
 });
@@ -60,7 +80,7 @@ describe('#for', () => {
       '<_For each={list}>{(item) => <> <li>{item}</li> </>}</_For>',
     );
     expect(imports('#for (item of list) { <li /> }')).toContain(
-      'import { For as _For } from "solid-js";',
+      "import { For as _For } from 'solid-js';",
     );
   });
 
@@ -184,7 +204,7 @@ describe('#loading (on)', () => {
 describe('#reveal', () => {
   it('compiles to <Reveal>', () => {
     expect(markup('#reveal { <A /> }')).toBe('<_Reveal> <A /> </_Reveal>');
-    expect(imports('#reveal { <A /> }')).toContain('import { Reveal as _Reveal } from "solid-js";');
+    expect(imports('#reveal { <A /> }')).toContain("import { Reveal as _Reveal } from 'solid-js';");
   });
 
   it('passes the order and collapsed props', () => {
@@ -204,7 +224,7 @@ describe('#portal', () => {
       '<_Portal mount={target}> <dialog /> </_Portal>',
     );
     expect(imports('#portal { <A /> }')).toContain(
-      'import { Portal as _Portal } from "@solidjs/web";',
+      "import { Portal as _Portal } from '@solidjs/web';",
     );
   });
 });
@@ -214,7 +234,7 @@ describe('#template', () => {
     const { code } = compile('<ul>{row(1)}</ul>\n#template row(n) {\n  <li>{n}</li>\n}', {
       filename: 'T.solid',
     });
-    expect(code).toContain('const row = (n) => <>\n  <li>{n}</li>\n</>;\nreturn (<>');
+    expect(code).toContain('  const row = (n) => <>\n    <li>{n}</li>\n  </>;\n\n  return (');
     expect(markup('<ul>{row(1)}</ul>\n#template row(n) { <li>{n}</li> }')).toBe(
       '<ul>{row(1)}</ul>',
     );
@@ -222,7 +242,7 @@ describe('#template', () => {
 
   it('declares templates in blocks', () => {
     expect(markup('#if (a) { #template t() { <p /> } {t()} }')).toBe(
-      '{(a) ? <>{(() => { const t = () => <> <p /> </>; return <> {t()} </>; })()}</> : null}',
+      '<_Show when={a}>{(() => { const t = () => <> <p /> </>; return <> {t()} </>; })()}</_Show>',
     );
   });
 
@@ -240,7 +260,7 @@ describe('#hydration and #no-hydration', () => {
       "<_Hydration id={'side'}> <W /> </_Hydration>",
     );
     expect(imports('#no-hydration { <A /> }')).toContain(
-      'import { NoHydration as _NoHydration } from "@solidjs/web";',
+      "import { NoHydration as _NoHydration } from '@solidjs/web';",
     );
   });
 
@@ -260,7 +280,7 @@ describe('<script> in blocks', () => {
     expect(
       markup('#for (n of list) { <script>let open = $signal(false);</script> <i>{open}</i> }'),
     ).toBe(
-      '<_For each={list}>{(n) => <>{(() => { let [open, setopen_1] = _createSignal(false);; return <> <i>{open()}</i> </>; })()}</>}</_For>',
+      '<_For each={list}>{(n) => { let [open, setOpen] = _createSignal(false); return <> <i>{open()}</i> </>; }}</_For>',
     );
   });
 
@@ -268,7 +288,7 @@ describe('<script> in blocks', () => {
     expect(
       markup('#if (a) { <script>const x = 1</script> #template t() { <b /> } {t()}{x} }'),
     ).toBe(
-      '{(a) ? <>{(() => { const x = 1; const t = () => <> <b /> </>; return <> {t()}{x} </>; })()}</> : null}',
+      '<_Show when={a}>{(() => { const x = 1; const t = () => <> <b /> </>; return <> {t()}{x} </>; })()}</_Show>',
     );
     expect(markup('{t(1)}#template t(n) { <script>const d = n * 2;</script><i>{d}</i> }')).toBe(
       '{t(1)}',
@@ -277,7 +297,7 @@ describe('<script> in blocks', () => {
 
   it('is not ended by </script> in a string', () => {
     expect(markup('#if (a) { <script>const s = "</script>";</script>{s} }')).toBe(
-      '{(a) ? <>{(() => { const s = "</script>";; return <>{s} </>; })()}</> : null}',
+      '<_Show when={a}>{(() => { const s = "</script>"; return <>{s} </>; })()}</_Show>',
     );
   });
 });
@@ -321,7 +341,7 @@ describe('text', () => {
 
   it('does not scope control flow blocks', () => {
     const { code } = compile('<style>p {}</style>#if (a) { <p /> }', { scope: 'x' });
-    expect(code).toContain('{(a) ? <> <p s-x /> </> : null}');
+    expect(code).toContain('<_Show when={a}> <p s-x /> </_Show>');
   });
 });
 

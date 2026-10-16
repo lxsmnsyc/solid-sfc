@@ -8,8 +8,9 @@ function css(style: string, attributes = ''): string {
 
 function markup(template: string): string {
   const { code } = compile(template, { scope: 'x' });
-  const start = code.indexOf('return (<>') + 'return (<>'.length;
-  return code.slice(start, code.lastIndexOf('</>);')).trim();
+  const start = code.indexOf('<>', code.indexOf('  return (')) + '<>'.length;
+  // The markup is indented in the `return`.
+  return code.slice(start, code.lastIndexOf('</>')).replace(/^ {6}/gm, '').trim();
 }
 
 describe('selectors', () => {
@@ -70,9 +71,9 @@ describe('variables', () => {
       '<style>a { margin: ${size}px; color: #${hex}; width: calc(100% - ${w}px) }</style><a />',
       { scope: 'x' },
     );
-    expect(code).toContain("'--s-x-0': `${(\nsize\n)}px`,");
-    expect(code).toContain("'--s-x-1': `#${(\nhex\n)}`,");
-    expect(code).toContain("'--s-x-2': `${(\nw\n)}px`,");
+    expect(code).toContain("'--s-x-0': `${(size)}px`,");
+    expect(code).toContain("'--s-x-1': `#${(hex)}`,");
+    expect(code).toContain("'--s-x-2': `${(w)}px`,");
   });
 
   it('sets the variables on scoped elements', () => {
@@ -80,7 +81,7 @@ describe('variables', () => {
       scope: 'x',
     });
     expect(code).not.toContain('solid-sfc/runtime');
-    expect(code).toContain("'--s-x-0': (\ncolor\n),");
+    expect(code).toContain("'--s-x-0': (color),");
     expect(code).toContain('<a s-x href="#" style={__styleVariables()} />');
   });
 

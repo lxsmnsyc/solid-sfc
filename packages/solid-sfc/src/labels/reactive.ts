@@ -123,7 +123,7 @@ function rewriteRefCtf(ctx: Ctx, info: ReactiveInfo, ref: Ref, use: RefCtfUse): 
         ctx.error(use.callee, '$setter must be used as an object property value');
       }
       const prop = use.property;
-      const param = ctx.unique('param');
+      const param = ctx.parameter('param');
       s.overwrite(
         prop.start,
         prop.end,
@@ -139,7 +139,7 @@ function rewriteRefCtf(ctx: Ctx, info: ReactiveInfo, ref: Ref, use: RefCtfUse): 
       const key = keyText(ctx, prop);
       let text = `get ${key}() { return ${info.get}(); }`;
       if (info.kind === 'signal' && info.set) {
-        const param = ctx.unique('param');
+        const param = ctx.parameter('param');
         text += `, set ${key}(${param}) { ${info.set}(() => ${param}); }`;
       }
       s.overwrite(prop.start, prop.end, text);
@@ -179,9 +179,9 @@ function outerRange(
 
 /**
  * Rewrites a write to a signal binding into a setter call:
- * `count++` compiles to `setcount_1(current_1 => ++current_1)`, compound
+ * `count++` compiles to `setCount(current => ++current)`, compound
  * assignment to the functional-update form, and plain `=` to
- * `setcount_1(() => value)`. Right-hand sides containing await/yield are
+ * `setCount(() => value)`. Right-hand sides containing await/yield are
  * split into a temporary first (statement or concise arrow body only) so the
  * setter never receives a promise.
  */
@@ -193,7 +193,7 @@ function rewriteWrite(ctx: Ctx, binding: Binding, info: ReactiveInfo, ref: Ref):
   const { s, code } = ctx;
   const parent = ref.parents[ref.parents.length - 1];
   if (parent?.type === 'UpdateExpression') {
-    const current = ctx.unique('current');
+    const current = ctx.parameter('current');
     const op = parent.operator === '++' ? `++${current}` : `--${current}`;
     s.overwrite(parent.start, parent.end, `${set}(${current} => ${op})`);
     return;
@@ -209,7 +209,7 @@ function rewriteWrite(ctx: Ctx, binding: Binding, info: ReactiveInfo, ref: Ref):
   );
   if (assign.operator !== '=') {
     // Compound assignment: functional update over the previous value.
-    const current = ctx.unique('current');
+    const current = ctx.parameter('current');
     s.overwrite(ref.node.start, ref.node.end, `${set}(${current} => ${current}`);
     s.appendLeft(right.end, ')');
     return;

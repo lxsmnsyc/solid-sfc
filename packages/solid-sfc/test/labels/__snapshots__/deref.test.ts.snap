@@ -9,8 +9,8 @@ console.log(message());
 
 exports[`$derefSignal > adopts external signal tuples 1`] = `
 "
-let [count, setcount_1] = useCounter();
+let [count, setCount] = useCounter();
 console.log(count());
-setcount_1(() => 10);
+setCount(() => 10);
 "
 `;

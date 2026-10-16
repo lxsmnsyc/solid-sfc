@@ -25,13 +25,13 @@ describe('$signal', () => {
     expect(output).toContain('(() => start(), { name: "other" })');
   });
   it('keeps the parentheses around the value of a write', () => {
-    expect(transform('let a = $signal(1);\na = (2);')).toContain('seta_1(() => (2));');
+    expect(transform('let a = $signal(1);\na = (2);')).toContain('setA(() => (2));');
     expect(transform('let a = $signal(1);\nconst f = () => (a = ( 2 ));')).toContain(
-      'const f = () => (seta_1(() => ( 2 )));',
+      'const f = () => (setA(() => ( 2 )));',
     );
-    expect(transform('let a = $signal(1);\na += (2);')).toContain('current_1 += (2))');
+    expect(transform('let a = $signal(1);\na += (2);')).toContain('current += (2))');
     expect(transform('let a = $signal(1);\nasync function f() { a = (await g()); }')).toContain(
-      'const tmp_1 = (await g());',
+      'const tmp = (await g());',
     );
   });
   it('rewrites reads', () => {
@@ -63,9 +63,9 @@ open = !open;
 size = size;
 size += size;
 `);
-    expect(code).toContain('setopen_1(() => !open());');
-    expect(code).toContain('setsize_1(() => size());');
-    expect(code).toContain('setsize_1(current_1 => current_1 += size());');
+    expect(code).toContain('setOpen(() => !open());');
+    expect(code).toContain('setSize(() => size());');
+    expect(code).toContain('setSize(current => current += size());');
   });
   it('rewrites awaited writes', () => {
     expect(
@@ -149,7 +149,7 @@ describe('object literals', () => {
       '_createSignal(() => ({ name: x() }))',
     );
     expect(transform('let user = $signal(null);\nuser = { name: "x" };')).toContain(
-      'setuser_1(() => ({ name: "x" }))',
+      'setUser(() => ({ name: "x" }))',
     );
     expect(transform('const a = $memo({ b: c() });')).toContain('_createMemo(() => ({ b: c() }))');
   });

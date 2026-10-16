@@ -24,7 +24,10 @@ export function compileForEditor(
   let first: SFCError | undefined;
   for (let attempt = 0; attempt <= MAX_RECOVERIES; attempt++) {
     try {
-      return { result: compileStructure(text, { filename: fileName }), error: first };
+      return {
+        result: compileStructure(text, { filename: fileName, typeCheck: true }),
+        error: first,
+      };
     } catch (error) {
       if (!(error instanceof SFCError)) {
         throw error;

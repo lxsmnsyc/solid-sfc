@@ -153,7 +153,7 @@ function insideUntrack(ctx: Ctx, node: Node): boolean {
  * Derives the hoisted callback's base name from the nearest enclosing named
  * scope — a named function, or a function expression bound to a variable,
  * property, method, or assignment — so the module-level function reads as
- * `AppEffect_1` instead of an anonymous `effectCallback_1`.
+ * `AppEffect` instead of an anonymous `effectCallback`.
  */
 function hoistBaseName(ref: Ref): string {
   const parents = ref.parents;

@@ -223,6 +223,7 @@ export class TemplateParser {
     output: MagicString,
     fail: (message: string, offset: number) => never,
     scope?: TemplateScope,
+    typeCheck = false,
   ) {
     this.source = source;
     this.output = output;
@@ -238,6 +239,7 @@ export class TemplateParser {
       output,
       scanner: this.scanner,
       fail,
+      typeCheck,
       parseBody: (offset) => this.parseChildren(offset, 'block'),
     });
   }
@@ -364,6 +366,21 @@ export class TemplateParser {
       this.fail('Unterminated comment', offset);
     }
     this.output.remove(offset, end + 3);
+    // A comment on a line of its own takes the line with it.
+    const { source } = this;
+    const lineStart = source.lastIndexOf('\n', offset - 1) + 1;
+    const lineEnd = source.indexOf('\n', end + 3);
+    if (
+      lineStart > 0 &&
+      lineEnd !== -1 &&
+      !source.slice(lineStart, offset).trim() &&
+      !source.slice(end + 3, lineEnd).trim()
+    ) {
+      if (offset > lineStart) {
+        this.output.remove(lineStart, offset);
+      }
+      this.output.remove(end + 3, lineEnd + 1);
+    }
     const match = /^\s*solid-sfc-ignore\s+([\s\S]*?)\s*$/.exec(this.source.slice(offset + 4, end));
     if (match) {
       this.ignore = { codes: new Set(match[1]!.split(/[\s,]+/)), end: end + 3 };
@@ -958,6 +975,8 @@ export class TemplateParser {
     let wrap = context === 'attribute';
     // Strings, objects and elements cannot be followed by member accesses.
     let chain = true;
+    // The end of a value in parentheses, such as `(count > 3)`.
+    let parenthesized: number | undefined;
     switch (char) {
       case '"':
       case "'":
@@ -987,6 +1006,7 @@ export class TemplateParser {
       }
       case '(':
         end = scanner.scanExpression(start + 1, ')') + 1;
+        parenthesized = end;
         break;
       case '[':
         end = scanner.scanExpression(start + 1, ']') + 1;
@@ -1017,7 +1037,11 @@ export class TemplateParser {
         this.fail('Wrap this attribute value in parentheses', offset);
       }
     }
-    if (wrap) {
+    if (wrap && !prefixed && end === parenthesized) {
+      // The parentheses become the braces, so `(count > 3)` is `{count > 3}`.
+      this.output.update(start, start + 1, '{');
+      this.output.update(end - 1, end, '}');
+    } else if (wrap) {
       this.output.appendLeft(offset, '{');
       this.output.appendLeft(end, '}');
     }

@@ -117,7 +117,7 @@ function containsReactiveRead(ctx: Ctx, node: Node): boolean {
 
 /**
  * `let count = $signal(value)` compiles to
- * `let [count, setcount_1] = createSignal(value)` and registers the binding
+ * `let [count, setCount] = createSignal(value)` and registers the binding
  * as a signal. Non-static initializers (or ones reading reactive variables)
  * use the memoized signal convention: `createSignal(() => expr)`.
  */
@@ -133,7 +133,7 @@ export function transformSignal(ctx: Ctx, ref: Ref, site: DeclSite): void {
   }
   const name = id.name as string;
   const args = callArgs(ctx, call, 2);
-  const set = ctx.unique(`set${name}`);
+  const set = ctx.unique(setterName(name));
   ctx.s.overwrite(id.start, id.end, `[${name}, ${set}]`);
   if (args.length > 0) {
     const init = args[0];
@@ -186,7 +186,7 @@ export function transformMemo(ctx: Ctx, ref: Ref, site: DeclSite): void {
 /**
  * `let count = $derefSignal(tuple)` binds an existing `[get, set]` tuple as a
  * reactive signal variable: the declarator becomes the destructuring
- * `[count, setcount_1]` and the CTF wrapper is dropped.
+ * `[count, setCount]` and the CTF wrapper is dropped.
  */
 export function transformDerefSignal(ctx: Ctx, ref: Ref, site: DeclSite): void {
   const { declarator, call } = site;
@@ -203,7 +203,7 @@ export function transformDerefSignal(ctx: Ctx, ref: Ref, site: DeclSite): void {
   if (args.length !== 1) {
     ctx.error(call, '$derefSignal requires a signal tuple');
   }
-  const set = ctx.unique(`set${name}`);
+  const set = ctx.unique(setterName(name));
   ctx.s.overwrite(id.start, id.end, `[${name}, ${set}]`);
   ctx.s.overwrite(call.start, args[0].start, '');
   ctx.s.overwrite(args[0].end, call.end, '');
@@ -290,4 +290,9 @@ export function transformArrowCtf(
     prependArrow(ctx.s, ctx.code, args[0]);
   }
   ctx.consumed.add(ref.node);
+}
+
+/** `count` gets the setter `setCount`. */
+function setterName(name: string): string {
+  return `set${name.charAt(0).toUpperCase()}${name.slice(1)}`;
 }

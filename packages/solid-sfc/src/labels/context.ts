@@ -53,6 +53,8 @@ export class Ctx {
   disabled: Record<string, boolean>;
   analysis: Analysis;
   names: Set<string>;
+  /** The names in the code before the transform. */
+  sourceNames: Set<string>;
   imports: Map<string, string> = new Map();
   importOrder: { name: string; source: string; local: string }[] = [];
   /** Identifier nodes already handled by a structural transform. */
@@ -77,13 +79,27 @@ export class Ctx {
     this.dev = dev;
     this.disabled = disabled;
     this.names = analysis.names;
+    this.sourceNames = new Set(analysis.names);
     for (const ref of analysis.unresolved) {
       this.unresolvedByNode.set(ref.node, ref);
     }
   }
 
-  /** Returns a collision-free identifier `base_N` and reserves it. */
+  /**
+   * Returns a name for the parameter of a generated function: `base`, or
+   * `base_N` if the code uses `base`. Parameters do not clash with each
+   * other, so the name is not reserved.
+   */
+  parameter(base: string): string {
+    return this.sourceNames.has(base) ? this.unique(base) : base;
+  }
+
+  /** Returns `base`, or `base_N` if it is taken, and reserves it. */
   unique(base: string): string {
+    if (!this.names.has(base)) {
+      this.names.add(base);
+      return base;
+    }
     let index = 1;
     while (this.names.has(`${base}_${index}`)) {
       index++;
@@ -151,13 +167,19 @@ export class Ctx {
     compileError(this.code, node, message);
   }
 
-  /** Prepends the auto-import header (in first-use order). */
+  /** Prepends the auto-imports, one statement for each module, in first-use order. */
   finalize(): void {
-    if (this.importOrder.length > 0) {
-      let header = '';
-      for (const entry of this.importOrder) {
-        header += `import { ${entry.name} as ${entry.local} } from "${entry.source}";\n`;
-      }
+    const specifiers = new Map<string, string[]>();
+    for (const entry of this.importOrder) {
+      const list = specifiers.get(entry.source) ?? [];
+      list.push(`${entry.name} as ${entry.local}`);
+      specifiers.set(entry.source, list);
+    }
+    let header = '';
+    for (const [source, list] of specifiers) {
+      header += `import { ${list.join(', ')} } from '${source}';\n`;
+    }
+    if (header) {
       this.s.prepend(header);
     }
   }

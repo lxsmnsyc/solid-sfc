@@ -1,45 +1,31 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
 exports[`component > compiles a full component > code 1`] = `
-"import { createSignal as _createSignal } from "solid-js";
-
-  export const version = 1;
-
+"import { createSignal as _createSignal } from 'solid-js';
 import { For } from 'solid-js';
+
+export const version = 1;
+
 export interface Props {
-    items: string[];
-  }
+  items: string[];
+}
 type Item = string;
+
 export default function ItemList($$props: Props) {
-const __styleVariables = () => ({
-'--s-x-0': (
-color
-),
-});
+  const __styleVariables = () => ({
+    '--s-x-0': (color),
+  });
 
-  
-  
-  
   const props = $$props;
-  let [count, setcount_1] = _createSignal(0);
+  let [count, setCount] = _createSignal(0);
 
-return (<>
-
-
-
-
-
-
-
-
-
-
-
-<For each={(props.items)}>
-  {(item: Item) => <li s-x onClick={(() => setcount_1(current_1 => ++current_1))} style={__styleVariables()}>{item}</li>}
-</For>
-
-</>);
+  return (
+    <>
+      <For each={props.items}>
+        {(item: Item) => <li s-x onClick={() => setCount(current => ++current)} style={__styleVariables()}>{item}</li>}
+      </For>
+    </>
+  );
 }"
 `;
 

@@ -34,6 +34,8 @@ export interface ControlHost {
   readonly output: MagicString;
   readonly scanner: Scanner;
   fail(message: string, offset: number): never;
+  /** Writes `#if` as conditional expressions, so TypeScript narrows inside its branches. */
+  readonly typeCheck?: boolean;
   /** Parses markup until the `}` that ends a block body. Returns its offset. */
   parseBody(offset: number): number;
 }
@@ -44,6 +46,8 @@ interface Body {
   start: number;
   /** Offset of `}`. */
   end: number;
+  /** True if it starts with a `<script>` or `#template` declarations. */
+  declarations: boolean;
 }
 
 interface Header {
@@ -328,7 +332,13 @@ export class ControlFlowParser {
     return body.end + 1;
   }
 
-  private parseBody(offset: number, keyword: string): Body {
+  /**
+   * Parses a block body. Declarations at its start need a function body, so
+   * the body becomes a function that is called in place. With `inFunction`,
+   * the caller writes the body as the body of its own function instead, as
+   * the callback of `<For>` does.
+   */
+  private parseBody(offset: number, keyword: string, inFunction = false): Body {
     const { source, scanner } = this.host;
     const open = scanner.skipWhitespace(offset);
     if (source[open] !== '{') {
@@ -354,13 +364,26 @@ export class ControlFlowParser {
       info.scope.end = end;
     }
     this.bodies.push({ start: open, end });
-    if (frame.declarationsEnd !== undefined) {
-      // The declarations need a function body. The markup is its result.
-      this.host.output.prependRight(open + 1, '{(() => {');
-      this.host.output.appendLeft(frame.declarationsEnd, ' return <>');
-      this.host.output.appendLeft(end, '</>; })()}');
+    const declarations = frame.declarationsEnd !== undefined;
+    if (declarations) {
+      // The markup is the result of the function. `return` starts a line
+      // at the indentation of the declarations, if the markup does.
+      const first = this.skipTrivia(frame.start);
+      const lineStart = source.lastIndexOf('\n', first - 1) + 1;
+      const after = source.slice(
+        frame.declarationsEnd,
+        scanner.skipWhitespace(frame.declarationsEnd!),
+      );
+      const indent = after.includes('\n')
+        ? `\n${source.slice(lineStart, scanner.skipWhitespace(lineStart))}`
+        : ' ';
+      this.host.output.appendLeft(frame.declarationsEnd!, `${indent}return <>`);
+      if (!inFunction) {
+        this.host.output.prependRight(open + 1, '{(() => {');
+        this.host.output.appendLeft(end, '</>; })()}');
+      }
     }
-    return { open, start: open + 1, end };
+    return { open, start: open + 1, end, declarations };
   }
 
   /** Skips whitespace and comments. */
@@ -410,32 +433,96 @@ export class ControlFlowParser {
     output.move(body.start, body.end, target);
   }
 
-  /** `#if (a) { A } #else if (b) { B } #else { C }` becomes `{(a) ? <>A</> : (b) ? <>B</> : <>C</>}`. */
+  /**
+   * `#if (a) { A } #else { C }` becomes `<Show when={a} fallback={<>C</>}>A</Show>`.
+   * With `#else if`, the branches become `<Match>` elements in a `<Switch>`.
+   * For type-checking, the blocks become conditional expressions instead,
+   * `{(a) ? <>A</> : (b) ? <>B</> : <>C</>}`, so TypeScript narrows values
+   * inside each branch.
+   */
   private parseIf(keyword: Keyword): number {
+    const branches: { header: Header; body: Body }[] = [];
     let header = this.parseHeader(keyword.end, 'if');
-    this.update(keyword.start, header.start, '{(');
-    let body = this.parseBody(header.end + 1, 'if');
-    this.update(header.end, body.start, ') ? <>');
-
+    branches.push({ header, body: this.parseBody(header.end + 1, 'if') });
+    let fallback: Body | undefined;
     while (true) {
-      const branch = this.nextBranch(body.end + 1, ['else']);
+      const branch = this.nextBranch(branches.at(-1)!.body.end + 1, ['else']);
       if (!branch) {
-        this.update(body.end, body.end + 1, '</> : null}');
-        return body.end + 1;
+        break;
       }
       const next = this.host.scanner.skipWhitespace(branch.end);
-      const elseIf = this.readWord(next) === 'if';
-      if (!elseIf) {
-        const last = this.parseBody(branch.end, 'else');
-        this.update(body.end, last.start, '</> : <>');
-        this.update(last.end, last.end + 1, '</>}');
-        return last.end + 1;
+      if (this.readWord(next) !== 'if') {
+        fallback = this.parseBody(branch.end, 'else');
+        break;
       }
       header = this.parseHeader(next + 2, 'else if');
-      this.update(body.end, header.start, '</> : (');
-      body = this.parseBody(header.end + 1, 'else if');
-      this.update(header.end, body.start, ') ? <>');
+      branches.push({ header, body: this.parseBody(header.end + 1, 'else if') });
     }
+    const last = fallback ?? branches.at(-1)!.body;
+
+    if (this.host.typeCheck) {
+      branches.forEach((item, index) => {
+        const start = index === 0 ? keyword.start : branches[index - 1]!.body.end;
+        this.update(start, item.header.start, index === 0 ? '{(' : '</> : (');
+        this.update(item.header.end, item.body.start, ') ? <>');
+      });
+      if (fallback) {
+        this.update(branches.at(-1)!.body.end, fallback.start, '</> : <>');
+        this.update(fallback.end, fallback.end + 1, '</>}');
+      } else {
+        this.update(last.end, last.end + 1, '</> : null}');
+      }
+      return last.end + 1;
+    }
+
+    // `when={` comes right before the condition, so editors can map it.
+    const condition = (item: { header: Header }) => this.trim(item.header.start, item.header.end);
+    if (branches.length === 1) {
+      const [{ header: only, body }] = branches as [{ header: Header; body: Body }];
+      const { start, end } = condition(branches[0]!);
+      this.update(keyword.start, start, '<Show when={');
+      this.props.push({ name: 'when', start, end });
+      this.update(end, only.end + 1, '}');
+      if (fallback) {
+        this.moveFallback(fallback, body, only.end + 1);
+      }
+      this.update(only.end + 1, body.start, '>');
+      if (!fallback) {
+        this.update(body.end, body.end + 1, '</Show>');
+      }
+      return last.end + 1;
+    }
+
+    // Each `<Match>` starts a line at the indentation of the block.
+    const { source } = this.host;
+    const lineStart = source.lastIndexOf('\n', keyword.start - 1) + 1;
+    const indent = `\n${source.slice(lineStart, this.host.scanner.skipWhitespace(lineStart))}`;
+    this.update(keyword.start, keyword.end, '<Switch');
+    branches.forEach((item, index) => {
+      const { start, end } = condition(item);
+      const from = index === 0 ? keyword.end : branches[index - 1]!.body.end;
+      this.update(from, start, `${index === 0 ? '>' : '</Match>'}${indent}<Match when={`);
+      this.props.push({ name: 'when', start, end });
+      this.update(end, item.body.start, '}>');
+    });
+    const body = branches.at(-1)!.body;
+    const close = `</Match>${indent}</Switch>`;
+    if (fallback) {
+      this.moveFallback(fallback, body, keyword.end, close);
+    } else {
+      this.update(body.end, body.end + 1, close);
+    }
+    return last.end + 1;
+  }
+
+  /**
+   * Moves the `#else` body after `body` into a `fallback` prop at `target`,
+   * and closes the element with `close`.
+   */
+  private moveFallback(fallback: Body, body: Body, target: number, close = '</Show>'): void {
+    this.update(body.end, fallback.start, close);
+    this.update(fallback.end, fallback.end + 1, '');
+    this.moveBody(fallback, target, ' fallback={<>', '</>}');
   }
 
   private readWord(offset: number): string {
@@ -532,11 +619,7 @@ export class ControlFlowParser {
         `const __itemValue = $derefMemo(__item); const ${param} = $destructure(__itemValue);`,
       );
     });
-    const callback = derefs.length
-      ? `{(${names.join(', ')}) => { ${derefs.join(' ')} return <>`
-      : `{(${names.join(', ')}) => <>`;
     const tag = repeat ? 'Repeat' : 'For';
-    const close = `</>${derefs.length ? '; }' : ''}}</${tag}>`;
     const prop = repeat ? 'count' : 'each';
 
     this.update(keyword.start, list.start, `<${tag} ${prop}={`);
@@ -547,7 +630,14 @@ export class ControlFlowParser {
     } else {
       this.update(list.end, header.end + 1, mode === 'position' ? '} keyed={false}' : '}');
     }
-    const body = this.parseBody(header.end + 1, keyword.name);
+    const body = this.parseBody(header.end + 1, keyword.name, true);
+    // Declarations in the body go in the callback, after the parameters.
+    const callback = body.declarations
+      ? `{(${names.join(', ')}) => {${derefs.map((deref) => ` ${deref}`).join('')}`
+      : derefs.length
+        ? `{(${names.join(', ')}) => { ${derefs.join(' ')} return <>`
+        : `{(${names.join(', ')}) => <>`;
+    const close = `</>${body.declarations || derefs.length ? '; }' : ''}}</${tag}>`;
     this.update(header.end + 1, body.start, `>${callback}`);
 
     const branch = this.nextBranch(body.end + 1, ['else']);
@@ -712,9 +802,24 @@ export class ControlFlowParser {
       frame.imports.push(blockImport);
       this.imports.push(blockImport);
     }
-    this.update(offset, contentStart, '');
+    // A `<script>` on a line of its own takes the line with it, so the code
+    // starts on the next line.
+    const lineStart = source.lastIndexOf('\n', offset - 1) + 1;
+    const contentLine = source.indexOf('\n', contentStart) + 1;
+    const alone =
+      !source.slice(lineStart, offset).trim() &&
+      contentLine > 0 &&
+      contentLine <= contentEnd &&
+      !source.slice(contentStart, contentLine).trim();
+    if (alone && lineStart > frame.start) {
+      this.update(lineStart, contentLine, '');
+    } else {
+      this.update(offset, contentStart, '');
+    }
     // The code may not end with `;`.
-    this.update(contentEnd, close + 1, ';');
+    const code = source.slice(contentStart, contentEnd);
+    const codeEnd = contentStart + code.trimEnd().length;
+    this.update(codeEnd, close + 1, code.trimEnd().endsWith(';') ? '' : ';');
     frame.declarationsEnd = close + 1;
     return close + 1;
   }
@@ -733,11 +838,11 @@ export class ControlFlowParser {
     const nameEnd = nameStart + name.exec(source)![0].length;
     const open = scanner.skipWhitespace(nameEnd);
     const close = scanner.scanExpression(open + 1, ')');
-    const body = this.parseBody(close + 1, 'template');
+    const body = this.parseBody(close + 1, 'template', true);
     this.update(keyword.start, nameStart, 'const ');
     this.update(nameEnd, open, ' = ');
-    this.update(close + 1, body.start, ' => <>');
-    this.update(body.end, body.end + 1, '</>;');
+    this.update(close + 1, body.start, body.declarations ? ' => {' : ' => <>');
+    this.update(body.end, body.end + 1, body.declarations ? '</>; };' : '</>;');
     if (frame) {
       frame.declarationsEnd = body.end + 1;
     } else {

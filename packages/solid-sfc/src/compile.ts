@@ -15,6 +15,7 @@ import {
   maskMarkup,
 } from './script.ts';
 import type { SourceMap } from './style.ts';
+import { layout } from './layout.ts';
 import { getScopeAttribute, getVariableName, hash, processStyles } from './style.ts';
 import type { ScopedSelector, StyleLang } from './style.ts';
 import type { Block, ElementInfo, GeneratedText, Range, TemplateScope } from './template.ts';
@@ -61,6 +62,14 @@ export interface GeneratedMapping {
   sourceLength: number;
 }
 
+export interface StructureOptions extends CompileOptions {
+  /**
+   * Writes `#if` as conditional expressions instead of `<Show>`, so
+   * TypeScript narrows values inside its branches. Editors set it.
+   */
+  typeCheck?: boolean;
+}
+
 export interface StructureResult extends CompileResult {
   generated: GeneratedMapping[];
   /** The bodies of control flow blocks, from `{` to `}`. Editors fold them. */
@@ -91,10 +100,10 @@ function createFail(source: string, filename: string | undefined) {
 
 /**
  * Compiles a `.solid` file into a TSX module, without replacing compile-time
- * functions. Type-checking uses this code, because the global declarations
- * of the compile-time functions already describe it.
+ * functions. Type-checking uses this code, with `typeCheck`, because the
+ * global declarations of the compile-time functions already describe it.
  */
-export function compileStructure(source: string, options: CompileOptions = {}): StructureResult {
+export function compileStructure(source: string, options: StructureOptions = {}): StructureResult {
   const { filename } = options;
   const fail = createFail(source, filename);
 
@@ -147,7 +156,7 @@ export function compileStructure(source: string, options: CompileOptions = {}): 
     bodies,
     templates,
     elements,
-  } = new TemplateParser(source, output, fail, templateScope).parse();
+  } = new TemplateParser(source, output, fail, templateScope, options.typeCheck).parse();
 
   const written: ImportInfo[] = [];
   if (module) {
@@ -244,20 +253,17 @@ export function compileStructure(source: string, options: CompileOptions = {}): 
       );
     }
 
-    if (usesKey) {
-      addText(`import { key as ${KEY_IDENTIFIER} } from 'solid-sfc/runtime';`);
-    }
-    if (usesListen) {
-      addText(`import { listen as ${LISTEN_IDENTIFIER} } from 'solid-sfc/runtime';`);
+    const runtime = [
+      usesKey && `key as ${KEY_IDENTIFIER}`,
+      usesListen && `listen as ${LISTEN_IDENTIFIER}`,
+      usesSelectValues && `selectValues as ${SELECT_VALUES_IDENTIFIER}`,
+      mergesStyle && `mergeStyle as ${MERGE_STYLE_IDENTIFIER}`,
+    ].filter(Boolean);
+    if (runtime.length > 0) {
+      addText(`import { ${runtime.join(', ')} } from 'solid-sfc/runtime';`);
     }
     if (usesDynamic) {
       addText(`import { dynamic as ${DYNAMIC_IDENTIFIER} } from '@solidjs/web';`);
-    }
-    if (usesSelectValues) {
-      addText(`import { selectValues as ${SELECT_VALUES_IDENTIFIER} } from 'solid-sfc/runtime';`);
-    }
-    if (mergesStyle) {
-      addText(`import { mergeStyle as ${MERGE_STYLE_IDENTIFIER} } from 'solid-sfc/runtime';`);
     }
 
     addText(`export default function ${getComponentName(filename)}${generics}(${parameters}) {`);
@@ -265,16 +271,18 @@ export function compileStructure(source: string, options: CompileOptions = {}): 
     // The variables come first, because markup in the script can use them
     // while the script runs.
     if (templateScope?.variables && css) {
-      addText(`const ${VARIABLES_IDENTIFIER} = () => ({`);
+      addText(`  const ${VARIABLES_IDENTIFIER} = () => ({`);
       css.variables.forEach((variable, index) => {
         // Text around the interpolation joins the value as a template literal.
         // It only has CSS token characters, so it needs no escaping.
         const joined = variable.prefix || variable.suffix;
-        addText(`'${getVariableName(scope, index)}': ${joined ? `\`${variable.prefix}\${` : ''}(`);
-        addRange(variable.start, variable.end);
-        addText(`)${joined ? `}${variable.suffix}\`` : ''},`);
+        addText(
+          `    '${getVariableName(scope, index)}': ${joined ? `\`${variable.prefix}\${` : ''}(`,
+        );
+        addRange(variable.start, variable.end, undefined, true);
+        addText(`)${joined ? `}${variable.suffix}\`` : ''},`, true);
       });
-      addText('});');
+      addText('  });');
     }
 
     if (instance) {
@@ -289,11 +297,11 @@ export function compileStructure(source: string, options: CompileOptions = {}): 
       addMarkup(range);
     }
 
-    addText('return (<>');
+    addText('  return (\n    <>');
     for (const range of markup) {
       addMarkup(range);
     }
-    addText('</>);\n}');
+    addText('    </>\n  );\n}');
 
     return {
       code: bundle.toString(),
@@ -452,12 +460,18 @@ export function compile(source: string, options: CompileOptions = {}): CompileRe
       lines.reduce((total, current) => total + current.length + 1, 0) + original.column,
     );
   }
-  const map = remapping(ctf.map as never, (file) =>
-    file === 'structure.tsx' ? (structureMap as never) : null,
+  // The layout only changes whitespace, so a module it cannot parse stays as it is.
+  const laidOut = layout(ctf.code, 'compiled.tsx');
+  const map = remapping((laidOut?.map ?? ctf.map) as never, (file) =>
+    file === 'compiled.tsx'
+      ? (ctf.map as never)
+      : file === 'structure.tsx'
+        ? (structureMap as never)
+        : null,
   );
 
   return {
-    code: ctf.code,
+    code: laidOut?.code ?? ctf.code,
     map: { ...map, version: 3, file: options.filename } as SourceMap,
     css,
     warnings,

@@ -150,20 +150,20 @@ Control flow blocks start with `#` and a keyword. The block body is markup in `{
 }
 ```
 
-| Block                                         | Compiles to                                                                     |
-| --------------------------------------------- | ------------------------------------------------------------------------------- |
-| `#if (a) { } #else if (b) { } #else { }`      | A conditional expression. TypeScript narrows the condition inside each branch.  |
-| `#for (item, index of list) { } #else { }`    | `<For each={list} fallback>`. `index` is read without a call.                   |
-| `#for (item of list by item.id) { }`          | `<For each={list} keyed={(item) => (item.id)}>`. `item` is read without a call. |
-| `#for (item, index of list by index) { }`     | `<For each={list} keyed={false}>`. `item` is read without a call.               |
-| `#repeat (index of count) { } #else { }`      | `<Repeat count={count} fallback>`. The index is optional: `#repeat (3) { }`.    |
-| `#switch { #case (a) { } #default { } }`      | `<Switch>` and `<Match>`. `#default` must be last.                              |
-| `#try { } #catch (error, reset) { }`          | `<Errored fallback>`. `error` is read without a call.                           |
-| `#loading (on) { } #else { }`                 | `<Loading on fallback>`                                                         |
-| `#reveal (order, collapsed) { }`              | `<Reveal order collapsed>`                                                      |
-| `#portal (mount) { }`                         | `<Portal mount>`                                                                |
-| `#no-hydration { }` and `#hydration (id) { }` | `<NoHydration>` and `<Hydration id>`                                            |
-| `#key (value) { }`                            | Renders the body again when `value` changes.                                    |
+| Block                                         | Compiles to                                                                                   |
+| --------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| `#if (a) { } #else if (b) { } #else { }`      | `<Show>`, or `<Switch>` and `<Match>` with `#else if`. TypeScript narrows inside each branch. |
+| `#for (item, index of list) { } #else { }`    | `<For each={list} fallback>`. `index` is read without a call.                                 |
+| `#for (item of list by item.id) { }`          | `<For each={list} keyed={(item) => (item.id)}>`. `item` is read without a call.               |
+| `#for (item, index of list by index) { }`     | `<For each={list} keyed={false}>`. `item` is read without a call.                             |
+| `#repeat (index of count) { } #else { }`      | `<Repeat count={count} fallback>`. The index is optional: `#repeat (3) { }`.                  |
+| `#switch { #case (a) { } #default { } }`      | `<Switch>` and `<Match>`. `#default` must be last.                                            |
+| `#try { } #catch (error, reset) { }`          | `<Errored fallback>`. `error` is read without a call.                                         |
+| `#loading (on) { } #else { }`                 | `<Loading on fallback>`                                                                       |
+| `#reveal (order, collapsed) { }`              | `<Reveal order collapsed>`                                                                    |
+| `#portal (mount) { }`                         | `<Portal mount>`                                                                              |
+| `#no-hydration { }` and `#hydration (id) { }` | `<NoHydration>` and `<Hydration id>`                                                          |
+| `#key (value) { }`                            | Renders the body again when `value` changes.                                                  |
 
 Blocks can be nested, and they work inside elements and inside JSX in expressions.
 

@@ -4,6 +4,7 @@ export type {
   CompileResult,
   GeneratedMapping,
   SourceMap,
+  StructureOptions,
   StructureResult,
 } from './compile.ts';
 export type { Range } from './template.ts';

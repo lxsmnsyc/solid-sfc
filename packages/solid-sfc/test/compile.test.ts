@@ -4,9 +4,10 @@ import { compile } from '../src/index.ts';
 
 function markup(template: string): string {
   const { code } = compile(template, { filename: 'Test.solid' });
-  const start = code.indexOf('return (<>') + 'return (<>'.length;
-  const end = code.lastIndexOf('</>);');
-  return code.slice(start, end).trim();
+  const start = code.indexOf('<>', code.indexOf('  return (')) + '<>'.length;
+  const end = code.lastIndexOf('</>');
+  // The markup is indented in the `return`.
+  return code.slice(start, end).replace(/^ {6}/gm, '').trim();
 }
 
 function expectValidTSX(code: string): void {
@@ -19,8 +20,8 @@ describe('attributes', () => {
     ['<button onClick=increment />', '<button onClick={increment} />'],
     ['<Button value=3.14159 />', '<Button value={3.14159} />'],
     ['<Button value=null flag=true />', '<Button value={null} flag={true} />'],
-    ['<a href=(link) />', '<a href={(link)} />'],
-    ['<a href=(base + path) />', '<a href={(base + path)} />'],
+    ['<a href=(link) />', '<a href={link} />'],
+    ['<a href=(base + path) />', '<a href={base + path} />'],
     ['<div id=`div-${id}` />', '<div id={`div-${id}`} />'],
     ['<div items=[1, 2] />', '<div items={[1, 2]} />'],
     ['<div pattern=/a+b/g />', '<div pattern={/a+b/g} />'],
@@ -118,7 +119,7 @@ describe('bind:', () => {
 
   it('writes signals with their setters', () => {
     expect(markup('<script>let name = $signal("");</script><input bind:value=name>')).toBe(
-      '<input value={name()} onInput={(event) => (setname_1(() => event.currentTarget.value))}/>',
+      '<input value={name()} onInput={(event) => (setName(() => event.currentTarget.value))}/>',
     );
   });
 
