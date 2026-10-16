@@ -41,6 +41,14 @@ const TAG_NAME_CHARS = range([
   ['$', '$'],
 ]);
 
+const WORD_CHARS = range([
+  ['a', 'z'],
+  ['A', 'Z'],
+  ['0', '9'],
+  ['_', '_'],
+  ['$', '$'],
+]);
+
 const ASCII_ALPHA = range([
   ['a', 'z'],
   ['A', 'Z'],
@@ -183,12 +191,16 @@ export const rawGrammar = define_grammar({
         match(BLOCK_KEYWORDS, TOKENS.svelte_block, goto('block_header')),
       ],
     },
+    // A range matches one character, so the name continues in its own state.
     template_name: {
       rules: [
         on(WHITESPACE),
-        match(ATTR_NAME_CHARS, 'function', goto('block_header')),
+        match(ATTR_NAME_CHARS, TOKENS.function, goto('template_name_rest')),
         fallback(goto('block_header')),
       ],
+    },
+    template_name_rest: {
+      rules: [match(ATTR_NAME_CHARS, TOKENS.function), fallback(goto('block_header'))],
     },
     // An optional header in parentheses, then the `{` of the body.
     block_header: {
@@ -199,13 +211,20 @@ export const rawGrammar = define_grammar({
         fallback(leave()),
       ],
     },
+    // `by` in `#for (item of list by item.id)` is a keyword of the block.
+    // Words are read whole, so `by` only matches on its own.
     block_header_body: {
       rules: [
         ...rawSkips,
         match(['(', '['], RAW, enter('raw_group')),
         match(')', TOKENS.punctuation, goto('block_header')),
+        keyword(['by'], {}, TOKENS.keyword),
+        match(WORD_CHARS, RAW, enter('raw_word')),
         fallback({ token: RAW }),
       ],
+    },
+    raw_word: {
+      rules: [match(WORD_CHARS, RAW), fallback(leave())],
     },
 
     // `<` opens a tag before a letter, `>` (a fragment) or `{` (a dynamic tag).
