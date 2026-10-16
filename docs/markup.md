@@ -49,7 +49,7 @@ A value without parentheses ends at whitespace, `/` or `>`. Operators other than
 `bind:` connects a form field to a variable in both directions. The field shows the variable, and typing into the field writes the variable:
 
 ```html
-<script lang="ts">
+<script>
   let name = $signal('');
   let age = $signal(18);
   let subscribed = $signal(false);
@@ -132,7 +132,7 @@ For lists and conditions, [control flow blocks](./control-flow.md) are usually s
 `<solid:window>` and `<solid:document>` listen to events of `window` and `document` while the component is mounted:
 
 ```html
-<script lang="ts">
+<script>
   function close(event: KeyboardEvent) {
     if (event.key === 'Escape') {
       open = false;

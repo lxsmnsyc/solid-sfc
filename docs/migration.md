@@ -59,7 +59,7 @@ export default $view<Props>(<h1>{props.message}</h1>);
 
 ```html
 <!-- After: Message.solid -->
-<script lang="ts">
+<script>
   interface Props {
     message: string;
   }

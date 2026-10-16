@@ -77,7 +77,7 @@ Assigning to a memo is a compile error: `Cannot assign to derived variable "full
 A memo can hold a promise. The variable is the resolved value, and reading it before the promise settles suspends the nearest [`#loading` block](./control-flow.md#loading):
 
 ```html
-<script lang="ts">
+<script>
   let id = $signal(1);
   const user = $memo(fetchUser(id));
 </script>
@@ -198,7 +198,7 @@ Use `$effect` when the effect needs a cleanup function.
 Destructuring `$props()` keeps every prop reactive:
 
 ```html
-<script lang="ts">
+<script>
   const { label = 'Save', ...rest } = $props<{ label?: string; disabled?: boolean }>();
 </script>
 

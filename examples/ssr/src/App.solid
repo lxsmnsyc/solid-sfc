@@ -1,4 +1,4 @@
-<script lang="ts">
+<script>
   let count = $signal(0);
   const doubled = $memo(count * 2);
 

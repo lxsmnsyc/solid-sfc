@@ -1,4 +1,4 @@
-<script lang="ts">
+<script>
   const { percent, size = 48 } = $props<{ percent: number; size?: number }>();
 </script>
 

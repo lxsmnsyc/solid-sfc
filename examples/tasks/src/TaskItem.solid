@@ -1,4 +1,4 @@
-<script lang="ts">
+<script>
   import type { Task } from './tasks.ts';
 
   interface Props {

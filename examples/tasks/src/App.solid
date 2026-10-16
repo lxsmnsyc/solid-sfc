@@ -1,4 +1,4 @@
-<script lang="ts">
+<script>
   import TaskBoard from './TaskBoard.solid';
   import Notes from './Notes.solid';
   import QuoteCard from './QuoteCard.solid';

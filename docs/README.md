@@ -3,7 +3,7 @@
 `solid-sfc` compiles `.solid` single-file components for SolidJS 2.0. A `.solid` file holds one component: a script, scoped styles and markup.
 
 ```html
-<script lang="ts">
+<script>
   const { initial = 0 } = $props<{ initial?: number }>();
   let count = $signal(initial);
 </script>

@@ -412,8 +412,9 @@ const DECLARATION_KINDS: Record<string, SymbolKind> = {
 };
 
 /** The top-level declarations of a script, such as functions and variables. */
-function getScriptSymbols(code: string, offset: number, lang: 'ts' | 'js'): DocumentSymbol[] {
-  const { program } = parseSync(`script.${lang}`, code, { lang, sourceType: 'module' });
+function getScriptSymbols(code: string, offset: number): DocumentSymbol[] {
+  // Scripts are always TypeScript, with or without `lang`.
+  const { program } = parseSync('script.ts', code, { lang: 'ts', sourceType: 'module' });
   const symbols: DocumentSymbol[] = [];
   const add = (name: string, kind: SymbolKind, node: Span, id: Span): void => {
     symbols.push({
@@ -464,7 +465,6 @@ export function getDocumentSymbols(source: string): DocumentSymbol[] {
     const [whole, tag, attributes = '', content = ''] = match;
     const name = `<${tag}${attributes.replace(/\s+/g, ' ').trimEnd()}>`;
     const contentStart = match.index + whole.indexOf('>') + 1;
-    const lang = /\blang\s*=\s*["']ts["']/.test(attributes) ? 'ts' : 'js';
     symbols.push({
       name,
       kind: 'module',
@@ -472,7 +472,7 @@ export function getDocumentSymbols(source: string): DocumentSymbol[] {
       end: match.index + whole.length,
       selectionStart: match.index,
       selectionEnd: match.index + tag!.length + 1,
-      children: tag === 'script' ? getScriptSymbols(content, contentStart, lang) : [],
+      children: tag === 'script' ? getScriptSymbols(content, contentStart) : [],
     });
   }
   // Templates are found in the markup only, not in scripts and styles.

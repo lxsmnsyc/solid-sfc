@@ -1,4 +1,4 @@
-<script lang="ts">
+<script>
   import type { Element } from 'solid-js';
 
   const props = $props<{ children: Element }>();

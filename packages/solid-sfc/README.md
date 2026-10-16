@@ -9,7 +9,7 @@ A `.solid` file holds one component. It has three parts:
 - Markup. It is JSX with a shorter attribute syntax.
 
 ```html
-<script lang="ts">
+<script>
   interface Props {
     initial: number;
   }
@@ -123,7 +123,7 @@ See the [`solid-labels` documentation](https://github.com/lxsmnsyc/solid-labels/
 Destructuring `$props()` keeps the props reactive:
 
 ```html
-<script lang="ts">
+<script>
   const { label = 'Click', ...rest } = $props<{ label?: string }>();
 </script>
 

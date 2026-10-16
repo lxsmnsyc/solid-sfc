@@ -1,4 +1,4 @@
-<script lang="ts">
+<script>
   let notes: string[] = $signal(['Buy oat milk', 'Call the bank']);
 
   function update(index: number, value: string) {

@@ -9,7 +9,7 @@ A `.solid` file compiles to one component, the default export of the module.
   export const MAX = 10;
 </script>
 
-<script lang="ts">
+<script>
   import Button from './Button.solid';
 
   interface Props {
@@ -74,7 +74,7 @@ A component can render itself by its name, which is useful for trees:
 
 ```html
 <!-- Tree.solid -->
-<script lang="ts">
+<script>
   interface Node {
     name: string;
     children: Node[];
@@ -96,14 +96,14 @@ A component can render itself by its name, which is useful for trees:
 Because the name is taken, the file cannot import or declare anything else with the same name. To wrap a `Button` from a library in `Button.solid`, rename the import:
 
 ```html
-<script lang="ts">
+<script>
   import { Button as BaseButton } from 'ui-library';
 </script>
 ```
 
 ## The script
 
-The `<script>` block is TypeScript. The `lang` attribute is allowed but does not change anything.
+The `<script>` block is always TypeScript, and plain JavaScript works in it unchanged. It needs no `lang` attribute. `lang="ts"` is allowed and changes nothing in the compiler or the editor. Add it if another tool you use needs it to read the script as TypeScript.
 
 The compiler moves these statements out of the component function, to the top of the module:
 
@@ -120,7 +120,7 @@ The script cannot export values, because it runs once for each instance. Put sha
   export type Size = (typeof sizes)[number];
 </script>
 
-<script lang="ts">
+<script>
   const props = $props<{ size: Size }>();
 </script>
 ```
@@ -132,7 +132,7 @@ The script also cannot have `export default` or `export *`.
 `$props<T>()` returns the props of the component. `T` becomes the type of the props parameter.
 
 ```html
-<script lang="ts">
+<script>
   interface Props {
     label: string;
     disabled?: boolean;
@@ -147,7 +147,7 @@ The script also cannot have `export default` or `export *`.
 Read props through the object (`props.label`) to keep them reactive. To destructure them, destructure the call itself:
 
 ```html
-<script lang="ts">
+<script>
   const { label, disabled = false, ...rest } = $props<Props>();
 </script>
 
@@ -163,7 +163,7 @@ Each destructured name becomes a reactive variable that reads the prop when it i
 The `generics` attribute adds type parameters to the component function:
 
 ```html
-<script lang="ts" generics="T extends { id: string }">
+<script generics="T extends { id: string }">
   import type { Element } from 'solid-js';
 
   const { items, render } = $props<{ items: T[]; render: (item: T) => Element }>();

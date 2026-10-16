@@ -1,4 +1,4 @@
-<script lang="ts">
+<script>
   import { fetchQuote } from './quotes.ts';
 
   let index = $signal(0);

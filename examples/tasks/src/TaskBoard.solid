@@ -1,4 +1,4 @@
-<script lang="ts">
+<script>
   import TaskItem from './TaskItem.solid';
   import Progress from './Progress.solid';
   import { FILTERS, loadTasks, saveTasks, type Filter, type Task } from './tasks.ts';

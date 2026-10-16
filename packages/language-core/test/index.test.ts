@@ -219,9 +219,9 @@ function close(text: string): string | undefined {
 }
 
 describe('outline', () => {
-  it('lists blocks, script declarations and templates', () => {
+  it('lists blocks, script declarations and templates, reading scripts as TypeScript', () => {
     const file = [
-      '<script lang="ts">',
+      '<script>',
       '  interface Props { a: string }',
       '  const { a } = $props<Props>();',
       '  let count = $signal(0);',
@@ -233,7 +233,7 @@ describe('outline', () => {
     ].join('\n');
     const symbols = getDocumentSymbols(file);
     expect(symbols.map((symbol) => [symbol.name, symbol.kind])).toEqual([
-      ['<script lang="ts">', 'module'],
+      ['<script>', 'module'],
       ['<style lang="scss">', 'module'],
       ['row', 'function'],
     ]);

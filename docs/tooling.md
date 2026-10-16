@@ -33,7 +33,7 @@ export default defineConfig({
 Start mode renders `src/App.*` inside `src/Document.*`. When `start` is set, `solid-sfc/vite` uses `src/App.solid` and `src/Document.solid` if they exist and `start.app` and `start.document` are not set. The document renders the whole page, including `<HydrationScript />`:
 
 ```html
-<script lang="ts">
+<script>
   import type { Element } from 'solid-js';
 
   const props = $props<{ children: Element }>();

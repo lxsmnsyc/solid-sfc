@@ -71,7 +71,7 @@
   "script": {
     "prefix": "script",
     "description": "A TypeScript script block",
-    "body": ["<script lang=\"ts\">", "\t$0", "</script>"],
+    "body": ["<script>", "\t$0", "</script>"],
   },
   "style": {
     "prefix": "style",
@@ -82,7 +82,7 @@
     "prefix": "component",
     "description": "A component with props, a style and markup",
     "body": [
-      "<script lang=\"ts\">",
+      "<script>",
       "\tinterface Props {",
       "\t\t${1:label}: ${2:string};",
       "\t}",

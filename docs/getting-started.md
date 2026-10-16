@@ -64,7 +64,7 @@ Type-check with `solid-tsc` instead of `tsc`. It reads `.solid` files and gives 
 
 ```html
 <!-- src/Counter.solid -->
-<script lang="ts">
+<script>
   const { initial = 0 } = $props<{ initial?: number }>();
   let count = $signal(initial);
 

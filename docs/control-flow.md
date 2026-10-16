@@ -35,7 +35,7 @@ Blocks can be nested. They work at the top level of the markup, inside elements,
 Solid tracks the condition, so the block updates when it changes. TypeScript narrows values inside each branch:
 
 ```html
-<script lang="ts">
+<script>
   const { user } = $props<{ user: { name: string } | null }>();
 </script>
 
