@@ -349,10 +349,8 @@ describe('errors', () => {
     ],
     ['#if (a) { <p /> <script>a</script> }', '<script> must come before the markup of its block'],
     ['#if (a) { <script lang="ts">a</script> }', 'A <script> in a block takes no attributes'],
-    [
-      '#if (a) { <script>import a from "a";</script> }',
-      'A <script> in a block cannot import or export',
-    ],
+    ['#if (a) { <script>export const a = 1;</script> }', 'A <script> in a block cannot export'],
+    ['#if (a) { <script>import a = require("a");</script> }', 'cannot use import ='],
     ['#if (a) { <script>$props();</script> }', '$props() belongs in the component script'],
     ['#if (a) { <script>let a = 1 }', 'Expected </script>'],
     ['#no-hydration (a) { }', '#no-hydration takes no header'],

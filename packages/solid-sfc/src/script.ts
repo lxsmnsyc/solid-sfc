@@ -1,4 +1,6 @@
 import { parseSync } from 'oxc-parser';
+import { readImport } from './imports.ts';
+import type { ImportInfo } from './imports.ts';
 import type { Range } from './template.ts';
 
 export const PROPS_IDENTIFIER = '$$props';
@@ -15,6 +17,7 @@ export interface InstanceScript {
   propsCalls: PropsCall[];
   /** The source text of the first `$props<T>()` type argument. */
   propsType: string | undefined;
+  imports: ImportInfo[];
 }
 
 interface Node {
@@ -62,9 +65,15 @@ function parse(code: string, offset: number, fail: Fail) {
   return result.program;
 }
 
-/** Checks a `<script module>` block for syntax errors. */
-export function analyzeModuleScript(code: string, offset: number, fail: Fail): void {
-  parse(code, offset, fail);
+function readImports(program: { body: unknown[] }, offset: number): ImportInfo[] {
+  return (program.body as Node[])
+    .filter((statement) => statement.type === 'ImportDeclaration')
+    .map((statement) => readImport(statement as never, offset));
+}
+
+/** Checks a `<script module>` block for syntax errors and returns its imports. */
+export function analyzeModuleScript(code: string, offset: number, fail: Fail): ImportInfo[] {
+  return readImports(parse(code, offset, fail), offset);
 }
 
 /**
@@ -136,18 +145,21 @@ export function analyzeInstanceScript(code: string, offset: number, fail: Fail):
     });
   });
 
-  return { hoisted, propsCalls, propsType };
+  return { hoisted, propsCalls, propsType, imports: readImports(program, offset) };
 }
 
 /**
- * Checks a `<script>` in a block. It runs inside the markup, so it cannot
- * import modules or read the props.
+ * Checks a `<script>` in a block and returns its imports. It runs inside the
+ * markup, so it cannot export or read the props.
  */
-export function analyzeBlockScript(code: string, offset: number, fail: Fail): void {
+export function analyzeBlockScript(code: string, offset: number, fail: Fail): ImportInfo[] {
   const program = parse(code, offset, fail);
   for (const statement of program.body as unknown as Node[]) {
-    if (statement.type.endsWith('Declaration') && /^(Import|Export)/.test(statement.type)) {
-      fail('A <script> in a block cannot import or export', offset + statement.start);
+    if (statement.type.startsWith('Export')) {
+      fail('A <script> in a block cannot export', offset + statement.start);
+    }
+    if (statement.type === 'TSImportEqualsDeclaration') {
+      fail('A <script> in a block cannot use import =', offset + statement.start);
     }
   }
   walk(program as unknown as Node, (node) => {
@@ -160,6 +172,7 @@ export function analyzeBlockScript(code: string, offset: number, fail: Fail): vo
       fail('$props() belongs in the component script', offset + node.start);
     }
   });
+  return readImports(program, offset);
 }
 
 /**

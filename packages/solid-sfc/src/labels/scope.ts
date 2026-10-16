@@ -38,6 +38,8 @@ export interface JSXName {
   /** Root identifier of the element name. */
   root: Node;
   resolved: boolean;
+  /** The binding of the root, if it resolves to one. */
+  binding: Binding | null;
 }
 
 export interface Analysis {
@@ -580,6 +582,7 @@ export function analyze(program: Node): Analysis {
           closing: closing ? closing.name : null,
           root,
           resolved: binding != null,
+          binding: binding ?? null,
         });
         visitJSXAttributes(opening.attributes);
         visitJSXChildren(node.children);

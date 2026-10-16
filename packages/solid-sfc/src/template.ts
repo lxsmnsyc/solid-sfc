@@ -1,6 +1,7 @@
 import { MagicString } from 'magic-string';
 import { ControlFlowParser } from './control.ts';
 import { Scanner, isWhitespace } from './scanner.ts';
+import type { BlockImport } from './imports.ts';
 import { maskMarkup } from './script.ts';
 
 export interface Block {
@@ -68,6 +69,8 @@ export interface TemplateResult {
   usesDynamic: boolean;
   /** The markup in the code of top-level `<script>` blocks. */
   scriptMarkup: Range[];
+  /** The imports of the scripts of blocks. */
+  blockImports: BlockImport[];
   /** Text that the compiler generates for parts of the source. */
   generated: GeneratedText[];
   /** The bodies of control flow blocks, from `{` to `}`. */
@@ -253,6 +256,7 @@ export class TemplateParser {
       usesListen: this.usesListen,
       usesDynamic: this.usesDynamic,
       scriptMarkup: this.scriptMarkup,
+      blockImports: this.control.imports,
       generated: [
         // A generated prop is written as `name={` right before its value.
         ...this.control.props.map((prop) => ({

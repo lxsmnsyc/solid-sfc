@@ -270,11 +270,28 @@ Each item gets its own `open` signal, and an `$effect` in the script is removed 
 - The script comes first in the block, before the markup. Only whitespace, comments and `#template` declarations may come before it.
 - `const total = $memo(item.price * item.quantity);` declares a value that updates with the item.
 - It takes no attributes. It uses the same language as the rest of the file.
-- It cannot import modules or call `$props()`. Those belong in the component script at the top of the file.
+- It cannot export or call `$props()`. The props belong to the component script at the top of the file.
 - It works in every block body, including `#else`, `#catch` and `#template` bodies.
 - A `<script>` inside an element is an error.
 
 The editor treats a `<script>` at the start of a line as the component script, and an indented one as the script of a block.
+
+### Imports
+
+A script in a block can import modules. The compiler moves its imports to the top of the module, because an import cannot run inside the component:
+
+```html
+#for (item of items) {
+  <script>
+    import { formatPrice } from './format';
+    const price = $memo(formatPrice(item.price));
+  </script>
+  <p>{price}</p>
+}
+```
+
+- An import that the file already has, in the component script or another block, is only written once.
+- An imported name stays local to its block. If something else in the file has the same name, such as a variable of the component script, a loop variable or an import of another module, the compiler renames the import and its uses in the block, as in `import { formatPrice as formatPrice_1 } from './format'`. The file keeps its names, and the editor shows errors in place.
 
 ## `#template`
 

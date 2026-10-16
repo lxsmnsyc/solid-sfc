@@ -6,6 +6,8 @@ import { checkAccessibility } from './a11y.ts';
 import { SFCError, createWarning } from './error.ts';
 import type { SFCWarning } from './error.ts';
 import { CompileError, compile as compileLabels } from './labels/index.ts';
+import { declareImportsLocally, localizeImports, writeImports } from './imports.ts';
+import type { ImportInfo } from './imports.ts';
 import {
   PROPS_IDENTIFIER,
   analyzeInstanceScript,
@@ -134,30 +136,22 @@ export function compileStructure(source: string, options: CompileOptions = {}): 
     usesListen,
     usesDynamic,
     scriptMarkup,
+    blockImports,
     generated,
     bodies,
     templates,
     elements,
   } = new TemplateParser(source, output, fail, templateScope).parse();
 
-  const bundle = new Bundle({ separator: '\n' });
-  const addRange = (start: number, end: number, edit?: (snip: MagicString) => void): void => {
-    const snip = output.snip(start, end);
-    edit?.(snip);
-    // Sources without a name get no mappings.
-    bundle.addSource({ filename: filename ?? 'component.solid', content: snip });
-  };
-  const addText = (text: string): void => {
-    bundle.addSource({ content: new MagicString(text) });
-  };
-
+  const written: ImportInfo[] = [];
   if (module) {
-    analyzeModuleScript(
-      maskMarkup(source, module.contentStart, module.contentEnd, scriptMarkup),
-      module.contentStart,
-      fail,
+    written.push(
+      ...analyzeModuleScript(
+        maskMarkup(source, module.contentStart, module.contentEnd, scriptMarkup),
+        module.contentStart,
+        fail,
+      ),
     );
-    addRange(module.contentStart, module.contentEnd);
   }
 
   let parameters = '';
@@ -178,9 +172,7 @@ export function compileStructure(source: string, options: CompileOptions = {}): 
       );
     }
     hoisted = analysis.hoisted;
-    for (const range of hoisted) {
-      addRange(range.start, range.end);
-    }
+    written.push(...analysis.imports);
     // Unused props get no parameter, so `noUnusedParameters` does not report it.
     if (analysis.propsCalls.length > 0) {
       parameters = `${PROPS_IDENTIFIER}: ${analysis.propsType ?? 'Record<string, any>'}`;
@@ -191,60 +183,138 @@ export function compileStructure(source: string, options: CompileOptions = {}): 
     }
   }
 
-  if (usesKey) {
-    addText(`import { key as ${KEY_IDENTIFIER} } from 'solid-sfc/runtime';`);
-  }
-  if (usesListen) {
-    addText(`import { listen as ${LISTEN_IDENTIFIER} } from 'solid-sfc/runtime';`);
-  }
-  if (usesDynamic) {
-    addText(`import { dynamic as ${DYNAMIC_IDENTIFIER} } from '@solidjs/web';`);
-  }
-  if (mergesStyle) {
-    addText(`import { mergeStyle as ${MERGE_STYLE_IDENTIFIER} } from 'solid-sfc/runtime';`);
-  }
+  /**
+   * Builds the module from `out`. With `hoistBlockImports`, the imports of
+   * block scripts move to the top of the module. Without, they stay where
+   * they are, for the scope analysis of `localizeImports`.
+   */
+  const assemble = (out: MagicString, hoistBlockImports: boolean) => {
+    const bundle = new Bundle({ separator: '\n' });
+    // `inline` continues the line of the previous part.
+    const addRange = (
+      start: number,
+      end: number,
+      edit?: (snip: MagicString) => void,
+      inline = false,
+    ): void => {
+      const snip = out.snip(start, end);
+      edit?.(snip);
+      // Sources without a name get no mappings.
+      bundle.addSource({
+        filename: filename ?? 'component.solid',
+        content: snip,
+        separator: inline ? '' : '\n',
+      });
+    };
+    const addText = (text: string, inline = false): void => {
+      bundle.addSource({ content: new MagicString(text), separator: inline ? '' : '\n' });
+    };
+    // Removes the block imports that are in a range of the markup.
+    const addMarkup = (range: Range): void => {
+      addRange(range.start, range.end, (snip) => {
+        if (!hoistBlockImports) {
+          return;
+        }
+        for (const info of blockImports) {
+          if (info.start >= range.start && info.end <= range.end) {
+            snip.remove(info.start, info.end);
+          }
+        }
+      });
+    };
 
-  addText(`export default function ${getComponentName(filename)}${generics}(${parameters}) {`);
+    if (module) {
+      addRange(module.contentStart, module.contentEnd);
+    }
+    for (const range of hoisted) {
+      addRange(range.start, range.end);
+    }
+    if (hoistBlockImports) {
+      writeImports(
+        blockImports,
+        written,
+        (start, end, inline) => addRange(start, end, undefined, inline),
+        addText,
+      );
+    }
 
-  // The variables come first, because markup in the script can use them
-  // while the script runs.
-  if (templateScope?.variables && css) {
-    addText(`const ${VARIABLES_IDENTIFIER} = () => ({`);
-    css.variables.forEach((variable, index) => {
-      // Text around the interpolation joins the value as a template literal.
-      // It only has CSS token characters, so it needs no escaping.
-      const joined = variable.prefix || variable.suffix;
-      addText(`'${getVariableName(scope, index)}': ${joined ? `\`${variable.prefix}\${` : ''}(`);
-      addRange(variable.start, variable.end);
-      addText(`)${joined ? `}${variable.suffix}\`` : ''},`);
+    if (usesKey) {
+      addText(`import { key as ${KEY_IDENTIFIER} } from 'solid-sfc/runtime';`);
+    }
+    if (usesListen) {
+      addText(`import { listen as ${LISTEN_IDENTIFIER} } from 'solid-sfc/runtime';`);
+    }
+    if (usesDynamic) {
+      addText(`import { dynamic as ${DYNAMIC_IDENTIFIER} } from '@solidjs/web';`);
+    }
+    if (mergesStyle) {
+      addText(`import { mergeStyle as ${MERGE_STYLE_IDENTIFIER} } from 'solid-sfc/runtime';`);
+    }
+
+    addText(`export default function ${getComponentName(filename)}${generics}(${parameters}) {`);
+
+    // The variables come first, because markup in the script can use them
+    // while the script runs.
+    if (templateScope?.variables && css) {
+      addText(`const ${VARIABLES_IDENTIFIER} = () => ({`);
+      css.variables.forEach((variable, index) => {
+        // Text around the interpolation joins the value as a template literal.
+        // It only has CSS token characters, so it needs no escaping.
+        const joined = variable.prefix || variable.suffix;
+        addText(`'${getVariableName(scope, index)}': ${joined ? `\`${variable.prefix}\${` : ''}(`);
+        addRange(variable.start, variable.end);
+        addText(`)${joined ? `}${variable.suffix}\`` : ''},`);
+      });
+      addText('});');
+    }
+
+    if (instance) {
+      addRange(instance.contentStart, instance.contentEnd, (snip) => {
+        for (const range of hoisted) {
+          snip.remove(range.start, range.end);
+        }
+      });
+    }
+
+    for (const range of templates) {
+      addMarkup(range);
+    }
+
+    addText('return (<>');
+    for (const range of markup) {
+      addMarkup(range);
+    }
+    addText('</>);\n}');
+
+    return {
+      code: bundle.toString(),
+      map: bundle.generateMap({
+        hires: true,
+        includeContent: true,
+        file: filename,
+      }) as SourceMap,
+    };
+  };
+
+  if (blockImports.length > 0) {
+    // A copy declares the block imports in place, so the scope analysis sees
+    // where each one is used.
+    const copy = output.clone();
+    declareImportsLocally(copy, blockImports);
+    const analysis = assemble(copy, false);
+    const renames = localizeImports({
+      source,
+      code: analysis.code,
+      map: analysis.map,
+      imports: blockImports,
+      written,
     });
-    addText('});');
+    for (const rename of renames) {
+      output.update(rename.start, rename.end, rename.text);
+    }
   }
 
-  if (instance) {
-    addRange(instance.contentStart, instance.contentEnd, (snip) => {
-      for (const range of hoisted) {
-        snip.remove(range.start, range.end);
-      }
-    });
-  }
-
-  for (const range of templates) {
-    addRange(range.start, range.end);
-  }
-
-  addText('return (<>');
-  for (const range of markup) {
-    addRange(range.start, range.end);
-  }
-  addText('</>);\n}');
-
-  const code = bundle.toString();
-  const map = bundle.generateMap({
-    hires: true,
-    includeContent: true,
-    file: filename,
-  }) as SourceMap;
+  const { code, map } = assemble(output, true);
   return {
     code,
     map,

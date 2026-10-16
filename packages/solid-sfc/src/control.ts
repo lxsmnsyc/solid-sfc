@@ -3,6 +3,7 @@
  * They are rewritten in place into JSX expressions and SolidJS components.
  */
 import type { MagicString } from 'magic-string';
+import type { BlockImport } from './imports.ts';
 import type { Scanner } from './scanner.ts';
 import { isIdentifierPart, isWhitespace } from './scanner.ts';
 import { analyzeBlockScript, maskMarkup } from './script.ts';
@@ -68,6 +69,8 @@ interface Frame {
   start: number;
   /** The end of the `<script>` and `#template` declarations at its start. */
   declarationsEnd: number | undefined;
+  /** The imports of its scripts. They are in scope until the end of the body. */
+  imports: BlockImport[];
 }
 
 interface Keyword {
@@ -153,6 +156,8 @@ export class ControlFlowParser {
   readonly props: GeneratedProp[] = [];
   /** The body of each block, from `{` to `}`. Editors fold them. */
   readonly bodies: { start: number; end: number }[] = [];
+  /** The imports of the scripts of blocks. The compiler moves them to the top of the module. */
+  readonly imports: BlockImport[] = [];
   /** `#template` declarations at the top level. The compiler moves them before the markup. */
   readonly templates: { start: number; end: number }[] = [];
   /**
@@ -328,10 +333,13 @@ export class ControlFlowParser {
     if (source[open] !== '{') {
       this.host.fail(`Expected "{" after #${keyword}`, open);
     }
-    const frame: Frame = { start: open + 1, declarationsEnd: undefined };
+    const frame: Frame = { start: open + 1, declarationsEnd: undefined, imports: [] };
     this.frames.push(frame);
     const end = this.host.parseBody(open + 1);
     this.frames.pop();
+    for (const info of frame.imports) {
+      info.scope.end = end;
+    }
     this.bodies.push({ start: open, end });
     if (frame.declarationsEnd !== undefined) {
       // The declarations need a function body. The markup is its result.
@@ -685,7 +693,12 @@ export class ControlFlowParser {
       fail('Expected ">"', close);
     }
     const markup = scanner.scanCode(contentStart, contentEnd);
-    analyzeBlockScript(maskMarkup(source, contentStart, contentEnd, markup), contentStart, fail);
+    const masked = maskMarkup(source, contentStart, contentEnd, markup);
+    for (const info of analyzeBlockScript(masked, contentStart, fail)) {
+      const blockImport = { ...info, scope: { start: contentStart, end: contentEnd } };
+      frame.imports.push(blockImport);
+      this.imports.push(blockImport);
+    }
     this.update(offset, contentStart, '');
     // The code may not end with `;`.
     this.update(contentEnd, close + 1, ';');
