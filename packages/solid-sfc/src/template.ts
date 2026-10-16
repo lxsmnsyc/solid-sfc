@@ -63,6 +63,8 @@ export interface TemplateResult {
   usesKey: boolean;
   /** True if `<solid:window>` or `<solid:document>` is used. */
   usesListen: boolean;
+  /** True if a dynamic tag `<{tag}>` is used. */
+  usesDynamic: boolean;
   /** Text that the compiler generates for parts of the source. */
   generated: GeneratedText[];
   /** The bodies of control flow blocks, from `{` to `}`. */
@@ -166,6 +168,10 @@ const REPLACED_ELEMENTS: Record<string, string> = {
   'no-hydration': '#no-hydration',
 };
 
+/** `dynamic` from `@solidjs/web`, used by `<{tag}>`. */
+export const DYNAMIC_IDENTIFIER = '__dynamic';
+const DYNAMIC_TAG = '__Tag';
+
 /** Helper from `solid-sfc/runtime` used by `<solid:window>` and `<solid:document>`. */
 export const LISTEN_IDENTIFIER = '__listen';
 
@@ -189,6 +195,7 @@ export class TemplateParser {
   private readonly control: ControlFlowParser;
   private mergesStyle = false;
   private usesListen = false;
+  private usesDynamic = false;
   private readonly elements: ElementInfo[] = [];
   /** The codes of the last `solid-sfc-ignore` comment, and where it ends. */
   private ignore: { codes: Set<string>; end: number } | undefined;
@@ -240,6 +247,7 @@ export class TemplateParser {
       mergesStyle: this.mergesStyle,
       usesKey: this.control.usesKey,
       usesListen: this.usesListen,
+      usesDynamic: this.usesDynamic,
       generated: [
         // A generated prop is written as `name={` right before its value.
         ...this.control.props.map((prop) => ({
@@ -289,7 +297,7 @@ export class TemplateParser {
           }
           i = this.control.parseScript(i);
         } else {
-          i = this.parseElement(i);
+          i = this.parseElement(i, true);
         }
       } else if (char === '{') {
         i = this.scanner.scanExpression(i + 1, '}') + 1;
@@ -357,15 +365,18 @@ export class TemplateParser {
     return { type, attributes, start: offset, end: end + 1, contentStart, contentEnd };
   }
 
-  /** Parses an element or fragment at `offset` and returns the offset after it. */
-  private parseElement(offset: number): number {
+  /**
+   * Parses an element or fragment at `offset` and returns the offset after
+   * it. `braces` is true where a JSX expression needs braces, as in children.
+   */
+  private parseElement(offset: number, braces = false): number {
     const { source } = this;
     if (source[offset + 1] === '>') {
       const close = this.parseChildren(offset + 2, 'element');
       return this.parseClosingTag(close, '');
     }
     if (source[offset + 1] === '{') {
-      return this.parseDynamicElement(offset);
+      return this.parseDynamicElement(offset, braces);
     }
     const name = matchAt(TAG_NAME, source, offset + 1);
     if (!name) {
@@ -429,15 +440,24 @@ export class TemplateParser {
 
   /**
    * `<{tag} a=b>children</>` becomes
-   * `<Dynamic component={tag} a={b}>children</Dynamic>`. The tag can be any
-   * expression. It gets the scope attribute, since it can be a native element.
+   * `(() => { const __Tag = __dynamic(() => tag); return <__Tag a={b}>children</__Tag>; })()`,
+   * so each element gets its own component. The tag can be any expression.
+   * It gets the scope attribute, since it can be a native element.
    */
-  private parseDynamicElement(offset: number): number {
+  private parseDynamicElement(offset: number, braces: boolean): number {
     const { source, output } = this;
     const close = this.scanner.scanExpression(offset + 2, '}');
     if (!source.slice(offset + 2, close).trim()) {
       return this.fail('Expected an expression for the tag', offset + 1);
     }
+    this.usesDynamic = true;
+    const [open, end] = braces ? ['{', '}'] : ['', ''];
+    output.update(
+      offset,
+      offset + 2,
+      `${open}(() => { const ${DYNAMIC_TAG} = ${DYNAMIC_IDENTIFIER}(() => `,
+    );
+    output.update(close, close + 1, `); return <${DYNAMIC_TAG}`);
     const nameEnd = close + 1;
     const scope = this.scope;
     const ignores =
@@ -457,25 +477,28 @@ export class TemplateParser {
       dynamicTag: true,
     };
     this.elements.push(element);
-    output.appendLeft(offset + 1, 'Dynamic component=');
     if (scope) {
       output.appendLeft(nameEnd, ` ${scope.attribute}`);
     }
-    const { end, attributesEnd, selfClosing, hasStyle } = this.parseAttributes(
-      nameEnd,
-      '',
-      scope,
-      element,
-    );
+    const {
+      end: tagEnd,
+      attributesEnd,
+      selfClosing,
+      hasStyle,
+    } = this.parseAttributes(nameEnd, '', scope, element);
     if (scope?.variables && !hasStyle) {
       output.appendLeft(attributesEnd, ` style={${scope.variables}()}`);
     }
+    const after = `; })()${end}`;
     if (selfClosing) {
-      return end;
+      output.appendLeft(tagEnd, after);
+      return tagEnd;
     }
-    const closing = this.parseChildren(end, 'element');
-    output.appendLeft(closing + 2, 'Dynamic');
-    return this.parseClosingTag(closing, '');
+    const closing = this.parseChildren(tagEnd, 'element');
+    output.appendLeft(closing + 2, DYNAMIC_TAG);
+    const elementEnd = this.parseClosingTag(closing, '');
+    output.appendLeft(elementEnd, after);
+    return elementEnd;
   }
 
   /**
@@ -808,7 +831,7 @@ export class TemplateParser {
         if (prefixed) {
           return this.fail('Wrap this attribute value in parentheses', offset);
         }
-        end = this.parseElement(start);
+        end = this.parseElement(start, context === 'attribute');
         wrap = false;
         chain = false;
         break;

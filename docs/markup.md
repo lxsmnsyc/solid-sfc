@@ -123,7 +123,7 @@ A tag in braces is an expression. It can be a tag name or a component, and it is
 
 The closing tag is `</>`, so the expression is only written once.
 
-A dynamic tag compiles to Solid's `<Dynamic component={as}>`, so its attributes are type-checked against the tag. Any expression works, such as `<{props.as ?? 'div'}>` or `<{icons[name]}>`.
+Each dynamic tag gets its own component from Solid's `dynamic(() => as)`, so its attributes are type-checked against the tag, and the element is replaced when the tag changes. Any expression works, such as `<{props.as ?? 'div'}>` or `<{icons[name]}>`.
 
 - Scoped styles apply to a dynamic tag, because it can be a native element. When the tag is a component, the component gets the scope attribute as a prop.
 - A dynamic tag can be any tag, so it matches every tag selector when the compiler [looks for unused selectors](styles.md#unused-selectors).

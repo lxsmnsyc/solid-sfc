@@ -127,7 +127,7 @@ describe('markup', () => {
 
   it('adds the scope attribute to dynamic tags', () => {
     expect(markup('<style>a {}</style><{tag}>x</>')).toBe(
-      '<_Dynamic component={tag} s-x>x</_Dynamic>',
+      '{(() => { const __Tag = __dynamic(() => tag); return <__Tag s-x>x</__Tag>; })()}',
     );
   });
 

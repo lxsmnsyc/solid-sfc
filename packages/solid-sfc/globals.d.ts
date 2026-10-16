@@ -144,7 +144,6 @@ declare global {
   const Errored: typeof solid.Errored;
   const Loading: typeof solid.Loading;
   const Reveal: typeof solid.Reveal;
-  const Dynamic: typeof solidWeb.Dynamic;
   const Portal: typeof solidWeb.Portal;
   const HydrationScript: typeof solidWeb.HydrationScript;
   const Hydration: typeof solidWeb.Hydration;

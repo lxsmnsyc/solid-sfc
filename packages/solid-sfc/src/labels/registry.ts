@@ -66,7 +66,6 @@ export const COMPONENTS: Record<string, ImportDef> = {
   Errored: ['Errored', 'solid-js'],
   Loading: ['Loading', 'solid-js'],
   Reveal: ['Reveal', 'solid-js'],
-  Dynamic: ['Dynamic', '@solidjs/web'],
   Portal: ['Portal', '@solidjs/web'],
   HydrationScript: ['HydrationScript', '@solidjs/web'],
   Hydration: ['Hydration', '@solidjs/web'],

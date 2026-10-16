@@ -338,9 +338,9 @@ Solid 2.0 batches writes by default, so there is no `$batch`. Use `$flush` to ap
 These components are imported from Solid when they are used without an import:
 
 - From `solid-js`: `For`, `Show`, `Switch`, `Match`, `Repeat`, `Errored`, `Loading` and `Reveal`.
-- From `@solidjs/web`: `Dynamic`, `Portal`, `HydrationScript`, `Hydration` and `NoHydration`.
+- From `@solidjs/web`: `Portal`, `HydrationScript`, `Hydration` and `NoHydration`.
 
-`<solid:hydration-script>` is the same component as `<HydrationScript>`. The components that control flow blocks and [dynamic tags](markup.md#dynamic-tags) replace, such as `Show`, `For` and `Dynamic`, have no `solid:` element.
+`<solid:hydration-script>` is the same component as `<HydrationScript>`. The components that control flow blocks and [dynamic tags](markup.md#dynamic-tags) replace, such as `Show` and `For`, have no `solid:` element. Solid 2.0 deprecates `Dynamic`, so it is not imported. Use a dynamic tag, or import `dynamic` from `@solidjs/web`.
 
 ## Unsupported syntax
 

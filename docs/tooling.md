@@ -30,7 +30,7 @@ export default defineConfig({
 });
 ```
 
-Start mode renders `src/App.*` inside `src/Document.*`. When `start` is set, `solid-sfc/vite` uses `src/App.solid` and `src/Document.solid` if they exist and `start.app` and `start.document` are not set. The document renders the whole page, including `<HydrationScript />`:
+Start mode renders `src/App.*` inside `src/Document.*`. When `start` is set, `solid-sfc/vite` uses `src/App.solid` and `src/Document.solid` if they exist and `start.app` and `start.document` are not set. The document renders the whole page, including `<solid:hydration-script />`:
 
 ```html
 <script>
@@ -42,7 +42,7 @@ Start mode renders `src/App.*` inside `src/Document.*`. When `start` is set, `so
 <html lang="en">
   <head>
     <meta charset="utf-8">
-    <HydrationScript />
+    <solid:hydration-script />
   </head>
   <body>{props.children}</body>
 </html>

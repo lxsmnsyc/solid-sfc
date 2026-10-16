@@ -11,7 +11,7 @@ import type { SourceMap } from './style.ts';
 import { getScopeAttribute, getVariableName, hash, processStyles } from './style.ts';
 import type { ScopedSelector, StyleLang } from './style.ts';
 import type { Block, ElementInfo, GeneratedText, Range, TemplateScope } from './template.ts';
-import { LISTEN_IDENTIFIER, TemplateParser } from './template.ts';
+import { DYNAMIC_IDENTIFIER, LISTEN_IDENTIFIER, TemplateParser } from './template.ts';
 
 export type { SourceMap };
 
@@ -122,8 +122,17 @@ export function compileStructure(source: string, options: CompileOptions = {}): 
     : undefined;
 
   const output = new MagicString(source, { filename });
-  const { markup, mergesStyle, usesKey, usesListen, generated, bodies, templates, elements } =
-    new TemplateParser(source, output, fail, templateScope).parse();
+  const {
+    markup,
+    mergesStyle,
+    usesKey,
+    usesListen,
+    usesDynamic,
+    generated,
+    bodies,
+    templates,
+    elements,
+  } = new TemplateParser(source, output, fail, templateScope).parse();
 
   const bundle = new Bundle({ separator: '\n' });
   const addRange = (start: number, end: number, edit?: (snip: MagicString) => void): void => {
@@ -181,6 +190,9 @@ export function compileStructure(source: string, options: CompileOptions = {}): 
   }
   if (usesListen) {
     addText(`import { listen as ${LISTEN_IDENTIFIER} } from 'solid-sfc/runtime';`);
+  }
+  if (usesDynamic) {
+    addText(`import { dynamic as ${DYNAMIC_IDENTIFIER} } from '@solidjs/web';`);
   }
   if (mergesStyle) {
     addText(`import { mergeStyle as ${MERGE_STYLE_IDENTIFIER} } from 'solid-sfc/runtime';`);

@@ -128,21 +128,33 @@ describe('<solid:window> and <solid:document>', () => {
 });
 
 describe('dynamic tags', () => {
-  it('compiles to Dynamic', () => {
+  it('compiles to a component from dynamic()', () => {
     expect(markup('<{tag} class="a" {...rest}>Hi</>')).toBe(
-      '<_Dynamic component={tag} class="a" {...rest}>Hi</_Dynamic>',
+      '{(() => { const __Tag = __dynamic(() => tag); return <__Tag class="a" {...rest}>Hi</__Tag>; })()}',
     );
+    const { code } = compile('<{tag} />', { filename: 'D.solid' });
+    expect(code).toContain("import { dynamic as __dynamic } from '@solidjs/web';");
   });
 
   it('takes any expression', () => {
-    expect(markup("<{props.as ?? 'div'} />")).toBe("<_Dynamic component={props.as ?? 'div'} />");
+    expect(markup("<{props.as ?? 'div'} />")).toBe(
+      "{(() => { const __Tag = __dynamic(() => props.as ?? 'div'); return <__Tag />; })()}",
+    );
   });
 
   it('works inside expressions and attributes', () => {
     expect(markup('<p>{a && <{icon} size=2 />}</p>')).toBe(
-      '<p>{a && <_Dynamic component={icon} size={2} />}</p>',
+      '<p>{a && (() => { const __Tag = __dynamic(() => icon); return <__Tag size={2} />; })()}</p>',
     );
-    expect(markup('<A icon=<{b} /> />')).toBe('<A icon=<_Dynamic component={b} /> />');
+    expect(markup('<A icon=<{b} /> />')).toBe(
+      '<A icon={(() => { const __Tag = __dynamic(() => b); return <__Tag />; })()} />',
+    );
+  });
+
+  it('nests', () => {
+    expect(markup('<{a}><{b} /></>')).toBe(
+      '{(() => { const __Tag = __dynamic(() => a); return <__Tag>{(() => { const __Tag = __dynamic(() => b); return <__Tag />; })()}</__Tag>; })()}',
+    );
   });
 
   it.each([
