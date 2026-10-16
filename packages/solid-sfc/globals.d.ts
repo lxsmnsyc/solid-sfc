@@ -160,8 +160,6 @@ declare module '@solidjs/web' {
       // `Props<typeof Dynamic>` would be circular through IntrinsicElements.
       'solid:dynamic': Record<string, unknown>;
       'solid:hydration-script': Props<typeof solidWeb.HydrationScript>;
-      'solid:hydration': Props<typeof solidWeb.Hydration>;
-      'solid:no-hydration': Props<typeof solidWeb.NoHydration>;
     }
   }
 }

@@ -160,6 +160,13 @@ describe('control flow', () => {
     expect(scopeOf(source, 1, 'tr')).toContain('entity.name.tag.solid');
   });
 
+  it('scopes kebab-case keywords', () => {
+    const source = '#no-hydration {\n  #hydration (id) { <a /> }\n}';
+    expect(scopeOf(source, 0, 'no-hydration')).toContain('keyword.control.flow.solid');
+    expect(scopeOf(source, 1, 'hydration')).toContain('keyword.control.flow.solid');
+    expect(scopeOf(source, 1, 'a')).toContain('entity.name.tag.solid');
+  });
+
   it('nests blocks', () => {
     const source = '#if (a) {\n  #for (x of xs) {\n    <b />\n  }\n}\n<c />';
     expect(scopeOf(source, 1, 'for')).toContain('keyword.control.flow.solid');

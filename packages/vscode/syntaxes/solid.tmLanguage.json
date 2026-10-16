@@ -423,7 +423,7 @@
           ]
         },
         {
-          "begin": "(?<![\\w$])(#)(if|else\\s+if|case|catch|key|loading|reveal|portal)\\b(?=\\s*\\()",
+          "begin": "(?<![\\w$])(#)(if|else\\s+if|case|catch|key|loading|reveal|portal|hydration)\\b(?=\\s*\\()",
           "end": "(?<=\\})",
           "beginCaptures": {
             "1": {
@@ -474,7 +474,7 @@
           ]
         },
         {
-          "begin": "(?<![\\w$])(#)(else|switch|default|try|catch|loading|reveal|portal)\\b(?=\\s*\\{)",
+          "begin": "(?<![\\w$])(#)(else|switch|default|try|catch|loading|reveal|portal|hydration|no-hydration)(?![\\w-])(?=\\s*\\{)",
           "end": "(?<=\\})",
           "beginCaptures": {
             "1": {

@@ -92,7 +92,7 @@ Attributes must be separated by whitespace. `<a title="a"href="b">` is a syntax 
 - Lowercase names, such as `<div>` and `<my-element>`, are native elements. Scoped styles apply to them.
 - Other names, such as `<Button>` and `<Form.Field>`, are components.
 - `<>` and `</>` are fragments.
-- `<solid:dynamic>`, `<solid:hydration>`, `<solid:no-hydration>` and `<solid:hydration-script>` are the Solid components `Dynamic`, `Hydration`, `NoHydration` and `HydrationScript`. Control flow blocks replace the other Solid components, so `<solid:for>` and `<solid:show>` are errors that name the block to use. `<solid:window>` and `<solid:document>` are [described below](#window-and-document-events).
+- `<solid:dynamic>` and `<solid:hydration-script>` are the Solid components `Dynamic` and `HydrationScript`. Control flow blocks replace the other Solid components, so `<solid:for>` and `<solid:no-hydration>` are errors that name the block to use. `<solid:window>` and `<solid:document>` are [described below](#window-and-document-events).
 
 Void elements do not need `/>`: `area`, `base`, `br`, `col`, `embed`, `hr`, `img`, `input`, `link`, `meta`, `source`, `track` and `wbr`.
 

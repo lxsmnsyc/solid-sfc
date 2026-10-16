@@ -340,7 +340,7 @@ These components are imported from Solid when they are used without an import:
 - From `solid-js`: `For`, `Show`, `Switch`, `Match`, `Repeat`, `Errored`, `Loading` and `Reveal`.
 - From `@solidjs/web`: `Dynamic`, `Portal`, `HydrationScript`, `Hydration` and `NoHydration`.
 
-`<solid:dynamic>`, `<solid:hydration>`, `<solid:no-hydration>` and `<solid:hydration-script>` are the same components as `<Dynamic>`, `<Hydration>`, `<NoHydration>` and `<HydrationScript>`. The components that control flow blocks replace, such as `Show` and `For`, have no `solid:` element.
+`<solid:dynamic>` and `<solid:hydration-script>` are the same components as `<Dynamic>` and `<HydrationScript>`. The components that control flow blocks replace, such as `Show`, `For` and `NoHydration`, have no `solid:` element.
 
 ## Unsupported syntax
 

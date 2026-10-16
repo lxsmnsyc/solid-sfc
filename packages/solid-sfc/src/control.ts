@@ -18,10 +18,13 @@ const BLOCKS = new Set([
   'loading',
   'reveal',
   'portal',
+  'hydration',
+  'no-hydration',
   'key',
 ]);
 const BRANCHES = new Set(['else', 'case', 'default', 'catch']);
-const KEYWORD = /#([a-z]+)/y;
+// Keywords are lowercase words, joined by `-` as in `#no-hydration`.
+const KEYWORD = /#([a-z]+(?:-[a-z]+)*)/y;
 
 export interface ControlHost {
   readonly source: string;
@@ -225,6 +228,10 @@ export class ControlFlowParser {
         return this.parseWrapper(keyword, 'Reveal', ['order', 'collapsed']);
       case 'portal':
         return this.parseWrapper(keyword, 'Portal', ['mount']);
+      case 'hydration':
+        return this.parseWrapper(keyword, 'Hydration', ['id']);
+      case 'no-hydration':
+        return this.parseWrapper(keyword, 'NoHydration', []);
       case 'const':
         return this.parseConst(keyword);
       case 'template':
@@ -271,6 +278,9 @@ export class ControlFlowParser {
   private headerProps(header: Header, keyword: string, names: string[]): void {
     const { source } = this.host;
     const args = splitTopLevel(source.slice(header.start, header.end), ',');
+    if (names.length === 0) {
+      this.host.fail(`#${keyword} takes no header`, header.open);
+    }
     if (args.length > names.length || args.some((arg) => !arg.trim())) {
       this.host.fail(`Expected "(${names.join(', ')})" after #${keyword}`, header.start);
     }
@@ -288,8 +298,15 @@ export class ControlFlowParser {
     });
   }
 
-  /** `#reveal (order) { A }` and `#portal (mount) { A }` become components with props. */
-  private parseWrapper(keyword: Keyword, tag: 'Reveal' | 'Portal', names: string[]): number {
+  /**
+   * `#reveal (order) { A }`, `#portal (mount) { A }`, `#hydration (id) { A }`
+   * and `#no-hydration { A }` become components with props.
+   */
+  private parseWrapper(
+    keyword: Keyword,
+    tag: 'Reveal' | 'Portal' | 'Hydration' | 'NoHydration',
+    names: string[],
+  ): number {
     const header = this.parseOptionalHeader(keyword.end, keyword.name);
     const body = this.parseBody(header ? header.end + 1 : keyword.end, keyword.name);
     if (header) {

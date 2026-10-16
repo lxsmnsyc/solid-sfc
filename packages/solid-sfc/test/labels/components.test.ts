@@ -31,9 +31,9 @@ const view = (
     expect(
       transform(`
 const view = (
-  <solid:no-hydration>
+  <div>
     <solid:dynamic component={tag()}>{label()}</solid:dynamic>
-  </solid:no-hydration>
+  </div>
 );
 `),
     ).toMatchSnapshot();

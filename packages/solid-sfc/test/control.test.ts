@@ -263,6 +263,26 @@ describe('#template', () => {
   });
 });
 
+describe('#hydration and #no-hydration', () => {
+  it('compiles to <Hydration> and <NoHydration>', () => {
+    expect(markup('#no-hydration { <Map /> #hydration { <W /> } }')).toBe(
+      '<_NoHydration> <Map /> <_Hydration> <W /> </_Hydration> </_NoHydration>',
+    );
+    expect(markup("#hydration ('side') { <W /> }")).toBe(
+      "<_Hydration id={'side'}> <W /> </_Hydration>",
+    );
+    expect(imports('#no-hydration { <A /> }')).toContain(
+      'import { NoHydration as _NoHydration } from "@solidjs/web";',
+    );
+  });
+
+  it('keeps other text with hyphens', () => {
+    expect(markup('<p>#no-hydration here, #if-else (a)</p>')).toBe(
+      '<p>#no-hydration here, #if-else (a)</p>',
+    );
+  });
+});
+
 describe('#key', () => {
   it('uses the runtime helper', () => {
     expect(markup('#key (id) { <P /> }')).toBe('{__key(() => (id), () => <> <P /> </>)}');
@@ -324,6 +344,7 @@ describe('errors', () => {
     ['#portal (a, b) { }', 'Expected "(mount)" after #portal'],
     ['#reveal (a, b, c) { }', 'Expected "(order, collapsed)" after #reveal'],
     ['#loading (a, b) { }', 'Expected "(on)" after #loading'],
+    ['#no-hydration (a) { }', '#no-hydration takes no header'],
     ['#const x = 1;', '#const must be directly inside a block'],
     ['<p>#const x = 1;</p>', '#const must be directly inside a block'],
     ['#if (a) { <p /> #const x = 1; }', '#const must come before the markup of its block'],

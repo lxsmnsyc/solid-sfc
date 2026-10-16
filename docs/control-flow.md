@@ -212,6 +212,28 @@ The header is `(order)` or `(order, collapsed)`, and both are optional. With `co
 
 `#portal` compiles to `<Portal>`. It renders its body at the end of `document.body`, outside the parent elements. A header sets another target: `#portal (container) { }`.
 
+## `#no-hydration` and `#hydration`
+
+```html
+#no-hydration {
+  <ClientOnlyMap />
+}
+```
+
+`#no-hydration` compiles to `<NoHydration>`. The server renders the body as static HTML without hydration markers. The client skips the body while it hydrates the page, then renders it once hydration ends. Use it for parts that only work in the browser.
+
+`#hydration` compiles to `<Hydration>`. It turns hydration back on for a part of a `#no-hydration` body. Its header is an optional id:
+
+```html
+#no-hydration {
+  <Shell>
+    #hydration ('sidebar') {
+      <Sidebar />
+    }
+  </Shell>
+}
+```
+
 ## `#key`
 
 ```html
@@ -286,7 +308,7 @@ The header is `(order)` or `(order, collapsed)`, and both are optional. With `co
 
 `#` starts a block only when all of these are true:
 
-- A known keyword follows: `if`, `for`, `repeat`, `switch`, `try`, `loading`, `reveal`, `portal`, `key`, `const` or `template`.
+- A known keyword follows: `if`, `for`, `repeat`, `switch`, `try`, `loading`, `reveal`, `portal`, `hydration`, `no-hydration`, `key`, `const` or `template`. Keywords with more than one word join them with `-`.
 - The keyword is followed by `(` or `{`. `#const` is followed by a name and `=`, and `#template` by a name and `(`.
 - The `#` does not come right after a letter, a digit, `_` or `$`.
 

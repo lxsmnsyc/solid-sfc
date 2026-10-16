@@ -148,14 +148,7 @@ export interface TemplateScope {
 
 // The `solid:` elements. Solid components that a control flow block replaces
 // are not elements, so `<solid:for>` points to `#for`.
-const SOLID_ELEMENTS = new Set([
-  'window',
-  'document',
-  'dynamic',
-  'hydration',
-  'hydration-script',
-  'no-hydration',
-]);
+const SOLID_ELEMENTS = new Set(['window', 'document', 'dynamic', 'hydration-script']);
 const REPLACED_ELEMENTS: Record<string, string> = {
   for: '#for',
   show: '#if',
@@ -166,6 +159,8 @@ const REPLACED_ELEMENTS: Record<string, string> = {
   loading: '#loading',
   reveal: '#reveal',
   portal: '#portal',
+  hydration: '#hydration',
+  'no-hydration': '#no-hydration',
 };
 
 /** Helper from `solid-sfc/runtime` used by `<solid:window>` and `<solid:document>`. */

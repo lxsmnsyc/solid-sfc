@@ -80,6 +80,4 @@ export const COMPONENTS: Record<string, ImportDef> = {
 export const NAMESPACE_COMPONENTS: Record<string, ImportDef> = {
   dynamic: ['Dynamic', '@solidjs/web'],
   'hydration-script': ['HydrationScript', '@solidjs/web'],
-  hydration: ['Hydration', '@solidjs/web'],
-  'no-hydration': ['NoHydration', '@solidjs/web'],
 };
