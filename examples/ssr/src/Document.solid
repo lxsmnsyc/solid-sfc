@@ -9,7 +9,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Solid SFC SSR</title>
-    <HydrationScript />
+    <solid:hydration-script />
   </head>
   <body>{props.children}</body>
 </html>
