@@ -4,6 +4,8 @@
  * literals, comments, regular expressions and nested JSX elements.
  */
 
+import type { Range } from './template.ts';
+
 const OPERAND_KEYWORDS = new Set([
   'await',
   'case',
@@ -20,6 +22,9 @@ const OPERAND_KEYWORDS = new Set([
   'void',
   'yield',
 ]);
+
+// `<T,>`, `<T extends U>`, `<T = U>` and `<const T>` start type parameters.
+const TYPE_PARAMETERS = /(?:const\s+)?[A-Za-z_$][\w$]*\s*(?:,|=|extends\b)/y;
 
 const CLOSING: Record<string, string> = {
   '(': ')',
@@ -183,6 +188,52 @@ export class Scanner {
   }
 
   /**
+   * Returns true if the `<` at `offset` starts an element. Like in a `.tsx`
+   * file, `<T,>` and `<T extends U>` are type parameters.
+   */
+  private startsElement(start: number, offset: number): boolean {
+    const next = this.source[offset + 1];
+    if (next !== '>' && next !== '{' && !isIdentifierStart(next)) {
+      return false;
+    }
+    TYPE_PARAMETERS.lastIndex = offset + 1;
+    return !TYPE_PARAMETERS.test(this.source) && this.expectsOperand(start, offset);
+  }
+
+  /**
+   * Scans script code from `start` to `end` and parses the markup in it with
+   * the element hook. Returns the ranges of the markup.
+   */
+  scanCode(start: number, end: number): Range[] {
+    const { source } = this;
+    const ranges: Range[] = [];
+    let i = start;
+    while (i < end) {
+      const char = source[i]!;
+      if (char === '"' || char === "'") {
+        i = this.skipString(i);
+      } else if (char === '`') {
+        i = this.skipTemplate(i);
+      } else if (char === '/') {
+        if (source[i + 1] === '/' || source[i + 1] === '*') {
+          i = this.skipComment(i);
+        } else if (this.expectsOperand(start, i)) {
+          i = this.skipRegExp(i);
+        } else {
+          i++;
+        }
+      } else if (char === '<' && this.startsElement(start, i)) {
+        const elementEnd = this.hooks.element(i);
+        ranges.push({ start: i, end: elementEnd });
+        i = elementEnd;
+      } else {
+        i++;
+      }
+    }
+    return ranges;
+  }
+
+  /**
    * Scans the code of a `<script>` from `offset` and returns the offset of
    * the `</script` that ends it. A `</script` in a string, a template or a
    * comment does not end it.
@@ -236,18 +287,9 @@ export class Scanner {
             i++;
           }
           break;
-        case '<': {
-          const next = source[i + 1];
-          if (
-            (next === '>' || next === '{' || isIdentifierStart(next)) &&
-            this.expectsOperand(offset, i)
-          ) {
-            i = this.hooks.element(i);
-          } else {
-            i++;
-          }
+        case '<':
+          i = this.startsElement(offset, i) ? this.hooks.element(i) : i + 1;
           break;
-        }
         case '(':
         case '[':
         case '{':

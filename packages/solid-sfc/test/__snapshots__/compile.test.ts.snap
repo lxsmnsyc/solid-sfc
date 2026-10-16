@@ -11,6 +11,11 @@ export interface Props {
   }
 type Item = string;
 export default function ItemList($$props: Props) {
+const __styleVariables = () => ({
+'--s-x-0': (
+color
+),
+});
 
   
   
@@ -18,11 +23,6 @@ export default function ItemList($$props: Props) {
   const props = $$props;
   let [count, setcount_1] = _createSignal(0);
 
-const __styleVariables = () => ({
-'--s-x-0': (
-color
-),
-});
 return (<>
 
 

@@ -127,6 +127,29 @@ The script cannot export values, because it runs once for each instance. Put sha
 
 The script also cannot have `export default` or `export *`.
 
+### Markup in the script
+
+Elements in a script use the same syntax as the markup, not plain JSX. They are scoped by the `<style>` blocks of the file, like any other element:
+
+```html
+<script>
+  const icon = <Icon size=16 {label} />;
+
+  function cell(item: Item) {
+    return <td class={ done: item.done }>{item.title}</td>;
+  }
+</script>
+```
+
+As in a `.tsx` file, `<` in a place where a value is expected starts an element. Write type parameters of an arrow function as `<T,>` or `<T extends U>`, and type assertions as `value as T`:
+
+```ts
+const id = <T,>(value: T) => value;
+const count = input as number;
+```
+
+For markup that is only rendered, a [`#template`](./control-flow.md#template) is often clearer.
+
 ## Props
 
 `$props<T>()` returns the props of the component. `T` becomes the type of the props parameter.

@@ -1,6 +1,7 @@
-import type MagicString from 'magic-string';
+import { MagicString } from 'magic-string';
 import { ControlFlowParser } from './control.ts';
 import { Scanner, isWhitespace } from './scanner.ts';
+import { maskMarkup } from './script.ts';
 
 export interface Block {
   type: 'script' | 'style';
@@ -65,6 +66,8 @@ export interface TemplateResult {
   usesListen: boolean;
   /** True if a dynamic tag `<{tag}>` is used. */
   usesDynamic: boolean;
+  /** The markup in the code of top-level `<script>` blocks. */
+  scriptMarkup: Range[];
   /** Text that the compiler generates for parts of the source. */
   generated: GeneratedText[];
   /** The bodies of control flow blocks, from `{` to `}`. */
@@ -191,12 +194,13 @@ export class TemplateParser {
   private readonly output: MagicString;
   private readonly scanner: Scanner;
   private readonly fail: (message: string, offset: number) => never;
-  private readonly scope: TemplateScope | undefined;
+  private scope: TemplateScope | undefined;
   private readonly control: ControlFlowParser;
   private mergesStyle = false;
   private usesListen = false;
   private usesDynamic = false;
   private readonly elements: ElementInfo[] = [];
+  private readonly scriptMarkup: Range[] = [];
   /** The codes of the last `solid-sfc-ignore` comment, and where it ends. */
   private ignore: { codes: Set<string>; end: number } | undefined;
   private readonly generated: GeneratedText[] = [];
@@ -248,6 +252,7 @@ export class TemplateParser {
       usesKey: this.control.usesKey,
       usesListen: this.usesListen,
       usesDynamic: this.usesDynamic,
+      scriptMarkup: this.scriptMarkup,
       generated: [
         // A generated prop is written as `name={` right before its value.
         ...this.control.props.map((prop) => ({
@@ -290,6 +295,9 @@ export class TemplateParser {
         } else if (blocks && /^<(script|style)[\s>]/.test(source.slice(i, i + 8))) {
           const block = this.parseBlock(i);
           blocks.push(block);
+          if (block.type === 'script') {
+            this.parseScriptMarkup(block);
+          }
           i = block.end;
         } else if (/^<script[\s>]/.test(source.slice(i, i + 8))) {
           if (mode !== 'block') {
@@ -363,6 +371,24 @@ export class TemplateParser {
       this.fail(`Missing </${type}>`, offset);
     }
     return { type, attributes, start: offset, end: end + 1, contentStart, contentEnd };
+  }
+
+  /** Parses the markup in script code from `start` to `end`. */
+  scanCode(start: number, end: number): Range[] {
+    return this.scanner.scanCode(start, end);
+  }
+
+  /**
+   * Parses the markup in the code of a top-level `<script>`. A module script
+   * runs outside the component, so its elements get no CSS variables.
+   */
+  private parseScriptMarkup(block: Block): void {
+    const { scope } = this;
+    if ('module' in block.attributes && scope) {
+      this.scope = { ...scope, variables: undefined };
+    }
+    this.scriptMarkup.push(...this.scanner.scanCode(block.contentStart, block.contentEnd));
+    this.scope = scope;
   }
 
   /**
@@ -551,7 +577,12 @@ export class TemplateParser {
     let i = this.scanner.skipWhitespace(offset + 2);
     const closing = matchAt(TAG_NAME, source, i) ?? '';
     if (closing !== name) {
-      this.fail(name ? `Expected </${name}>` : 'Expected </>', offset);
+      // An element that runs into the end of a script is likely a type.
+      const hint =
+        closing === 'script' && name !== 'script'
+          ? '. In a script, <T> starts an element, as in a .tsx file. Write type parameters as <T,> and assertions as "value as T"'
+          : '';
+      this.fail(`${name ? `Expected </${name}>` : 'Expected </>'}${hint}`, offset);
     }
     i = this.scanner.skipWhitespace(i + closing.length);
     if (source[i] !== '>') {
@@ -892,5 +923,22 @@ export class TemplateParser {
       return this.fail('Expected a property name', offset);
     }
     return offset + name.length;
+  }
+}
+
+function throwError(message: string): never {
+  throw new Error(message);
+}
+
+/**
+ * Masks the markup in the code of a script, for tools that parse the script
+ * on its own. The code is returned as is if its markup has a syntax error.
+ */
+export function maskScriptMarkup(code: string): string {
+  try {
+    const parser = new TemplateParser(code, new MagicString(code), throwError);
+    return maskMarkup(code, 0, code.length, parser.scanCode(0, code.length));
+  } catch {
+    return code;
   }
 }

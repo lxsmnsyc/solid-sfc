@@ -6,7 +6,12 @@ import { checkAccessibility } from './a11y.ts';
 import { SFCError, createWarning } from './error.ts';
 import type { SFCWarning } from './error.ts';
 import { CompileError, compile as compileLabels } from './labels/index.ts';
-import { PROPS_IDENTIFIER, analyzeInstanceScript, analyzeModuleScript } from './script.ts';
+import {
+  PROPS_IDENTIFIER,
+  analyzeInstanceScript,
+  analyzeModuleScript,
+  maskMarkup,
+} from './script.ts';
 import type { SourceMap } from './style.ts';
 import { getScopeAttribute, getVariableName, hash, processStyles } from './style.ts';
 import type { ScopedSelector, StyleLang } from './style.ts';
@@ -128,6 +133,7 @@ export function compileStructure(source: string, options: CompileOptions = {}): 
     usesKey,
     usesListen,
     usesDynamic,
+    scriptMarkup,
     generated,
     bodies,
     templates,
@@ -147,7 +153,7 @@ export function compileStructure(source: string, options: CompileOptions = {}): 
 
   if (module) {
     analyzeModuleScript(
-      source.slice(module.contentStart, module.contentEnd),
+      maskMarkup(source, module.contentStart, module.contentEnd, scriptMarkup),
       module.contentStart,
       fail,
     );
@@ -159,7 +165,7 @@ export function compileStructure(source: string, options: CompileOptions = {}): 
   let hoisted: Range[] = [];
   if (instance) {
     const analysis = analyzeInstanceScript(
-      source.slice(instance.contentStart, instance.contentEnd),
+      maskMarkup(source, instance.contentStart, instance.contentEnd, scriptMarkup),
       instance.contentStart,
       fail,
     );
@@ -200,14 +206,8 @@ export function compileStructure(source: string, options: CompileOptions = {}): 
 
   addText(`export default function ${getComponentName(filename)}${generics}(${parameters}) {`);
 
-  if (instance) {
-    addRange(instance.contentStart, instance.contentEnd, (snip) => {
-      for (const range of hoisted) {
-        snip.remove(range.start, range.end);
-      }
-    });
-  }
-
+  // The variables come first, because markup in the script can use them
+  // while the script runs.
   if (templateScope?.variables && css) {
     addText(`const ${VARIABLES_IDENTIFIER} = () => ({`);
     css.variables.forEach((variable, index) => {
@@ -219,6 +219,14 @@ export function compileStructure(source: string, options: CompileOptions = {}): 
       addText(`)${joined ? `}${variable.suffix}\`` : ''},`);
     });
     addText('});');
+  }
+
+  if (instance) {
+    addRange(instance.contentStart, instance.contentEnd, (snip) => {
+      for (const range of hoisted) {
+        snip.remove(range.start, range.end);
+      }
+    });
   }
 
   for (const range of templates) {

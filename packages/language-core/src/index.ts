@@ -8,7 +8,7 @@ import type {
 } from '@volar/language-core';
 import type { TypeScriptServiceScript } from '@volar/typescript';
 import { parseSync } from 'oxc-parser';
-import { SFCError, compileStructure } from 'solid-sfc';
+import { SFCError, compileStructure, maskScriptMarkup } from 'solid-sfc';
 import type { SourceMap } from 'solid-sfc';
 
 export const LANGUAGE_ID = 'solid';
@@ -165,7 +165,8 @@ function createFallbackScript(source: string): VirtualCode {
       lengths: [block.end - block.start],
       data: FALLBACK_FEATURES,
     });
-    code += `${source.slice(block.start, block.end)}\n`;
+    // Markup in the script is masked, since it is not JSX.
+    code += `${maskScriptMarkup(source.slice(block.start, block.end))}\n`;
   }
   code += 'export default function Component() {\n  return null;\n}\n';
   return {
@@ -413,8 +414,12 @@ const DECLARATION_KINDS: Record<string, SymbolKind> = {
 
 /** The top-level declarations of a script, such as functions and variables. */
 function getScriptSymbols(code: string, offset: number): DocumentSymbol[] {
-  // Scripts are always TypeScript, with or without `lang`.
-  const { program } = parseSync('script.ts', code, { lang: 'ts', sourceType: 'module' });
+  // Scripts are always TypeScript, with or without `lang`. Their markup is
+  // masked, since it is not JSX.
+  const { program } = parseSync('script.ts', maskScriptMarkup(code), {
+    lang: 'ts',
+    sourceType: 'module',
+  });
   const symbols: DocumentSymbol[] = [];
   const add = (name: string, kind: SymbolKind, node: Span, id: Span): void => {
     symbols.push({

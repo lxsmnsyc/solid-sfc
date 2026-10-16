@@ -248,6 +248,24 @@ describe('outline', () => {
   });
 });
 
+describe('markup in scripts', () => {
+  it('keeps the declarations around it in the outline', () => {
+    const file =
+      '<script>\n  const icon = <Icon size=16 />;\n  function row(item: string) {\n    return <li title=item>{item}</li>;\n  }\n</script>\n{icon}';
+    expect(getDocumentSymbols(file)[0]!.children.map((symbol) => symbol.name)).toEqual([
+      'icon',
+      'row',
+    ]);
+  });
+
+  it('masks it in the fallback script', () => {
+    const file = '<script>\n  const icon = <Icon size=16 />;\n</script>\n<p>';
+    const text = textOf(embedded(file, 'tsx'));
+    expect(text).toContain('const icon = null');
+    expect(text).not.toContain('size=16');
+  });
+});
+
 describe('scripts of blocks', () => {
   it('leaves them out of the outline and the fallback script', () => {
     const file =

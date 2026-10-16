@@ -161,3 +161,21 @@ export function analyzeBlockScript(code: string, offset: number, fail: Fail): vo
     }
   });
 }
+
+/**
+ * Replaces the markup in script code with `null`, padded to the same length,
+ * so the code parses as TypeScript. Line breaks are kept.
+ */
+export function maskMarkup(source: string, start: number, end: number, ranges: Range[]): string {
+  let code = '';
+  let i = start;
+  for (const range of ranges) {
+    if (range.start < start || range.end > end) {
+      continue;
+    }
+    const text = source.slice(range.start, range.end);
+    code += source.slice(i, range.start) + 'null' + text.slice(4).replace(/[^\n]/g, ' ');
+    i = range.end;
+  }
+  return code + source.slice(i, end);
+}

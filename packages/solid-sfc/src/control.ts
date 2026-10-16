@@ -5,7 +5,7 @@
 import type { MagicString } from 'magic-string';
 import type { Scanner } from './scanner.ts';
 import { isIdentifierPart, isWhitespace } from './scanner.ts';
-import { analyzeBlockScript } from './script.ts';
+import { analyzeBlockScript, maskMarkup } from './script.ts';
 
 /** Helper from `solid-sfc/runtime` used by `#key`. */
 export const KEY_IDENTIFIER = '__key';
@@ -684,7 +684,8 @@ export class ControlFlowParser {
     if (source[close] !== '>') {
       fail('Expected ">"', close);
     }
-    analyzeBlockScript(source.slice(contentStart, contentEnd), contentStart, fail);
+    const markup = scanner.scanCode(contentStart, contentEnd);
+    analyzeBlockScript(maskMarkup(source, contentStart, contentEnd, markup), contentStart, fail);
     this.update(offset, contentStart, '');
     // The code may not end with `;`.
     this.update(contentEnd, close + 1, ';');

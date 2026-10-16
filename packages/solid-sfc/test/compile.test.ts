@@ -167,6 +167,96 @@ describe('dynamic tags', () => {
   });
 });
 
+function script(code: string, rest = ''): string {
+  const { code: output } = compile(`<script>${code}</script>${rest}`, { filename: 'S.solid' });
+  expectValidTSX(output);
+  return output;
+}
+
+describe('markup in scripts', () => {
+  it('uses the markup syntax', () => {
+    expect(script('const icon = <Icon size=16 {label} />;')).toContain(
+      'const icon = <Icon size={16} label={label} />;',
+    );
+    expect(
+      script('const row = (item: Item) => <li class={ done: item.done }>{item.title}</li>;'),
+    ).toContain('<li class={{ done: item.done }}>{item.title}</li>');
+  });
+
+  it('works in nested functions, calls and conditions', () => {
+    const output = script(`
+      function render(items: string[]) {
+        return items.length ? items.map((item) => <b title=item>{item}</b>) : <p>None</p>;
+      }
+    `);
+    expect(output).toContain('items.map((item) => <b title={item}>{item}</b>)');
+    expect(output).toContain(': <p>None</p>');
+  });
+
+  it('keeps generics, type parameters and comparisons', () => {
+    const output = script(`
+      const list: Array<string> = [];
+      const id = <T,>(value: T) => value;
+      const pick = <T extends object>(value: T) => value;
+      const less = list.length < 2;
+      const map = new Map<string, number>();
+    `);
+    expect(output).toContain('const id = <T,>(value: T) => value;');
+    expect(output).toContain('const pick = <T extends object>(value: T) => value;');
+    expect(output).toContain('list.length < 2');
+  });
+
+  it('ignores markup in strings, templates and comments', () => {
+    const output = script("const a = '<b x=1>'; const b = `<i ${'y'}>`; // <u x=1>");
+    expect(output).toContain("const a = '<b x=1>';");
+  });
+
+  it('scopes elements and sets the CSS variables', () => {
+    const { code } = compile(
+      '<script>const c = "red"; const badge = <b>New</b>;</script><style>b { color: ${c} }</style>{badge}',
+      { scope: 'x' },
+    );
+    expect(code).toContain('<b s-x style={__styleVariables()}>New</b>');
+    expect(code.indexOf('const __styleVariables')).toBeLessThan(code.indexOf('const badge'));
+  });
+
+  it('does not set CSS variables in the module script', () => {
+    const { code } = compile(
+      '<script module>export const badge = <b>New</b>;</script><script>const c = "red";</script><style>b { color: ${c} }</style>',
+      { scope: 'x' },
+    );
+    expect(code).toContain('export const badge = <b s-x>New</b>;');
+  });
+
+  it('works in block scripts', () => {
+    expect(
+      markup(
+        '#for (item of items) {\n  <script>const label = <b>{item}</b>;</script>\n  {label}\n}',
+      ),
+    ).toContain('const label = <b>{item}</b>;');
+  });
+
+  it('finds $props() and hoists imports around markup', () => {
+    const output = script(
+      "import A from './A';\nconst { a } = $props<{ a: string }>();\nconst el = <A b=a />;",
+    );
+    expect(output).toContain("import A from './A';");
+    expect(output).toContain('const el = <A b={a()} />;');
+  });
+
+  it('explains type parameters that start an element', () => {
+    expect(() => compile('<script>const id = <T>(value: T) => value;</script>')).toThrow(
+      'Write type parameters as <T,>',
+    );
+  });
+
+  it('reports markup errors in scripts', () => {
+    expect(() => compile('<script>const a = <b c=d+e />;</script>')).toThrow(
+      'Wrap this attribute value in parentheses',
+    );
+  });
+});
+
 describe('children', () => {
   it('removes XML comments', () => {
     expect(markup('<div><!-- note --></div>')).toBe('<div></div>');
