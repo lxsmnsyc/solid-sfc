@@ -428,6 +428,9 @@ importers:
       ovsx:
         specifier: ^1.2.0
         version: 1.2.0(@types/node@24.19.2)(debug@4.4.3(supports-color@7.2.0))(supports-color@7.2.0)
+      tm-grammars:
+        specifier: 1.32.22
+        version: 1.32.22
       tsdown:
         specifier: ^0.23.1
         version: 0.23.1(@volar/typescript@2.4.28(typescript@7.0.2))(typescript@7.0.2)
@@ -3341,6 +3344,9 @@ packages:
   tinypool@2.2.0:
     resolution: {integrity: sha512-jBrmx4lYmaC9k/mgPbylxs7kBUxHtD8256up+HjLaDFfXScKJQyil+SWXSvhAtT7XHo+yTVlpB81PGmHP8oLSQ==}
     engines: {node: ^20.0.0 || >=22.0.0}
+
+  tm-grammars@1.32.22:
+    resolution: {integrity: sha512-VKWL+UiqlGqbGHonRbrBc0kkqDIHUUiVO/A2rBTBz5LBXKA8Fe2f34O1YiBI7ED37tTUlT3MGmLf9+0F/H4/Ww==}
 
   tmp@0.2.7:
     resolution: {integrity: sha512-e0votIpp4Uo2AJYSzVHV6xCcawuiez3DzqDAbrTc3YxBkplN6e+dM13ZeIcZnDg/QpSuU2zfZ3rzwY8ukEnaXw==}
@@ -6420,6 +6426,8 @@ snapshots:
       picomatch: 4.0.7
 
   tinypool@2.2.0: {}
+
+  tm-grammars@1.32.22: {}
 
   tmp@0.2.7: {}
 

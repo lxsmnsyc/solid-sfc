@@ -7,36 +7,58 @@ import type { IGrammar } from 'vscode-textmate';
 
 const require = createRequire(import.meta.url);
 let grammar: IGrammar;
+/** The grammar with the real TSX grammar that VS Code uses, for JSX in scripts. */
+let withTsx: IGrammar;
 
-beforeAll(async () => {
-  await loadWASM(readFileSync(require.resolve('vscode-oniguruma/release/onig.wasm')).buffer);
+// The TSX and CSS grammars that VS Code provides, from the tm-grammars package.
+const GRAMMAR_FILES: Record<string, string> = {
+  'source.tsx': 'tsx.json',
+  'source.css': 'css.json',
+  'source.css.scss': 'scss.json',
+  'source.css.less': 'less.json',
+};
+
+async function load(real: boolean): Promise<IGrammar> {
   const registry = new Registry({
     onigLib: Promise.resolve({
       createOnigScanner: (patterns) => new OnigScanner(patterns),
       createOnigString: (text) => new OnigString(text),
     }),
-    // VS Code provides the TSX and CSS grammars. Empty grammars stand in for
-    // them, and this grammar's `contentName` still sets the embedded scopes.
-    loadGrammar: async (scopeName) =>
-      scopeName === 'source.solid'
-        ? parseRawGrammar(
-            readFileSync(new URL('../syntaxes/solid.tmLanguage.json', import.meta.url), 'utf8'),
-            'solid.tmLanguage.json',
-          )
-        : parseRawGrammar(JSON.stringify({ scopeName, patterns: [] }), `${scopeName}.json`),
+    loadGrammar: async (scopeName) => {
+      if (scopeName === 'source.solid') {
+        return parseRawGrammar(
+          readFileSync(new URL('../syntaxes/solid.tmLanguage.json', import.meta.url), 'utf8'),
+          'solid.tmLanguage.json',
+        );
+      }
+      const file = GRAMMAR_FILES[scopeName];
+      if (real && file) {
+        const path = require.resolve(`tm-grammars/grammars/${file}`);
+        return parseRawGrammar(readFileSync(path, 'utf8'), path);
+      }
+      // Empty grammars stand in for the others. This grammar's
+      // `contentName` still sets the embedded scopes.
+      return parseRawGrammar(JSON.stringify({ scopeName, patterns: [] }), `${scopeName}.json`);
+    },
   });
   const loaded = await registry.loadGrammar('source.solid');
   if (!loaded) {
     throw new Error('The grammar did not load');
   }
-  grammar = loaded;
+  return loaded;
+}
+
+beforeAll(async () => {
+  await loadWASM(readFileSync(require.resolve('vscode-oniguruma/release/onig.wasm')).buffer);
+  grammar = await load(false);
+  withTsx = await load(true);
 });
 
 /** Returns the scopes of each token, keyed by the token text. */
-function tokenize(source: string): Map<string, string[]>[] {
+function tokenize(source: string, current = grammar): Map<string, string[]>[] {
   let state = INITIAL;
   return source.split('\n').map((line) => {
-    const result = grammar.tokenizeLine(line, state);
+    const result = current.tokenizeLine(line, state);
     state = result.ruleStack;
     const tokens = new Map<string, string[]>();
     for (const token of result.tokens) {
@@ -50,11 +72,11 @@ function tokenize(source: string): Map<string, string[]>[] {
 }
 
 function scopeOf(source: string, line: number, text: string): string[] {
-  const scopes = tokenize(source)[line]?.get(text);
-  if (!scopes) {
+  const found = tokenize(source)[line]?.get(text);
+  if (!found) {
     throw new Error(`No token "${text}" on line ${line}`);
   }
-  return scopes;
+  return found;
 }
 
 describe('blocks', () => {
@@ -188,5 +210,50 @@ describe('control flow', () => {
       'keyword.control.flow.solid',
     );
     expect(scopeOf(source, 0, 'b')).toContain('meta.embedded.expression.tsx');
+  });
+});
+
+/** The scopes of the first token with `text` on any line, with the real TSX grammar. */
+function scopes(source: string, text: string): string[] {
+  for (const line of tokenize(source, withTsx)) {
+    const found = line.get(text);
+    if (found) {
+      return found;
+    }
+  }
+  throw new Error(`No token "${text}"`);
+}
+
+describe('JSX with the real TSX grammar', () => {
+  it('reads attribute values without braces in scripts', () => {
+    const source =
+      '<script>\n  const icon = <Icon size=16 label=props.label {title} />;\n</script>';
+    expect(scopes(source, '16')).toContain('constant.numeric.solid');
+    expect(scopes(source, 'props')).toContain('variable.other.readwrite.solid');
+    expect(scopes(source, 'title')).not.toContain('entity.other.attribute-name.solid');
+    expect(scopes(source, 'Icon')).toContain('support.class.component.tsx');
+    const all = tokenize(source, withTsx).flatMap((line) => [...line.values()].flat());
+    expect(all).not.toContain('invalid.illegal.attribute.tsx');
+  });
+
+  it('reads attribute values without braces in markup expressions', () => {
+    const source =
+      '<ul>{items.map((item) => <li key=item.id class={ done: item.done }>{item}</li>)}</ul>';
+    const tokens = tokenize(source, withTsx)[0]!;
+    expect([...tokens.values()].flat()).not.toContain('invalid.illegal.attribute.tsx');
+  });
+
+  it('keeps strings, braces and arrow functions to TSX', () => {
+    const source = '<script>\n  const a = <b c="d" e={f} onClick={() => g()} />;\n</script>';
+    expect(scopes(source, '"')).toContain('string.quoted.double.tsx');
+    expect(scopes(source, '=>')).toContain('storage.type.function.arrow.tsx');
+    expect(scopes(source, 'f')).not.toContain('meta.attribute-value.solid');
+  });
+
+  it('reads calls and parenthesized values', () => {
+    const source =
+      '<script>\n  const a = <b onClick=(() => select(id)) title=format(x) />;\n</script>';
+    expect(scopes(source, 'format')).toContain('entity.name.function.solid');
+    expect(scopes(source, '=>')).toContain('meta.attribute-value.solid');
   });
 });

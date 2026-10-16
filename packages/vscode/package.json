@@ -36,6 +36,7 @@
     "@volar/vscode": "2.4.28",
     "@vscode/vsce": "^4.0.0",
     "ovsx": "^1.2.0",
+    "tm-grammars": "1.32.22",
     "tsdown": "^0.23.1",
     "typescript": "^7.0.2",
     "vitest": "^5.0.4",
