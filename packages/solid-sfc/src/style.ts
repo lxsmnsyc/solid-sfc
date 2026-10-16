@@ -97,7 +97,10 @@ function isGlobal(node: SelectorNode): node is selectorParser.Pseudo {
 
 /**
  * Adds the scope attribute to the last compound selector, before any pseudo
- * element. `:global(...)` is replaced by its content and is not scoped.
+ * element. `:global(...)` is replaced by its content and is not scoped. When
+ * the last compound is global, as in `.list :global(li)`, the compound
+ * before it gets the attribute, so the rule only reaches into this file's
+ * elements.
  *
  * With `atStart`, the attribute goes at the start of the compound, after a
  * type selector. SCSS and Less join `&__title` to the parent selector, which
@@ -108,13 +111,20 @@ function scopeSelector(
   attribute: string,
   atStart: boolean,
 ): ScopedSelector | undefined {
-  let lastCompound = 0;
-  selector.each((node, index) => {
+  const compounds: Selector['nodes'][number][][] = [[]];
+  for (const node of selector.nodes) {
     if (node.type === 'combinator') {
-      lastCompound = index + 1;
+      compounds.push([]);
+    } else {
+      compounds.at(-1)!.push(node);
     }
-  });
-  const compound = selector.nodes.slice(lastCompound);
+  }
+  // Global compounds at the end are skipped.
+  let index = compounds.length - 1;
+  while (index > 0 && compounds[index]!.some(isGlobal)) {
+    index--;
+  }
+  const compound = compounds[index]!;
   // A placeholder such as `%shared` is scoped through the selectors that extend it.
   const skip = compound.some(
     (node) =>
@@ -377,8 +387,11 @@ export function processStyles(options: ProcessStylesOptions): StyleResult {
     syntax,
     map: { inline: false, annotation: false, sourcesContent: false },
   });
-  const raw = result.map.toJSON();
-  const map: SourceMap = { ...raw, version: Number(raw.version), sourcesContent: [source] };
+  // PostCSS makes no source maps in browsers, where the playground runs.
+  const raw = (result.map as typeof result.map | undefined)?.toJSON();
+  const map: SourceMap = raw
+    ? { ...raw, version: Number(raw.version), sourcesContent: [source] }
+    : { version: 3, sources: [filename ?? ''], names: [], mappings: '', sourcesContent: [source] };
 
   return {
     code: result.css,
