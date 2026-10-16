@@ -40,7 +40,13 @@ export interface GeneratedText {
 const BINDINGS: Record<string, { tags: string[]; event: string }> = {
   value: { tags: ['input', 'textarea', 'select'], event: 'onInput' },
   checked: { tags: ['input'], event: 'onChange' },
+  group: { tags: ['input'], event: 'onChange' },
+  open: { tags: ['details', 'dialog'], event: 'onToggle' },
+  files: { tags: ['input'], event: 'onChange' },
 };
+
+/** Helper from `solid-sfc/runtime` used by `bind:value` on `<select multiple>`. */
+export const SELECT_VALUES_IDENTIFIER = '__selectValues';
 
 // A `bind:` target is a name, followed by property accesses and indexes.
 // The keys of an object literal: `name:`, `'name':`, `"name":` or a shorthand `name`.
@@ -68,6 +74,8 @@ export interface TemplateResult {
   usesListen: boolean;
   /** True if a dynamic tag `<{tag}>` is used. */
   usesDynamic: boolean;
+  /** True if `bind:value` is used on `<select multiple>`. */
+  usesSelectValues: boolean;
   /** The markup in the code of top-level `<script>` blocks. */
   scriptMarkup: Range[];
   /** The imports of the scripts of blocks. */
@@ -203,6 +211,7 @@ export class TemplateParser {
   private mergesStyle = false;
   private usesListen = false;
   private usesDynamic = false;
+  private usesSelectValues = false;
   private readonly elements: ElementInfo[] = [];
   private readonly scriptMarkup: Range[] = [];
   /** The codes of the last `solid-sfc-ignore` comment, and where it ends. */
@@ -256,6 +265,7 @@ export class TemplateParser {
       usesKey: this.control.usesKey,
       usesListen: this.usesListen,
       usesDynamic: this.usesDynamic,
+      usesSelectValues: this.usesSelectValues,
       scriptMarkup: this.scriptMarkup,
       blockImports: this.control.imports,
       generated: [
@@ -653,6 +663,8 @@ export class TemplateParser {
     const names = new Set<string>();
     const bindings: Binding[] = [];
     let type: string | undefined;
+    // The value of the `value` attribute as a JS expression, for `bind:group`.
+    let value: string | undefined;
     // The CSS variables are merged into the `style` attribute, if any.
     const variables = scope?.variables;
     const mergedStyle = `style={${scope?.mergeStyle}(style, ${variables}())}`;
@@ -670,11 +682,11 @@ export class TemplateParser {
         this.fail('Unexpected end of file inside a tag', offset);
       }
       if (char === '/' && source[i + 1] === '>') {
-        this.applyBindings(tag, bindings, names, type);
+        this.applyBindings(tag, bindings, names, type, value);
         return { end: i + 2, attributesEnd, selfClosing: true, hasStyle };
       }
       if (char === '>') {
-        this.applyBindings(tag, bindings, names, type);
+        this.applyBindings(tag, bindings, names, type, value);
         return { end: i + 1, attributesEnd, selfClosing: false, hasStyle };
       }
       if (char === '{') {
@@ -686,6 +698,9 @@ export class TemplateParser {
           hasStyle = true;
           this.mergesStyle = true;
         } else if (IDENTIFIER.test(inner)) {
+          if (inner === 'value') {
+            value = inner;
+          }
           element.attributes.set(inner, null);
           this.collectSelectorValue(element, inner, inner);
           // The scope attribute may end right before this one.
@@ -738,7 +753,8 @@ export class TemplateParser {
             this.fail(`Expected a value for ${name}`, i);
           }
           const valueStart = this.scanner.skipWhitespace(equals + 1);
-          const valueEnd = this.parseValue(valueStart, 'attribute');
+          // The binding adds the braces where it needs them.
+          const valueEnd = this.parseValue(valueStart, 'expression');
           bindings.push({ property: name.slice(5), start: i, valueStart, valueEnd });
           element.attributes.set(name.slice(5), null);
           i = valueEnd;
@@ -755,6 +771,11 @@ export class TemplateParser {
           i = this.parseValue(valueStart, 'attribute');
           if (name === 'type' && '"\''.includes(source[valueStart]!)) {
             type = source.slice(valueStart + 1, i - 1);
+          }
+          if (name === 'value') {
+            // A string in JSX has no escapes, so its text becomes a JS string.
+            const text = source.slice(valueStart, i);
+            value = '"\''.includes(text[0]!) ? JSON.stringify(text.slice(1, -1)) : `(${text})`;
           }
           if (name === 'class' || name === 'id') {
             this.collectSelectorValue(element, name, source.slice(valueStart, i));
@@ -806,12 +827,20 @@ export class TemplateParser {
   /**
    * `bind:value=name` becomes `value={name}` and a handler that writes the
    * new value back, such as `onInput={(event) => (name = event.currentTarget.value)}`.
+   * The other bindings follow the same shape:
+   *
+   * - `bind:group=choice` on a radio button with `value="a"` becomes
+   *   `checked={(choice) === "a"}`, and on a checkbox, `checked={(choice).includes("a")}`.
+   * - `bind:open` on `<dialog>` listens to `close`, since `toggle` is newer there.
+   * - `bind:files` only listens, since a file input cannot be set.
+   * - `bind:value` on `<select multiple>` selects the options with a ref.
    */
   private applyBindings(
     tag: string,
     bindings: Binding[],
     names: Set<string>,
     type: string | undefined,
+    value: string | undefined,
   ): void {
     const { source, output } = this;
     for (const binding of bindings) {
@@ -823,30 +852,84 @@ export class TemplateParser {
           binding.start,
         );
       }
-      if (names.has(config.event)) {
-        this.fail(
-          `${name} sets ${config.event}, so the element cannot have its own`,
-          binding.start,
-        );
+      const multiple = tag === 'select' && names.has('multiple');
+      let event = config.event;
+      if (tag === 'dialog') {
+        event = 'onClose';
+      } else if (multiple) {
+        event = 'onChange';
+      }
+      if (names.has(event)) {
+        this.fail(`${name} sets ${event}, so the element cannot have its own`, binding.start);
       }
       const target = source.slice(binding.valueStart, binding.valueEnd);
       if (!BIND_TARGET.test(target)) {
         this.fail(`${name} needs a variable or a property`, binding.valueStart);
       }
-      const property =
-        binding.property === 'value' && (type === 'number' || type === 'range')
-          ? 'valueAsNumber'
-          : binding.property;
-      // `bind:` is removed, so the property name keeps its place in the source.
-      output.remove(binding.start, binding.start + 5);
-      const prefix = ` ${config.event}={(event) => (`;
-      output.appendLeft(binding.valueEnd, `${prefix}${target} = event.currentTarget.${property})}`);
-      // The copy of the target follows the last character of the value and
-      // the `}` that closes it.
+      let read = `event.currentTarget.${binding.property}`;
+      if (binding.property === 'value' && (type === 'number' || type === 'range')) {
+        read = 'event.currentTarget.valueAsNumber';
+      }
+
+      if (binding.property === 'group') {
+        if (type !== 'radio' && type !== 'checkbox') {
+          this.fail(`${name} needs type="radio" or type="checkbox"`, binding.start);
+        }
+        if (value === undefined) {
+          this.fail(`${name} needs a value attribute`, binding.start);
+        }
+        if (names.has('checked')) {
+          this.fail(`${name} sets checked, so the element cannot have its own`, binding.start);
+        }
+        output.update(binding.start, binding.valueStart, 'checked={(');
+        output.appendLeft(
+          binding.valueEnd,
+          type === 'radio' ? `) === ${value}}` : `).includes(${value})}`,
+        );
+        read =
+          type === 'radio'
+            ? value
+            : `event.currentTarget.checked ? [...${target}, ${value}] : ${target}.filter((__item) => __item !== ${value})`;
+      } else if (binding.property === 'files') {
+        if (type !== 'file') {
+          this.fail(`${name} needs type="file"`, binding.start);
+        }
+        output.update(binding.start, binding.valueStart, `${event}={(event) => (`);
+        output.appendLeft(binding.valueEnd, ` = ${read})}`);
+        continue;
+      } else if (multiple) {
+        if (names.has('ref')) {
+          this.fail(
+            `${name} on <select multiple> sets ref, so the element cannot have its own`,
+            binding.start,
+          );
+        }
+        this.usesSelectValues = true;
+        output.update(binding.start, binding.valueStart, `ref={${SELECT_VALUES_IDENTIFIER}(() => `);
+        output.appendLeft(binding.valueEnd, ')}');
+        read = 'Array.from(event.currentTarget.selectedOptions, (option) => option.value)';
+      } else {
+        // `bind:` is removed, so the property name keeps its place in the source.
+        output.remove(binding.start, binding.start + 5);
+        output.appendLeft(binding.valueStart, '{');
+        output.appendLeft(binding.valueEnd, '}');
+      }
+      const prefix = ` ${event}={(event) => (`;
+      output.appendLeft(binding.valueEnd, `${prefix}${target} = ${read})}`);
+      // The copy of the target follows the last character of the value, the
+      // text that closes it, and the prefix.
+      const closing =
+        binding.property === 'group'
+          ? type === 'radio'
+            ? `) === ${value}}`
+            : `).includes(${value})}`
+          : multiple
+            ? ')}'
+            : '}';
       this.generated.push({
         text: target,
         anchor: binding.valueEnd - 1,
-        delta: 2 + prefix.length,
+        delta: 1 + closing.length + prefix.length,
         start: binding.valueStart,
         end: binding.valueEnd,
       });

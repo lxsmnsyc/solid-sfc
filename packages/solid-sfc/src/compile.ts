@@ -18,7 +18,12 @@ import type { SourceMap } from './style.ts';
 import { getScopeAttribute, getVariableName, hash, processStyles } from './style.ts';
 import type { ScopedSelector, StyleLang } from './style.ts';
 import type { Block, ElementInfo, GeneratedText, Range, TemplateScope } from './template.ts';
-import { DYNAMIC_IDENTIFIER, LISTEN_IDENTIFIER, TemplateParser } from './template.ts';
+import {
+  DYNAMIC_IDENTIFIER,
+  LISTEN_IDENTIFIER,
+  SELECT_VALUES_IDENTIFIER,
+  TemplateParser,
+} from './template.ts';
 
 export type { SourceMap };
 
@@ -135,6 +140,7 @@ export function compileStructure(source: string, options: CompileOptions = {}): 
     usesKey,
     usesListen,
     usesDynamic,
+    usesSelectValues,
     scriptMarkup,
     blockImports,
     generated,
@@ -246,6 +252,9 @@ export function compileStructure(source: string, options: CompileOptions = {}): 
     }
     if (usesDynamic) {
       addText(`import { dynamic as ${DYNAMIC_IDENTIFIER} } from '@solidjs/web';`);
+    }
+    if (usesSelectValues) {
+      addText(`import { selectValues as ${SELECT_VALUES_IDENTIFIER} } from 'solid-sfc/runtime';`);
     }
     if (mergesStyle) {
       addText(`import { mergeStyle as ${MERGE_STYLE_IDENTIFIER} } from 'solid-sfc/runtime';`);

@@ -81,8 +81,39 @@ describe('bind:', () => {
       '<textarea bind:value=notes[i]></textarea>',
       '<textarea value={notes[i]} onInput={(event) => (notes[i] = event.currentTarget.value)}></textarea>',
     ],
+    [
+      '<input type="radio" value="a" bind:group=choice>',
+      '<input type="radio" value="a" checked={(choice) === "a"} onChange={(event) => (choice = "a")}/>',
+    ],
+    [
+      '<input type="checkbox" value=item.id bind:group=picked>',
+      '<input type="checkbox" value={item.id} checked={(picked).includes((item.id))} onChange={(event) => (picked = event.currentTarget.checked ? [...picked, (item.id)] : picked.filter((__item) => __item !== (item.id)))}/>',
+    ],
+    [
+      '<details bind:open=open></details>',
+      '<details open={open} onToggle={(event) => (open = event.currentTarget.open)}></details>',
+    ],
+    [
+      '<dialog bind:open=open></dialog>',
+      '<dialog open={open} onClose={(event) => (open = event.currentTarget.open)}></dialog>',
+    ],
+    [
+      '<input type="file" bind:files=files>',
+      '<input type="file" onChange={(event) => (files = event.currentTarget.files)}/>',
+    ],
+    [
+      '<select multiple bind:value=picked></select>',
+      '<select multiple ref={__selectValues(() => picked)} onChange={(event) => (picked = Array.from(event.currentTarget.selectedOptions, (option) => option.value))}></select>',
+    ],
   ])('%s', (input, output) => {
     expect(markup(input)).toBe(output);
+  });
+
+  it('imports the helper of <select multiple>', () => {
+    const { code } = compile('<select multiple bind:value=picked></select>', {
+      filename: 'S.solid',
+    });
+    expect(code).toContain("import { selectValues as __selectValues } from 'solid-sfc/runtime';");
   });
 
   it('writes signals with their setters', () => {
@@ -98,6 +129,12 @@ describe('bind:', () => {
     ['<input bind:value=a() />', 'bind:value needs a variable or a property'],
     ['<input bind:value=(a) />', 'bind:value needs a variable or a property'],
     ['<input bind:value />', 'Expected a value for bind:value'],
+    ['<input bind:group=a value="b" />', 'bind:group needs type="radio" or type="checkbox"'],
+    ['<input type="radio" bind:group=a />', 'bind:group needs a value attribute'],
+    ['<input type="radio" value="b" checked bind:group=a />', 'bind:group sets checked'],
+    ['<input bind:files=a />', 'bind:files needs type="file"'],
+    ['<dialog bind:open=a onClose=b />', 'bind:open sets onClose'],
+    ['<select multiple ref=el bind:value=a />', 'sets ref'],
   ])('rejects %s', (input, message) => {
     expect(() => compile(input)).toThrow(message);
   });
