@@ -260,9 +260,12 @@
     overflow: hidden;
   }
 
+  /* The frame scrolls with the textarea, so the copy must not scroll itself. */
   .backdrop :global(pre) {
+    width: max-content;
     min-width: 100%;
     min-height: 100%;
+    overflow: visible;
     border-radius: 0;
     background: none;
   }
