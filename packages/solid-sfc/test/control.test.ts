@@ -209,34 +209,6 @@ describe('#portal', () => {
   });
 });
 
-describe('#const', () => {
-  it('declares memos before the markup of a block', () => {
-    expect(markup('#if (a) { #const x = a * 2; #const y = x + 1; <p>{y}</p> }')).toBe(
-      '{(a) ? <>{(() => { const x = _createMemo(() => a * 2); const y = _createMemo(() => x() + 1); return <> <p>{y()}</p> </>; })()}</> : null}',
-    );
-  });
-
-  it('works in loops and fallbacks', () => {
-    expect(
-      markup(
-        '#for (n of list) { #const d = n * 2; <i>{d}</i> } #else { #const e = 0; <b>{e}</b> }',
-      ),
-    ).toBe(
-      '<_For each={list} fallback={<>{(() => { const e = _createMemo(() => 0); return <> <b>{e()}</b> </>; })()}</>}>{(n) => <>{(() => { const d = _createMemo(() => n * 2); return <> <i>{d()}</i> </>; })()}</>}</_For>',
-    );
-  });
-
-  it('allows comments between declarations', () => {
-    expect(markup('#if (a) { #const x = 1; <!-- c --> #const y = 2; {x + y} }')).toBe(
-      '{(a) ? <>{(() => { const x = _createMemo(() => 1);  const y = _createMemo(() => 2); return <> {x() + y()} </>; })()}</> : null}',
-    );
-  });
-
-  it('keeps other #const text', () => {
-    expect(markup('<p>#const values</p>')).toBe('<p>#const values</p>');
-  });
-});
-
 describe('#template', () => {
   it('moves templates at the top level before the markup', () => {
     const { code } = compile('<ul>{row(1)}</ul>\n#template row(n) {\n  <li>{n}</li>\n}', {
@@ -252,10 +224,6 @@ describe('#template', () => {
     expect(markup('#if (a) { #template t() { <p /> } {t()} }')).toBe(
       '{(a) ? <>{(() => { const t = () => <> <p /> </>; return <> {t()} </>; })()}</> : null}',
     );
-  });
-
-  it('accepts #const in templates', () => {
-    expect(markup('{t(1)}#template t(n) { #const d = n * 2; <i>{d}</i> }')).toBe('{t(1)}');
   });
 
   it('keeps other #template text', () => {
@@ -284,6 +252,10 @@ describe('#hydration and #no-hydration', () => {
 });
 
 describe('<script> in blocks', () => {
+  it('keeps #const text that is not a declaration', () => {
+    expect(markup('<p>#const values</p>')).toBe('<p>#const values</p>');
+  });
+
   it('runs its statements before the markup of the block', () => {
     expect(
       markup('#for (n of list) { <script>let open = $signal(false);</script> <i>{open}</i> }'),
@@ -384,12 +356,7 @@ describe('errors', () => {
     ['#if (a) { <script>$props();</script> }', '$props() belongs in the component script'],
     ['#if (a) { <script>let a = 1 }', 'Expected </script>'],
     ['#no-hydration (a) { }', '#no-hydration takes no header'],
-    ['#const x = 1;', '#const must be directly inside a block'],
-    ['<p>#const x = 1;</p>', '#const must be directly inside a block'],
-    ['#if (a) { <p /> #const x = 1; }', '#const must come before the markup of its block'],
-    ['#if (a) { #const x = 1 }', 'Expected ";"'],
-    ['#if (a) { #const x = ; }', 'Expected "#const name = value;"'],
-    ['#if (a) { #const { x } = a; }', '#const needs a name'],
+    ['#if (a) { #const x = 1; }', 'Use a <script> at the start of the block instead of #const'],
     [
       '<div>#template t() { }</div>',
       '#template must be at the top level or directly inside a block',

@@ -66,7 +66,7 @@ export interface GeneratedProp {
 /** A block body that is being parsed. */
 interface Frame {
   start: number;
-  /** The end of the `#const` and `#template` declarations at its start. */
+  /** The end of the `<script>` and `#template` declarations at its start. */
   declarationsEnd: number | undefined;
 }
 
@@ -142,6 +142,7 @@ function findWord(text: string, word: string, from = 0): number {
 
 const IDENTIFIER = /^[A-Za-z_$][\w$]*$/;
 const TEMPLATE_DECLARATION = /\s+[A-Za-z_$][\w$]*\s*\(/y;
+// `#const name =` is matched only to point to scripts in blocks.
 const CONST_DECLARATION = /\s*(?:[A-Za-z_$][\w$]*\s*=(?!=)|[{[])/y;
 
 export class ControlFlowParser {
@@ -156,7 +157,7 @@ export class ControlFlowParser {
   readonly templates: { start: number; end: number }[] = [];
   /**
    * The block bodies being parsed, innermost last, with the end of their
-   * `#const` and `#template` declarations.
+   * `<script>` and `#template` declarations.
    */
   private readonly frames: Frame[] = [];
 
@@ -193,8 +194,8 @@ export class ControlFlowParser {
   }
 
   /**
-   * `#const` is followed by `name =` or by a destructuring pattern, which is
-   * an error, and `#template` by `name(`. Other text after them stays text.
+   * `#template` is followed by `name(`. `#const name =` is matched so that
+   * it can point to scripts in blocks. Other text after them stays text.
    */
   private matchDeclaration(offset: number): Keyword | undefined {
     const keyword = this.readKeyword(offset);
@@ -693,7 +694,7 @@ export class ControlFlowParser {
 
   /**
    * `#template row(item) { A }` becomes `const row = (item) => <>A</>;`. In a
-   * block it is a declaration, like `#const`. At the top level the compiler
+   * block it is a declaration, like a `<script>`. At the top level the compiler
    * moves it before the markup, so the whole file can use it.
    */
   private parseTemplate(keyword: Keyword): number {
@@ -718,35 +719,12 @@ export class ControlFlowParser {
     return body.end + 1;
   }
 
-  /**
-   * `#const name = value;` becomes `const name = $memo(value);`, so the value
-   * stays reactive. Declarations come first in their block.
-   */
+  /** `#const` was replaced by scripts in blocks. */
   private parseConst(keyword: Keyword): number {
-    const { source, fail } = this.bind();
-    const { scanner } = this.host;
-    const frame = this.declarationFrame(keyword);
-    if (!frame) {
-      return fail('#const must be directly inside a block', keyword.start);
-    }
-    const nameStart = scanner.skipWhitespace(keyword.end);
-    if (source[nameStart] === '{' || source[nameStart] === '[') {
-      fail('#const needs a name. Destructuring is not supported', nameStart);
-    }
-    const name = /[A-Za-z_$][\w$]*/y;
-    name.lastIndex = nameStart;
-    const nameEnd = nameStart + name.exec(source)![0].length;
-    const equals = scanner.skipWhitespace(nameEnd);
-    const valueStart = scanner.skipWhitespace(equals + 1);
-    const end = scanner.scanExpression(valueStart, ';');
-    if (!source.slice(valueStart, end).trim()) {
-      fail('Expected "#const name = value;"', keyword.start);
-    }
-    this.update(keyword.start, nameStart, 'const ');
-    this.update(nameEnd, valueStart, ' = $memo(');
-    this.update(end, end + 1, ');');
-    frame.declarationsEnd = end + 1;
-    return end + 1;
+    return this.host.fail(
+      'Use a <script> at the start of the block instead of #const, as in <script>const name = $memo(value);</script>',
+      keyword.start,
+    );
   }
 
   /** `#key (value) { A }` renders `A` again when `value` changes. */

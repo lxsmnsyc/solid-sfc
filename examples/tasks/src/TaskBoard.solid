@@ -167,7 +167,10 @@
 
   <div class="filters">
     #for (option of FILTERS) {
-      #const selected = option === filter;
+      <!-- A script in a block runs once for each item. -->
+      <script>
+        const selected = $memo(option === filter);
+      </script>
       <button
         type="button"
         class={ selected }

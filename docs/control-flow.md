@@ -268,31 +268,13 @@ A `<script>` at the start of a block runs each time the block body is created: o
 Each item gets its own `open` signal, and an `$effect` in the script is removed with its item.
 
 - The script comes first in the block, before the markup. Only whitespace, comments and `#template` declarations may come before it.
+- `const total = $memo(item.price * item.quantity);` declares a value that updates with the item.
 - It takes no attributes. It uses the same language as the rest of the file.
 - It cannot import modules or call `$props()`. Those belong in the component script at the top of the file.
 - It works in every block body, including `#else`, `#catch` and `#template` bodies.
 - A `<script>` inside an element is an error.
 
 The editor treats a `<script>` at the start of a line as the component script, and an indented one as the script of a block.
-
-## `#const`
-
-`#const` declares a value inside a block, from the item of a loop or another value of the block:
-
-```html
-#for (item of cart by item.id) {
-  #const total = item.price * item.quantity;
-  <li>{item.name}: {total}</li>
-}
-```
-
-`#const total = value;` compiles to `const total = $memo(value);`, so `total` updates when the values it reads change.
-
-- Declarations come first in a block, before its markup. Only whitespace and comments may come before them.
-- A declaration can read the declarations before it.
-- The name must be an identifier. Destructuring is not supported.
-- The declaration ends at `;`.
-- `#const` works in every block body, including `#else` and `#catch`.
 
 ## `#template`
 
@@ -316,9 +298,9 @@ The editor treats a `<script>` at the start of a line as the component script, a
 `#template row(user, index) { … }` compiles to `const row = (user, index) => <>…</>;`. Call it in an expression, `{row(user, 0)}`, or pass it to a component that renders it, `<Table renderRow=row />`.
 
 - A template at the top level can be used anywhere in the file, before or after it. The compiler moves it before the markup.
-- In a block, a template is a declaration, like `#const`. It comes before the markup of the block and can read the values of the block.
+- In a block, a template is a declaration, like a script. It comes before the markup of the block and can read the values of the block.
 - The parameters are TypeScript parameters, with types and default values.
-- A template can have `#const` declarations, and its markup gets the scoped styles of the file.
+- A template can have its own `<script>`, and its markup gets the scoped styles of the file.
 - `{row(user, index)}` renders again when an argument it reads changes, such as `index`.
 
 ## Branches
@@ -339,8 +321,8 @@ The editor treats a `<script>` at the start of a line as the component script, a
 
 `#` starts a block only when all of these are true:
 
-- A known keyword follows: `if`, `for`, `repeat`, `switch`, `try`, `loading`, `reveal`, `portal`, `hydration`, `no-hydration`, `key`, `const` or `template`. Keywords with more than one word join them with `-`.
-- The keyword is followed by `(` or `{`. `#const` is followed by a name and `=`, and `#template` by a name and `(`.
+- A known keyword follows: `if`, `for`, `repeat`, `switch`, `try`, `loading`, `reveal`, `portal`, `hydration`, `no-hydration`, `key` or `template`. Keywords with more than one word join them with `-`.
+- The keyword is followed by `(` or `{`. `#template` is followed by a name and `(` instead.
 - The `#` does not come right after a letter, a digit, `_` or `$`.
 
 Any other `#` is text, so `C#`, `#hashtag` and `#if without parentheses` render as written. To render text that looks like a block, write the `#` as an expression:

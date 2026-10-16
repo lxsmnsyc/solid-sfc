@@ -294,9 +294,6 @@ export class TemplateParser {
         return i;
       } else if (char === '#') {
         const keyword = this.control.match(i);
-        if (keyword?.name === 'const' && mode !== 'block') {
-          this.fail('#const must be directly inside a block', i);
-        }
         if (keyword?.name === 'template' && mode === 'element') {
           this.fail('#template must be at the top level or directly inside a block', i);
         }

@@ -63,11 +63,6 @@
     "description": "Control the order in which loading blocks show their content",
     "body": ["#reveal ('${1|sequential,together,natural|}') {", "\t$0", "}"],
   },
-  "const": {
-    "prefix": "#const",
-    "description": "Declare a reactive value at the start of a block",
-    "body": ["#const ${1:name} = ${2:value};"],
-  },
   "template": {
     "prefix": "#template",
     "description": "Declare markup that the file can render with arguments",
