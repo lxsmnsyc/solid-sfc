@@ -69,6 +69,12 @@ declare global {
   /** The newest value of `value`, even while an update that changes it is in progress. */
   function $latest<T>(fn: () => T): T;
   function $latest<T>(value: T): T;
+  /**
+   * Runs the source of `value` again, such as the fetch of an async `$memo`,
+   * and resolves with its next settled value. A reactive variable passes its
+   * accessor, and a store passes itself.
+   */
+  function $refresh<T>(value: T): Promise<T extends (...args: any) => infer V ? V : T>;
 
   function $lazy<T extends Component<any>>(
     fn: Promise<{ default: T }>,
@@ -121,7 +127,6 @@ declare global {
   const $cleanup: typeof solid.onCleanup;
 
   const $action: typeof solid.action;
-  const $refresh: typeof solid.refresh;
   const $affects: typeof solid.affects;
 
   const $uid: typeof solid.createUniqueId;

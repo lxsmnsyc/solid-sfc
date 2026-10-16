@@ -297,12 +297,20 @@ Both declare read-only variables. In markup, the [`#for` and `#repeat` blocks](.
 | `$action`           | `action`                 |
 | `$isPending(value)` | `isPending(() => value)` |
 | `$latest(value)`    | `latest(() => value)`    |
-| `$refresh`          | `refresh`                |
+| `$refresh(value)`   | `refresh(accessor)`      |
 | `$affects`          | `affects`                |
 | `$flush`            | `flush`                  |
 | `$resolve(value)`   | `resolve(() => value)`   |
 
 `$isPending`, `$latest` and `$resolve` wrap their argument in a function, so `$isPending(user)` reads `user` when Solid calls it. An argument that is already a function, as in `$isPending(() => user)`, stays as it is.
+
+`$refresh` runs the source of a value again, such as the fetch of an async `$memo`, even when nothing it reads changed. Solid refreshes the source itself, so a reactive variable passes its accessor: `$refresh(user)` compiles to `refresh(user)`, not `refresh(user())`. A store passes itself. It returns a promise for the next settled value.
+
+```html
+<button onClick=(() => $refresh(user))>Reload</button>
+```
+
+In an `$effect`, `$refresh(user)` does not make the effect track `user`. The effect cannot also read `user`, because the callback only has its value then.
 
 ## Stores
 

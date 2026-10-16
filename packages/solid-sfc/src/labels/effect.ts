@@ -8,6 +8,7 @@ import {
 } from './ast.ts';
 import type { CaptureInfo, Ctx } from './context.ts';
 import type { Binding, Ref } from './scope.ts';
+import { refreshCallee } from './reactive.ts';
 import { callArgs } from './variables.ts';
 
 interface Capture {
@@ -52,7 +53,8 @@ function analyzeCaptures(ctx: Ctx, call: Node, target: Node, body: Node): Captur
         firstRef = pos;
       }
       if (bindingRef.mode === 'read') {
-        if (insideUntrack(ctx, bindingRef.node)) {
+        // `$refresh(quote)` takes the accessor and does not track it.
+        if (insideUntrack(ctx, bindingRef.node) || refreshCallee(ctx, bindingRef)) {
           untracked = true;
         } else {
           tracked = true;

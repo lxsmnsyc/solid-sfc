@@ -86,6 +86,35 @@ const d = $latest(count);
     expect(code).toContain('const c = _isPending(() => quote());');
     expect(code).toContain('const d = _latest(() => count());');
   });
+  it('passes the accessor of a reactive variable to $refresh', () => {
+    const code = transform(`
+const quote = $memo(fetchQuote(id));
+let count = $signal(0);
+const reload = () => $refresh(quote);
+const again = () => $refresh(store);
+$effect(() => {
+  if (count > 2) {
+    $refresh(quote);
+  }
+});
+`);
+    expect(code).toContain('const reload = () => _refresh(quote);');
+    expect(code).toContain('const again = () => _refresh(store);');
+    // The effect gets the accessor, and does not track it.
+    expect(code).toContain('_createEffect(() => [count(), quote], ');
+    expect(code).toMatch(/if \(count > 2\) \{\s*_refresh\(quote\);/);
+  });
+  it('rejects $refresh on a variable that the effect also reads', () => {
+    expect(() =>
+      transform(`
+const quote = $memo(fetchQuote(id));
+$effect(() => {
+  console.log(quote);
+  $refresh(quote);
+});
+`),
+    ).toThrow('$refresh cannot be used on a variable that the effect callback also reads');
+  });
   it('respects shadowing', () => {
     expect(
       transform(`

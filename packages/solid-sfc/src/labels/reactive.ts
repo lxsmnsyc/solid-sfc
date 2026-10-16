@@ -69,6 +69,34 @@ function detectRefCtf(ctx: Ctx, ref: Ref): RefCtfUse | null {
   return { name: callee.name, call, callee, property, callIndex: index };
 }
 
+/**
+ * Returns the callee when the reference is the argument of `$refresh`, as in
+ * `$refresh(quote)`. Solid refreshes the source itself, so the argument is
+ * the accessor of the variable, not its value.
+ */
+export function refreshCallee(ctx: Ctx, ref: Ref): Node | null {
+  const parents = ref.parents;
+  let index = parents.length - 1;
+  while (index >= 0 && isWrapper(parents[index])) {
+    index--;
+  }
+  const call = parents[index];
+  if (call?.type !== 'CallExpression') {
+    return null;
+  }
+  const callee = unwrap(call.callee);
+  if (
+    callee?.type !== 'Identifier' ||
+    callee.name !== '$refresh' ||
+    !ctx.unresolvedByNode.has(callee) ||
+    ctx.disabled[callee.name] ||
+    unwrap(call.arguments[0]) !== ref.node
+  ) {
+    return null;
+  }
+  return callee;
+}
+
 /** Source text of a property key, bracketed when computed. */
 function keyText(ctx: Ctx, property: Node): string {
   const key = property.key;
@@ -278,6 +306,19 @@ export function rewriteReferences(ctx: Ctx): void {
           );
         }
         rewriteRefCtf(ctx, info, ref, use);
+        continue;
+      }
+      const refresh = ref.mode === 'read' ? refreshCallee(ctx, ref) : null;
+      if (refresh) {
+        // The name is the accessor, which `refresh` takes. Inside an effect
+        // that also reads the value, the name is the value instead.
+        if (ctx.regionFor(binding, ref.node.start)?.captured.get(binding)?.get === 'value') {
+          ctx.error(
+            refresh,
+            '$refresh cannot be used on a variable that the effect callback also reads',
+          );
+        }
+        ctx.consumed.add(ref.node);
         continue;
       }
       if (ref.mode === 'read') {

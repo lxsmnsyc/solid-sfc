@@ -37,6 +37,8 @@
   #loading {
     <blockquote style={ opacity: pending() ? 0.4 : 1 }>{quote}</blockquote>
     <button onClick=(() => id++) disabled=pending()>Next</button>
+    <!-- $refresh runs the fetch of the memo again. -->
+    <button onClick=(() => $refresh(quote)) disabled=pending()>Reload</button>
     <button onClick=(() => (failing = true))>Break the server</button>
   } #else {
     <p>Loading the first quote…</p>
