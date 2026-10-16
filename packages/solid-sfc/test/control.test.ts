@@ -295,6 +295,34 @@ describe('<script> in blocks', () => {
     );
   });
 
+  it.each([
+    ['#if', '#if (a) { S }'],
+    ['#else if', '#if (a) { } #else if (b) { S }'],
+    ['#else of #if', '#if (a) { } #else { S }'],
+    ['#for', '#for (i of l) { S }'],
+    ['#for with a key', '#for (i of l by i.id) { S }'],
+    ['#else of #for', '#for (i of l) { } #else { S }'],
+    ['#repeat', '#repeat (i of 3) { S }'],
+    ['#case', '#switch { #case (a) { S } }'],
+    ['#default', '#switch { #default { S } }'],
+    ['#try', '#try { S } #catch { }'],
+    ['#catch', '#try { } #catch (e) { S }'],
+    ['#loading', '#loading { S }'],
+    ['#else of #loading', '#loading { } #else { S }'],
+    ['#reveal', '#reveal { S }'],
+    ['#portal', '#portal { S }'],
+    ['#hydration', '#hydration { S }'],
+    ['#no-hydration', '#no-hydration { S }'],
+    ['#key', '#key (a) { S }'],
+    ['#template', '{t()} #template t() { S }'],
+  ])('works in %s', (_, template) => {
+    const { code } = compile(template.replace('S', '<script>const x = 1;</script>{x}'));
+    const { errors } = parseSync('out.tsx', code, { lang: 'tsx', sourceType: 'module' });
+    expect(errors.map((error) => error.message)).toEqual([]);
+    expect(code).toContain('const x = 1;');
+    expect(code).toContain('{x}');
+  });
+
   it('is not ended by </script> in a string', () => {
     expect(markup('#if (a) { <script>const s = "</script>";</script>{s} }')).toBe(
       '<_Show when={a}>{(() => { const s = "</script>"; return <>{s} </>; })()}</_Show>',
