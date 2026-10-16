@@ -515,6 +515,9 @@ importers:
       solid-sfc:
         specifier: workspace:*
         version: link:../packages/solid-sfc
+      terracotta:
+        specifier: 2.0.0-next.10
+        version: 2.0.0-next.10(@solidjs/web@2.0.0-rc.15(solid-js@2.0.0-rc.15))(solid-js@2.0.0-rc.15)
     devDependencies:
       '@solid-sfc/tsc':
         specifier: workspace:*
@@ -4234,6 +4237,12 @@ packages:
     resolution: {integrity: sha512-HXiWAEG5Rjp5C7reElUlvdriIadcbpwWwVdztTf0wuxeirw49rGuIzVbSRn06p6GjlINwi5d24Z46b478hNdvw==}
     engines: {node: '>=22.12.0'}
 
+  solid-use@1.0.0-next.3:
+    resolution: {integrity: sha512-bEUzCWEKEYIYr807QNUQfewX3MlaIYExZFKuM3S9kK3pc4tlnpc0YPKnpQp28Inmtd3DzLkmK9Zq1UC1xVM7Gw==}
+    engines: {node: '>=20'}
+    peerDependencies:
+      solid-js: ^2.0.0-rc.5
+
   source-map-js@1.2.2:
     resolution: {integrity: sha512-KGj/8Y43x35aZVDtt+J4mK1hoLGHULMYfSkODJNQjNDC3oW1PqPoxMwo0pLUsWM/UEGzON/NxeHywEfNXNP3Vw==}
     engines: {node: '>=0.10.0'}
@@ -4312,6 +4321,13 @@ packages:
   terminal-link@4.0.0:
     resolution: {integrity: sha512-lk+vH+MccxNqgVqSnkMVKx4VLJfnLjDBGzH16JVZjKE2DoxP57s6/vt6JmXV5I3jBcfGrxNrYtC+mPtU7WJztA==}
     engines: {node: '>=18'}
+
+  terracotta@2.0.0-next.10:
+    resolution: {integrity: sha512-ZpBJyJAUx1Zu8H3v48d4u2pCXdinIg4gy9/PE3jNC2yjis2bvRe9V44privu/J0fbGtR4LzbxgDsI4M/aUEcRw==}
+    engines: {node: '>=20'}
+    peerDependencies:
+      '@solidjs/web': ^2.0.0-rc.13
+      solid-js: ^2.0.0-rc.13
 
   terser@5.51.2:
     resolution: {integrity: sha512-bWnjSNscmuI+GJze6ZupnHP8G/cTcsJF+bXCeQknk2SHQsgbNJnLrqiH9jZ2W4STPVXH2mDKKRX3iwPhc9Cn/Q==}
@@ -8061,6 +8077,10 @@ snapshots:
       seroval: 1.6.7
       seroval-plugins: 1.6.7(seroval@1.6.7)
 
+  solid-use@1.0.0-next.3(solid-js@2.0.0-rc.15):
+    dependencies:
+      solid-js: 2.0.0-rc.15
+
   source-map-js@1.2.2: {}
 
   source-map-support@0.5.21:
@@ -8156,6 +8176,12 @@ snapshots:
     dependencies:
       ansi-escapes: 7.3.0
       supports-hyperlinks: 3.2.0
+
+  terracotta@2.0.0-next.10(@solidjs/web@2.0.0-rc.15(solid-js@2.0.0-rc.15))(solid-js@2.0.0-rc.15):
+    dependencies:
+      '@solidjs/web': 2.0.0-rc.15(solid-js@2.0.0-rc.15)
+      solid-js: 2.0.0-rc.15
+      solid-use: 1.0.0-next.3(solid-js@2.0.0-rc.15)
 
   terser@5.51.2:
     dependencies:

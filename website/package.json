@@ -24,7 +24,8 @@
     "@twinkleplop/typescript": "0.1.7",
     "oxc-transform": "0.154.0",
     "solid-js": "2.0.0-rc.15",
-    "solid-sfc": "workspace:*"
+    "solid-sfc": "workspace:*",
+    "terracotta": "2.0.0-next.10"
   },
   "devDependencies": {
     "@solid-sfc/tsc": "workspace:*",

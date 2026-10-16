@@ -43,24 +43,26 @@ The example compiles to this TSX:
 
 ```tsx
 import { createSignal as _createSignal } from 'solid-js';
+import Button from './Button.solid';
 
 export const MAX = 10;
 
-import Button from './Button.solid';
 interface Props {
   initial: number;
 }
-export default function Counter($$props: Props) {
-  const props = $$props;
-  let [count, setcount_1] = _createSignal(() => props.initial);
 
+export default function Counter($$props: Props) {
   const __styleVariables = () => ({
-    '--s-x1y2z3-0': count() > MAX ? 'red' : 'black',
+    '--s-x1y2z3-0': (count() > MAX ? 'red' : 'black'),
   });
+
+  const props = $$props;
+  let [count, setCount] = _createSignal(() => props.initial);
+
   return (
     <>
       <p s-x1y2z3 style={__styleVariables()}>{count()}</p>
-      <Button onClick={() => setcount_1((current_1) => ++current_1)} />
+      <Button onClick={() => setCount(current => ++current)} />
     </>
   );
 }

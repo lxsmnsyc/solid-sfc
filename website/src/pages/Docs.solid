@@ -114,6 +114,41 @@
     color: var(--muted);
   }
 
+  /* GitHub alerts, such as `> [!IMPORTANT]`. */
+  .prose :global(.alert) {
+    --alert: var(--note);
+    margin: 1rem 0;
+    padding: 0.5rem 1rem;
+    border-left: 3px solid var(--alert);
+    border-radius: 0 0.375rem 0.375rem 0;
+    background: var(--surface);
+  }
+
+  .prose :global(.alert > p) {
+    margin: 0.5rem 0;
+  }
+
+  .prose :global(.alert-title) {
+    font-weight: 600;
+    color: var(--alert);
+  }
+
+  .prose :global(.alert.tip) {
+    --alert: var(--tip);
+  }
+
+  .prose :global(.alert.important) {
+    --alert: var(--important);
+  }
+
+  .prose :global(.alert.warning) {
+    --alert: var(--warning);
+  }
+
+  .prose :global(.alert.caution) {
+    --alert: var(--caution);
+  }
+
   @media (max-width: 72rem) {
     .layout {
       grid-template-columns: 13rem minmax(0, 46rem);

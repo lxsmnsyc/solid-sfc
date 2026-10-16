@@ -13,7 +13,7 @@ Everything in a `.solid` file outside `<script>` and `<style>` is markup. Markup
 | `disabled=!valid`        | `disabled={!valid}`        | `!`, `-`, `+` and `~` before a value.     |
 | `tabIndex=0`             | `tabIndex={0}`             | Numbers.                                  |
 | `disabled=false`         | `disabled={false}`         | `true`, `false` and `null`.               |
-| `href=(base + path)`     | `href={(base + path)}`     | Any other expression goes in parentheses. |
+| `href=(base + path)`     | `href={base + path}`       | Any other expression goes in parentheses. |
 | ``id=`item-${id}` ``     | ``id={`item-${id}`}``      | Template literals.                        |
 | `items=[1, 2]`           | `items={[1, 2]}`           | Array literals.                           |
 | `pattern=/a+/g`          | `pattern={/a+/g}`          | Regular expressions.                      |
@@ -104,7 +104,7 @@ A value without parentheses ends at whitespace, `/` or `>`. Operators other than
 Names can contain `-` and one `:` namespace, as in JSX:
 
 ```html
-<div aria-label="Close" class:active=(selected) use:tooltip="Hello" />
+<svg aria-label="Close"><use xlink:href="#close" /></svg>
 ```
 
 Attributes must be separated by whitespace. `<a title="a"href="b">` is a syntax error.

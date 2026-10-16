@@ -25,10 +25,10 @@ The compile-time functions come from the [`solid-labels` 1.0](https://github.com
 ```
 
 ```tsx
-let [count, setcount_1] = createSignal(0);
+let [count, setCount] = createSignal(0);
 
 function increment() {
-  setcount_1((current_1) => (current_1 += 1));
+  setCount((current) => (current += 1));
 }
 
 <button onClick={increment}>{count()}</button>;
@@ -50,8 +50,8 @@ When the initial value is not a constant, or when it reads another reactive vari
 ```
 
 ```tsx
-let [price, setprice_1] = createSignal(10);
-let [draft, setdraft_1] = createSignal(() => price() * 2);
+let [price, setPrice] = createSignal(10);
+let [draft, setDraft] = createSignal(() => price() * 2);
 ```
 
 ### `$memo` and `$`
@@ -131,9 +131,9 @@ Read the memo, and call `$isPending` on it, only inside `#loading`. A read outsi
 Solid 2.0 effects have two phases: a tracked phase that reads values, and an untracked phase that does the work. The compiler builds both phases from one callback. It finds the reactive variables that the callback reads, reads them in the tracked phase, and passes their values to the callback:
 
 ```tsx
-createEffect(() => [count()], TimerEffect_1);
+createEffect(() => [count()], TimerEffect);
 
-function TimerEffect_1([count]) {
+function TimerEffect([count]) {
   document.title = `Count: ${count}`;
 }
 ```
@@ -206,10 +206,10 @@ Destructuring `$props()` keeps every prop reactive:
 ```
 
 ```tsx
-const def_1 = 'Save',
+const def = 'Save',
   label = () => {
-    const value_1 = $$props.label;
-    return value_1 === void 0 ? def_1 : value_1;
+    const value = $$props.label;
+    return value === void 0 ? def : value;
   },
   rest = omit($$props, 'label');
 ```
@@ -258,7 +258,7 @@ Reading a reactive variable gives its value. To pass the signal itself to other 
 ```tsx
 const state = {
   get count() { return count(); },
-  set count(param_1) { setcount_1(() => param_1); },
+  set count(param) { setCount(() => param); },
 };
 ```
 

@@ -2,6 +2,8 @@
   import { onCleanup } from 'solid-js';
   import { compile } from 'solid-sfc';
   import type { SFCWarning } from 'solid-sfc';
+  import { Listbox, ListboxButton, ListboxOption, ListboxOptions } from 'terracotta/listbox';
+  import { Tab as OutputTab, TabGroup, TabList, TabPanel } from 'terracotta/tabs';
   import { examples } from '../examples.ts';
   import { highlight } from '../highlight/index.ts';
 
@@ -111,12 +113,22 @@
     document.title = 'Playground | solid-sfc';
   });
 
-  function load(event: Event & { currentTarget: HTMLSelectElement }) {
-    const example = examples.find((item) => item.name === event.currentTarget.value);
+  // The example that the editor holds, until the source is edited.
+  const selected = $memo(examples.find((item) => item.source === source)?.name);
+
+  function load(name?: string) {
+    const example = examples.find((item) => item.name === name);
     if (example) {
       source = example.source;
     }
   }
+
+  const tabs: { value: Tab; label: string }[] = [
+    { value: 'preview', label: 'Preview' },
+    { value: 'tsx', label: 'TSX' },
+    { value: 'css', label: 'CSS' },
+    { value: 'warnings', label: 'Warnings' },
+  ];
 
   async function share() {
     await navigator.clipboard.writeText(location.href);
@@ -153,18 +165,61 @@
     border-bottom: 1px solid var(--border);
   }
 
-  select,
-  .toolbar button {
+  /* Terracotta renders the picker and the tabs, so they are not scoped. */
+  .toolbar :global(.picker) {
+    position: relative;
+  }
+
+  .toolbar :global(.picker-button),
+  .action {
+    display: inline-flex;
+    gap: 0.5rem;
+    align-items: center;
     padding: 0.35rem 0.6rem;
     border: 1px solid var(--border);
     border-radius: 0.375rem;
     font: inherit;
     color: inherit;
     background: var(--surface);
+    cursor: pointer;
   }
 
-  .toolbar button {
+  .toolbar :global(.picker-button) {
+    min-width: 12rem;
+    justify-content: space-between;
+  }
+
+  .toolbar :global(.picker-options) {
+    position: absolute;
+    top: calc(100% + 0.25rem);
+    left: 0;
+    z-index: 20;
+    min-width: 100%;
+    max-height: 20rem;
+    overflow-y: auto;
+    margin: 0;
+    padding: 0.25rem;
+    border: 1px solid var(--border);
+    border-radius: 0.375rem;
+    list-style: none;
+    background: var(--background);
+    box-shadow: 0 8px 24px rgb(0 0 0 / 0.15);
+  }
+
+  .toolbar :global(.picker-option) {
+    padding: 0.35rem 0.6rem;
+    border-radius: 0.25rem;
+    white-space: nowrap;
     cursor: pointer;
+  }
+
+  .toolbar :global(.picker-option[tc-active]) {
+    background: var(--surface);
+  }
+
+  .toolbar :global(.picker-option[tc-selected]) {
+    font-weight: 600;
+    color: var(--accent);
   }
 
   .hint {
@@ -225,21 +280,21 @@
     outline: none;
   }
 
-  .output {
+  .panes > :global(.output) {
     display: grid;
     grid-template-rows: auto minmax(0, 1fr);
     min-height: 0;
     background: var(--surface);
   }
 
-  [role='tablist'] {
+  .panes :global(.tabs) {
     display: flex;
     gap: 0.25rem;
     padding: 0.5rem 1rem 0;
     border-bottom: 1px solid var(--border);
   }
 
-  [role='tab'] {
+  .panes :global(.tab) {
     padding: 0.4rem 0.75rem;
     border: none;
     border-bottom: 2px solid transparent;
@@ -249,9 +304,14 @@
     cursor: pointer;
   }
 
-  [role='tab'][aria-selected='true'] {
+  .panes :global(.tab[tc-selected]) {
     border-bottom-color: var(--accent);
     color: var(--text);
+  }
+
+  /* An error replaces the panels until the code compiles. */
+  .panes :global(.failed > [role='tabpanel']) {
+    display: none;
   }
 
   pre {
@@ -276,15 +336,19 @@
     background: none;
   }
 
-  [role='tabpanel'] {
+  .panes :global(.panel) {
     min-height: 0;
     overflow: auto;
   }
 
-  .preview {
+  /* A panel that stays mounted is only shown with its tab. */
+  .panes :global(.panel:not([tc-selected])) {
+    display: none;
+  }
+
+  .panes :global(.preview) {
     display: flex;
     flex-direction: column;
-    height: 100%;
   }
 
   /* The frame takes the space under the status line, if there is one. */
@@ -347,15 +411,20 @@
 
 <main>
   <div class="toolbar">
-    <label>
-      Example
-      <select onChange=load>
+    <Listbox class="picker" value=selected onSelectChange=load defaultOpen=false>
+      <ListboxButton class="picker-button" aria-label="Example">
+        <span>{selected ?? 'Edited example'}</span>
+        <svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true">
+          <path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.5" />
+        </svg>
+      </ListboxButton>
+      <ListboxOptions class="picker-options">
         #for (example of examples) {
-          <option value=example.name>{example.name}</option>
+          <ListboxOption class="picker-option" value=example.name>{example.name}</ListboxOption>
         }
-      </select>
-    </label>
-    <button type="button" onClick=share>
+      </ListboxOptions>
+    </Listbox>
+    <button type="button" class="action" onClick=share>
       #if (copied) {
         Link copied
       } #else {
@@ -377,70 +446,70 @@
         onScroll=syncScroll
       />
     </div>
-    <section class="output" aria-label="Output">
-      <div role="tablist">
-        <button
-          type="button"
-          role="tab"
-          aria-selected=(tab === 'preview' ? 'true' : 'false')
-          onClick=(() => (tab = 'preview'))
-        >
-          Preview
-        </button>
-        <button type="button" role="tab" aria-selected=(tab === 'tsx' ? 'true' : 'false') onClick=(() => (tab = 'tsx'))>
-          TSX
-        </button>
-        <button type="button" role="tab" aria-selected=(tab === 'css' ? 'true' : 'false') onClick=(() => (tab = 'css'))>
-          CSS
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected=(tab === 'warnings' ? 'true' : 'false')
-          onClick=(() => (tab = 'warnings'))
-        >
-          Warnings
-          #if (output.ok && output.warnings.length > 0) {
-            <span class="count">{output.ok ? output.warnings.length : 0}</span>
-          }
-        </button>
-      </div>
-      <div role="tabpanel">
-        #if (!output.ok) {
-          <pre class="error">{output.ok ? '' : output.error}</pre>
-        } #else if (tab === 'preview') {
-          <div class="preview">
-            #if (previewError) {
-              <pre class="error">{previewError}</pre>
-            } #else if (!builder) {
-              <p class="status">Loading Solid's compiler…</p>
-            }
-            <!-- A new frame tells the playground when it is ready. -->
-            <iframe
-              title="Preview"
-              src=previewUrl
-              ref=((element: HTMLIFrameElement) => {
-                frame = element;
-                frameReady = false;
-              })
-            />
-          </div>
-        } #else if (highlighted) {
-          <div class="code" innerHTML=highlighted />
-        } #else if (tab === 'tsx') {
-          <pre>{output.ok ? output.code : ''}</pre>
-        } #else if (tab === 'css') {
-          <pre>{output.ok ? output.css || '/* No styles */' : ''}</pre>
-        } #else {
-          <ul class="warnings">
-            #for (warning of output.ok ? output.warnings : []) {
-              <li>{warning.line}:{warning.column} {warning.message} <code>{warning.code}</code></li>
-            } #else {
-              <li>No warnings.</li>
-            }
-          </ul>
+    <TabGroup
+      class={ output: true, failed: !output.ok }
+      aria-label="Output"
+      horizontal=true
+      value=tab
+      onChange=((value?: Tab) => {
+        if (value) {
+          tab = value;
         }
-      </div>
-    </section>
+      })
+    >
+      <TabList class="tabs">
+        #for (item of tabs) {
+          <OutputTab as="button" type="button" class="tab" value=item.value>
+            {item.label}
+            #if (item.value === 'warnings' && output.ok && output.warnings.length > 0) {
+              <span class="count">{output.ok ? output.warnings.length : 0}</span>
+            }
+          </OutputTab>
+        }
+      </TabList>
+      #if (!output.ok) {
+        <pre class="error">{output.ok ? '' : output.error}</pre>
+      }
+      <!-- The preview stays mounted, so its frame does not load again. -->
+      <TabPanel class="panel preview" value="preview" unmount=false>
+        #if (previewError) {
+          <pre class="error">{previewError}</pre>
+        } #else if (!builder) {
+          <p class="status">Loading Solid's compiler…</p>
+        }
+        <!-- A new frame tells the playground when it is ready. -->
+        <iframe
+          title="Preview"
+          src=previewUrl
+          ref=((element: HTMLIFrameElement) => {
+            frame = element;
+            frameReady = false;
+          })
+        />
+      </TabPanel>
+      <TabPanel class="panel" value="tsx">
+        #if (highlighted) {
+          <div class="code" innerHTML=highlighted />
+        } #else {
+          <pre>{output.ok ? output.code : ''}</pre>
+        }
+      </TabPanel>
+      <TabPanel class="panel" value="css">
+        #if (highlighted) {
+          <div class="code" innerHTML=highlighted />
+        } #else {
+          <pre>{output.ok ? output.css || '/* No styles */' : ''}</pre>
+        }
+      </TabPanel>
+      <TabPanel class="panel" value="warnings">
+        <ul class="warnings">
+          #for (warning of output.ok ? output.warnings : []) {
+            <li>{warning.line}:{warning.column} {warning.message} <code>{warning.code}</code></li>
+          } #else {
+            <li>No warnings.</li>
+          }
+        </ul>
+      </TabPanel>
+    </TabGroup>
   </div>
 </main>

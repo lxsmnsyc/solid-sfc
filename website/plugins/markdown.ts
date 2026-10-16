@@ -67,9 +67,67 @@ function rewriteLink(href: string, base: string): string {
   return href;
 }
 
+const ALERTS: Record<string, string> = {
+  NOTE: 'Note',
+  TIP: 'Tip',
+  IMPORTANT: 'Important',
+  WARNING: 'Warning',
+  CAUTION: 'Caution',
+};
+
+/**
+ * Renders GitHub alerts, a quote that starts with a line such as
+ * `[!IMPORTANT]`, as `<div class="alert important">` with a title.
+ */
+function alerts(parser: MarkdownIt): void {
+  // After `text_join`, so the marker is one text token.
+  parser.core.ruler.push('alerts', (state) => {
+    const { tokens } = state;
+    for (let index = 0; index < tokens.length; index++) {
+      const open = tokens[index]!;
+      const inline = tokens[index + 2];
+      if (open.type !== 'blockquote_open' || inline?.type !== 'inline') {
+        continue;
+      }
+      const match = /^\[!(\w+)\]\s*(?:\n|$)/.exec(inline.content);
+      const title = match && ALERTS[match[1]!.toUpperCase()];
+      if (!match || !title) {
+        continue;
+      }
+      const kind = match[1]!.toLowerCase();
+      // Drops the marker and the line break after it.
+      const children = inline.children ?? [];
+      const first = children.findIndex((child) => child.type === 'text');
+      if (first !== -1) {
+        children[first]!.content = children[first]!.content.replace(/^\[!\w+\]\s*/, '');
+        if (!children[first]!.content && children[first + 1]?.type === 'softbreak') {
+          children.splice(first, 2);
+        }
+      }
+      let depth = 0;
+      for (let close = index; close < tokens.length; close++) {
+        const token = tokens[close]!;
+        if (token.type === 'blockquote_open') {
+          depth++;
+        } else if (token.type === 'blockquote_close' && --depth === 0) {
+          token.tag = 'div';
+          break;
+        }
+      }
+      open.tag = 'div';
+      open.attrSet('class', `alert ${kind}`);
+      open.attrSet('role', 'note');
+      const heading = new state.Token('html_block', '', 0);
+      heading.content = `<p class="alert-title">${title}</p>\n`;
+      tokens.splice(index + 1, 0, heading);
+    }
+  });
+}
+
 function createRenderer(base: string): MarkdownIt {
   const parser = new MarkdownIt({ html: false, linkify: false });
   parser.use(twinkleplop, { languages: LANGUAGES, on_unknown_language: 'plain' });
+  parser.use(alerts);
   parser.renderer.rules.link_open = (tokens, index, options, _env, self) => {
     const token = tokens[index]!;
     const href = token.attrGet('href');

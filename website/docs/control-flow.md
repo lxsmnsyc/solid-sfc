@@ -24,15 +24,20 @@ Blocks can be nested. They work at the top level of the markup, inside elements,
 }
 ```
 
-`#if` compiles to a conditional expression:
+`#if` compiles to `<Show>`. With `#else if`, the branches compile to `<Switch>` and `<Match>`:
 
 ```tsx
-{(status === 'loading') ? <><Spinner /></>
-  : (status === 'error') ? <><p>Something went wrong.</p></>
-  : <><Results /></>}
+<Switch fallback={<><Results /></>}>
+  <Match when={status === 'loading'}><Spinner /></Match>
+  <Match when={status === 'error'}><p>Something went wrong.</p></Match>
+</Switch>
 ```
 
-Solid tracks the condition, so the block updates when it changes. TypeScript narrows values inside each branch:
+An `#if` with only `#else` compiles to `<Show when={a} fallback={<>B</>}>A</Show>`.
+
+Solid tracks the condition, so the block updates when it changes. A branch is only created again when the condition changes between truthy and falsy.
+
+TypeScript narrows values inside each branch. For type-checking, the editor and `solid-tsc` see `#if` as a conditional expression, `{(a) ? <>A</> : <>B</>}`, so the narrowing works as it does in TSX:
 
 ```html
 <script>
