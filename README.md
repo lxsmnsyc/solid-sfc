@@ -8,7 +8,7 @@ Read the [documentation](./website/docs/README.md) to get started.
 
 ## Packages
 
-- [`solid-sfc`](./packages/solid-sfc) is the compiler and the Vite plugin.
+- [`solid-sfc`](./packages/solid-sfc) is the compiler, and the plugins for Vite, Rollup, Rolldown, webpack, Rspack and esbuild.
 - [`@solid-sfc/language-core`](./packages/language-core) is the Volar language plugin.
 - [`@solid-sfc/tsc`](./packages/tsc) type-checks projects with `.solid` files.
 - [`@solid-sfc/language-server`](./packages/language-server) is the language server.
@@ -17,7 +17,7 @@ Read the [documentation](./website/docs/README.md) to get started.
 
 ## Examples
 
-- [`tasks`](./examples/tasks) is a task board that uses every feature of `.solid` files.
+- [`tasks`](./examples/tasks) is a task board that uses most features of `.solid` files.
 - [`ssr`](./examples/ssr) renders a `.solid` app on the server with start mode and hydrates it.
 
 ## Development

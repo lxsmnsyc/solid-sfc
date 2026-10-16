@@ -173,6 +173,6 @@ css`
 
 - `@global { }` is gone. Use `:global(...)` or a `<style global>` block.
 - `use:solid-styled` is gone.
-- `<StyleRegistry>` is not needed. The styles are a CSS file that Vite bundles.
+- `<StyleRegistry>` is not needed. Components add their styles to the head while they are rendered, and on the server the styles go into the head of the document.
 
 See [Styles](./styles.md).

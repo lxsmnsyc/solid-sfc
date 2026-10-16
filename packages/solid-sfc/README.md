@@ -74,6 +74,10 @@ Add the types to `tsconfig.json`:
 ### Options
 
 - `solid` is passed to `@solidjs/vite-plugin`.
+- `root` is the project root, which scoped style hashes are relative to. It defaults to the Vite root.
+- `dev` adds debug names to signals and memos, and keeps stylesheets unminified. It defaults to Vite's development mode.
+
+Rollup, Rolldown, webpack, Rspack and esbuild have plugins too: `solid-sfc/rollup`, `solid-sfc/rolldown`, `solid-sfc/webpack`, `solid-sfc/rspack` and `solid-sfc/esbuild`. See [Tooling](https://github.com/lxsmnsyc/solid-sfc/blob/main/website/docs/tooling.md).
 
 ## Script
 
@@ -116,7 +120,7 @@ Compile-time functions are global functions that the compiler replaces with Soli
 - `$destructure` keeps destructured values reactive. Rest elements use `omit`.
 - `$get`, `$set`, `$refSignal`, `$refMemo`, `$derefSignal`, `$derefMemo`, `$getter`, `$setter` and `$property` convert between reactive variables and accessors.
 - Other compile-time functions are renamed to the Solid 2.0 function and imported, for example `$settled` to `onSettled` and `$store` to `createStore`.
-- `For`, `Show`, `Switch`, `Match`, `Repeat`, `Errored`, `Loading`, `Reveal`, `Dynamic` and `Portal` are imported when they are used without an import.
+- `For`, `Show`, `Switch`, `Match`, `Repeat`, `Errored`, `Loading`, `Reveal`, `Portal`, `Hydration`, `NoHydration` and `HydrationScript` are imported when they are used without an import.
 
 See the [`solid-labels` documentation](https://github.com/lxsmnsyc/solid-labels/blob/1.0/docs/ctf.md) for the full list.
 
@@ -178,7 +182,7 @@ Blocks can be nested, and they work inside elements and inside JSX in expression
 - `:global(...)` is not scoped. `:global(.dark) .item` matches `.item` inside any `.dark` element.
 - `<style global>` is not scoped at all.
 - `@keyframes` names are scoped. `animation` and `animation-name` in the same component use the scoped name.
-- The styles become a CSS file that Vite bundles. Nothing is added to the page at runtime.
+- The component adds its styles to the head while it is rendered, with `useStyle` from `solid-sfc/runtime`, and removes them when the last instance is removed. On the server they go into the head of the document.
 
 `${expression}` in a declaration value sets a CSS variable. It updates when the expression changes.
 
@@ -241,7 +245,7 @@ Other changes:
 
 ## Compiler API
 
-`compile` turns a `.solid` file into TSX and CSS. The TSX needs the SolidJS JSX compiler. It imports `solid-sfc/runtime` when a `style` attribute is merged with CSS variables.
+`compile` turns a `.solid` file into TSX and CSS. The TSX needs the SolidJS JSX compiler. It imports helpers from `solid-sfc/runtime`, such as `useStyle` when the file has styles.
 
 ```ts
 import { compile } from 'solid-sfc';
@@ -251,7 +255,7 @@ const { code, map, css } = compile(source, {
   // Optional. Must be unique and stable across builds.
   scope: 'counter',
 });
-// css is { code, map }, or undefined without <style> blocks.
+// css is { code, map, lang }, or undefined without <style> blocks.
 ```
 
 Syntax errors throw an `SFCError` with `line` and `column`.
@@ -263,10 +267,6 @@ Syntax errors throw an `SFCError` with `line` and `column`.
 - [`@solid-sfc/language-server`](https://github.com/lxsmnsyc/solid-sfc/tree/main/packages/language-server): the language server, for other editors.
 
 Without these tools, `tsc` types imports of `.solid` files as `Component<any>`.
-
-## Limitations
-
-- Only Vite is supported.
 
 ## License
 

@@ -48,7 +48,12 @@ export function createSyntaxDiagnosticsPlugin(): LanguageServicePlugin {
             return [];
           }
           try {
-            const { warnings } = compileStructure(document.getText(), { filename: document.uri });
+            // Like the editor's TSX, so warnings that only apply without a bundler, such as
+            // on SCSS stylesheets, are left out.
+            const { warnings } = compileStructure(document.getText(), {
+              filename: document.uri,
+              typeCheck: true,
+            });
             return warnings.map((warning): Diagnostic => ({
               range: {
                 start: document.positionAt(warning.offset),

@@ -5,7 +5,9 @@ Language support for [`solid-sfc`](https://github.com/lxsmnsyc/solid-sfc) `.soli
 - Syntax highlighting for scripts, styles, markup and `#` control flow blocks.
 - Type checking, hover, completion and go-to-definition in scripts and markup.
 - CSS language features in `<style>` blocks.
-- Syntax errors in the markup.
+- Syntax errors and warnings in the markup.
+- Completion for `#` blocks and `<solid:` elements, and code actions that wrap markup in a block or extract it to a `#template`.
+- Folding of blocks, and snippets for `<script>`, `<style>` and a component.
 
 The extension includes its own TypeScript 6 compiler, so it works with any TypeScript version in the project.
 

@@ -112,7 +112,7 @@ Each dynamic tag gets its own component from Solid's `dynamic(() => as)`, so its
 
 - Scoped styles apply to a dynamic tag, because it can be a native element. When the tag is a component, the component gets the scope attribute as a prop.
 - A dynamic tag can be any tag, so it matches every tag selector when the compiler [looks for unused selectors](styles.md#unused-selectors).
-- It gets no [accessibility warnings](#accessibility-warnings), and `bind:` is not supported on it.
+- It gets no [accessibility warnings](#accessibility-warnings).
 
 ## Children
 

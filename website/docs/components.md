@@ -37,21 +37,25 @@ A `.solid` file compiles to one component, the default export of the module.
 | `<style>`         | CSS scoped to the component. See [Styles](./styles.md).                              |
 | Everything else   | The markup that the component returns. See [Markup](./markup.md).                    |
 
-A file can have at most one `<script>` and one `<script module>`, and any number of `<style>` blocks. The parts can come in any order.
+A file can have one `<script>` and one `<script module>` at the top level, and any number of `<style>` blocks. The parts can come in any order. A block of markup, such as `#for`, can also start with its own `<script>`. See [scripts in blocks](./control-flow.md#scripts-in-blocks).
 
 The example compiles to this TSX:
 
 ```tsx
 import { createSignal as _createSignal } from 'solid-js';
 import Button from './Button.solid';
+import { useStyle as __useStyle } from 'solid-sfc/runtime';
 
 export const MAX = 10;
 
 interface Props {
   initial: number;
 }
+const __stylesheet = "p[s-x1y2z3]{color:var(--s-x1y2z3-0)}";
 
 export default function Counter($$props: Props) {
+  // Adds the stylesheet to the page while the component is rendered.
+  __useStyle("s-x1y2z3", __stylesheet);
   const __styleVariables = () => ({
     '--s-x1y2z3-0': (count() > MAX ? 'red' : 'black'),
   });

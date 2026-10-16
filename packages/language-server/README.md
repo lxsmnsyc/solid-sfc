@@ -2,7 +2,7 @@
 
 > A language server for `solid-sfc` `.solid` files.
 
-It provides type checking, hover, completion, go-to-definition and the other TypeScript features in scripts and markup, CSS features in `<style>` blocks, and markup syntax errors.
+It provides type checking, hover, completion, go-to-definition and the other TypeScript features in scripts and markup, CSS features in `<style>` blocks, and markup syntax errors and warnings. It also completes `#` blocks and `<solid:` elements, and has code actions that wrap markup in `#if`, `#for`, `#loading` or `#try`, or extract it to a `#template`.
 
 The [VS Code extension](https://github.com/lxsmnsyc/solid-sfc/tree/main/packages/vscode) includes this server. Other editors can run it over stdio:
 

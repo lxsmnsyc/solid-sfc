@@ -68,8 +68,8 @@ Without `#else`, the block renders nothing when the condition is false.
 ```tsx
 <For each={todos} fallback={<><li>Nothing to do.</li></>}>
   {(todo, __index) => {
-    const index = $derefMemo(__index);
-    return <><li>{index + 1}. {todo.title}</li></>;
+    const index = __index;
+    return <><li>{index() + 1}. {todo.title}</li></>;
   }}
 </For>
 ```
@@ -143,7 +143,7 @@ The index is optional:
 }
 ```
 
-`#switch` compiles to `<Switch>` and one `<Match>` for each `#case`. It renders the first case whose condition is true. `#default` renders when no case matches, and it must be the last branch.
+`#switch` compiles to `<Switch>` and one `<Match>` for each `#case`. It renders the first case whose condition is true. `#default` becomes a last `<Match when={true}>`, so it renders when no case matches. It must be the last branch.
 
 Only `#case`, `#default`, whitespace and comments are allowed directly inside `#switch`.
 

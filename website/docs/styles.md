@@ -18,7 +18,7 @@ The styles of a component are added to the page while the component is rendered,
 
 - The first instance of a component adds a `<style s:id="s-x1y2z3">` to the head. The last instance to be removed removes it. A page only loads the CSS of the components it shows.
 - On the server, the stylesheet goes into the head of the document, so the page is styled before scripts run. When the page hydrates, the components use that `<style>` instead of adding another.
-- The bundler still processes the CSS, so Vite's PostCSS setup and minification apply. The CSS ships inside the JavaScript of the component, and the build writes no `.css` file for it.
+- In Vite, Vite still processes the CSS, so its PostCSS setup and minification apply. With the other bundlers, the plugin compiles the CSS itself. The CSS ships inside the JavaScript of the component, and the build writes no `.css` file for it.
 
 The compiled component calls `useStyle` from `solid-sfc/runtime` at its start:
 
@@ -34,7 +34,7 @@ export default function List() {
 
 Without a bundler plugin, as in `compile()`, the stylesheet is a string in the module.
 
-Stylesheets are minified, without comments and the whitespace that CSS does not need. Vite minifies them in production builds. With the other bundlers and `compile()`, the compiler minifies them unless `dev` is set.
+Stylesheets are minified, without comments and the whitespace that CSS does not need. Vite minifies them in production builds. With the other bundlers, the plugin minifies them unless `dev` is set. `compile()` on its own minifies CSS unless `dev` is set, and keeps SCSS and Less as they are written, because it cannot compile them.
 
 ## How scoping works
 
@@ -56,7 +56,7 @@ The compiler adds an `s-<hash>` attribute to every native element and [dynamic t
 - The attribute goes before pseudo-elements: `p::before` becomes `p[s-x1y2z3]::before`.
 - Rules inside `@media`, `@supports` and other at-rules are scoped too.
 - In nested CSS, a part that starts with `&` is not scoped again, because its parent already is: `.a { &:hover { } }` becomes `.a[s-x1y2z3] { &:hover { } }`.
-- The hash comes from the path of the file relative to the Vite root, so it is the same on every build.
+- With a bundler plugin, the hash comes from the path of the file relative to the project root, which is the Vite root or the `root` option, so it is the same on every build. `compile()` hashes `filename`, unless `scope` is given.
 
 Elements passed as children to other components get the attribute too, because they are written in this file:
 
@@ -170,7 +170,7 @@ const __styleVariables = () => ({
 
 ## SCSS and Less
 
-`lang="scss"` and `lang="less"` use a preprocessor. Install it in your project, as for any Vite project:
+`lang="scss"` and `lang="less"` use a preprocessor. Install `sass` or `less` in your project. In Vite, any preprocessor that Vite supports works, such as `sass-embedded`:
 
 ```bash
 pnpm add -D sass
@@ -223,3 +223,5 @@ CSS syntax errors point at the line and column in the `.solid` file, for example
 | `Interpolations are only allowed in declaration values` | `${...}` is in a selector, an at-rule or a property name. |
 | `A global style cannot have interpolations`             | `${...}` is in a `<style global>` block.                  |
 | `Empty interpolation`                                   | `${}` has no expression.                                  |
+| `All <style> blocks of a file must have the same lang`  | The blocks mix `css`, `scss` and `less`.                  |
+| `Unsupported style lang "x". Use css, scss or less`     | `lang` is another language.                               |

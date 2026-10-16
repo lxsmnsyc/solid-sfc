@@ -36,7 +36,7 @@ function increment() {
 
 - `count = value`, `count += value`, `count++` and the other assignments all become setter calls.
 - Assignments that `await` a value are split, so the setter receives the value and not the promise.
-- A type annotation on the variable becomes the type argument: `let user: User | null = $signal(null)` compiles to `createSignal<User | null>(null)`.
+- A type annotation types the variable for TypeScript: `let user: User | null = $signal(null)`. The compiled code drops the annotation, and a type argument, as in `$signal<User | null>(null)`, is kept.
 - The second argument is the signal options, such as `{ equals: false }`.
 - For a union of string literals, pass the type as a type argument: `let tab = $signal<Tab>('home')`. With an annotation, TypeScript narrows `tab` to `'home'` outside functions, so a check like `tab === 'settings'` in markup is a type error.
 
@@ -128,7 +128,7 @@ Read the memo, and call `$isPending` on it, only inside `#loading`. A read outsi
 </script>
 ```
 
-Solid 2.0 effects have two phases: a tracked phase that reads values, and an untracked phase that does the work. The compiler builds both phases from one callback. It finds the reactive variables that the callback reads, reads them in the tracked phase, and passes their values to the callback:
+Solid 2.0 effects have two phases: a tracked phase that reads values, and an untracked phase that does the work. The compiler builds both phases from one callback. It finds the reactive variables that the callback reads, reads them in the tracked phase, and passes their values to the callback. In `Timer.solid`, the callback becomes a function named after the component:
 
 ```tsx
 createEffect(() => [count()], TimerEffect);

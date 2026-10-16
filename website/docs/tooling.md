@@ -212,8 +212,8 @@ const plugin = createSolidLanguagePlugin({
 
 The plugin creates these virtual files for each `.solid` file:
 
-- `tsx`: the TSX from `compileStructure`, mapped back to the file. When the markup has a syntax error, only the scripts are kept, so the scripts still get type information.
-- `style_0`, `style_1` and so on: each `<style>` block as CSS. Interpolations are replaced with placeholders of the same length.
+- `tsx`: the TSX from `compileStructure`, mapped back to the file. When the markup has a syntax error, the broken part is blanked and the file is compiled again. When that fails, only the scripts are kept, so the scripts still get type information.
+- `style_0`, `style_1` and so on: each `<style>` block as CSS, SCSS or Less, by its `lang`. Interpolations are replaced with placeholders of the same length.
 
 ## Compiler API
 
@@ -233,7 +233,7 @@ const { code, map, css } = compile(source, {
 | ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `filename`   | Used for error messages, the source maps and the component name.                                                                                                     |
 | `scope`      | The hash in the `s-<hash>` attribute. It must be unique and the same on every build. The default is a hash of `filename`.                                            |
-| `dev`        | Adds debug names to signals and memos.                                                                                                                               |
+| `dev`        | Adds debug names to signals and memos, and keeps the stylesheet as it is written. Otherwise a CSS stylesheet is minified.                                            |
 | `stylesheet` | Returns a module, for the `lang` of the styles, whose default export is the stylesheet. The component imports it instead of holding the CSS. Bundler plugins set it. |
 
 | Result     | Description                                                                                                                                                                |
@@ -276,6 +276,7 @@ try {
 
 Compiled components import helpers from `solid-sfc/runtime`:
 
+- `useStyle(id, sheet)` adds the stylesheet of a component to the head while the component is rendered.
 - `mergeStyle(style, variables)` merges a `style` attribute with the CSS variables of the component.
 - `key(source, render)` implements `#key`. It renders again when `source()` changes.
 - `listen(target, type, listener)` implements `<solid:window>` and `<solid:document>`.
