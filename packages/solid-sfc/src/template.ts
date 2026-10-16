@@ -538,23 +538,15 @@ export class TemplateParser {
         }
         i = close + 1;
       } else if (char === '(') {
-        // `(name)` becomes `name={name}`.
+        // `(name)` was a second shorthand. `{name}` is the only one now.
         const close = this.scanner.scanExpression(i + 1, ')');
         const inner = source.slice(i + 1, close).trim();
-        if (!IDENTIFIER.test(inner)) {
-          this.fail('Expected an identifier', i + 1);
-        }
-        if (variables && inner === 'style') {
-          output.update(i, close + 1, mergedStyle);
-          hasStyle = true;
-          this.mergesStyle = true;
-        } else {
-          element.attributes.set(inner, null);
-          this.collectSelectorValue(element, inner, inner);
-          output.update(i, i + 1, `${inner}={`);
-          output.update(close, close + 1, '}');
-        }
-        i = close + 1;
+        this.fail(
+          IDENTIFIER.test(inner)
+            ? `Use {${inner}} for the shorthand of ${inner}={${inner}}`
+            : 'Expected an attribute',
+          i,
+        );
       } else if (char === '[') {
         // `[name]=value` becomes `{...{ [name]: value }}`.
         element.spread = true;

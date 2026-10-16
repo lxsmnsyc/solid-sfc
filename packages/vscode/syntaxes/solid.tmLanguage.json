@@ -576,25 +576,6 @@
           ]
         },
         {
-          "comment": "The `(name)` shorthand.",
-          "begin": "\\(",
-          "end": "\\)",
-          "captures": {
-            "0": {
-              "name": "meta.brace.round.solid"
-            }
-          },
-          "contentName": "meta.embedded.expression.tsx",
-          "patterns": [
-            {
-              "include": "#parens"
-            },
-            {
-              "include": "source.tsx"
-            }
-          ]
-        },
-        {
           "comment": "A computed attribute name, `[name]`.",
           "begin": "\\[",
           "end": "\\]",

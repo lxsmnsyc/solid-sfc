@@ -92,7 +92,6 @@ describe('variables', () => {
     ],
     ['<a style=(s()) />', '<a s-x style={__mergeStyle((s()), __styleVariables())} />'],
     ['<a {style} />', '<a s-x style={__mergeStyle(style, __styleVariables())} />'],
-    ['<a (style) />', '<a s-x style={__mergeStyle(style, __styleVariables())} />'],
     ['<input value=x>', '<input s-x value={x} style={__styleVariables()}/>'],
   ])('merges %s', (input, output) => {
     expect(markup(`<style>a { color: \${c} }</style>${input}`)).toBe(output);

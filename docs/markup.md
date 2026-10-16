@@ -33,15 +33,14 @@ A value without parentheses ends at whitespace, `/` or `>`. Operators other than
 | Write          | Compiles to              |
 | -------------- | ------------------------ |
 | `{href}`       | `href={href}`            |
-| `(href)`       | `href={href}`            |
 | `{...props}`   | `{...props}`             |
 | `[name]=value` | `{...{ [name]: value }}` |
 | `[name]`       | `{...{ [name]: true }}`  |
 
-`{name}` and `(name)` only accept an identifier. `[name]` sets an attribute whose name is computed when the element renders.
+`{name}` only accepts an identifier, as in a JavaScript object shorthand. `[name]` sets an attribute whose name is computed when the element renders.
 
 ```html
-<a {href} (title) class="link">Open</a>
+<a {href} {title} class="link">Open</a>
 <input [ariaAttribute]=label [dataAttribute]>
 ```
 

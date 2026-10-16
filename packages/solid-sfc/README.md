@@ -219,11 +219,10 @@ Braces in an attribute value hold an object:
 <div style={ color: 'red' } />
 ```
 
-`{name}` and `(name)` are shorthands for `name={name}`:
+`{name}` is short for `name={name}`, as in a JavaScript object:
 
 ```html
 <a {href} />
-<a (href) />
 ```
 
 `[name]` sets an attribute with a computed name:
