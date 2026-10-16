@@ -1,5 +1,6 @@
 import { MagicString } from 'magic-string';
 import { ControlFlowParser } from './control.ts';
+import { SFCError } from './error.ts';
 import { Scanner, isWhitespace } from './scanner.ts';
 import type { BlockImport } from './imports.ts';
 import { maskMarkup } from './script.ts';
@@ -280,7 +281,12 @@ export class TemplateParser {
    * `block`. Top-level `<script>` and `<style>` blocks are collected into
    * `blocks`. Returns the offset of the ending token.
    */
-  private parseChildren(offset: number, mode: ChildrenMode, blocks?: Block[]): number {
+  private parseChildren(
+    offset: number,
+    mode: ChildrenMode,
+    blocks?: Block[],
+    opener?: Range,
+  ): number {
     const { source } = this;
     let i = offset;
     while (i < source.length) {
@@ -290,9 +296,12 @@ export class TemplateParser {
           i = this.removeComment(i);
         } else if (source[i + 1] === '/') {
           if (mode !== 'element') {
-            this.fail(
+            // A stray closing tag is blanked.
+            const end = source.indexOf('>', i);
+            this.failAndRecover(
               mode === 'block' ? 'Expected "}" to close the block' : 'Unexpected closing tag',
               i,
+              { start: i, end: end === -1 ? i + 2 : end + 1 },
             );
           }
           return i;
@@ -326,7 +335,11 @@ export class TemplateParser {
       }
     }
     if (mode === 'element') {
-      this.fail('Unexpected end of file, expected a closing tag', i);
+      this.failAndRecover(
+        'Unexpected end of file, expected a closing tag',
+        i,
+        opener ?? { start: offset, end: offset },
+      );
     }
     if (mode === 'block') {
       this.fail('Expected "}" to close the block', i);
@@ -402,8 +415,9 @@ export class TemplateParser {
   private parseElement(offset: number, braces = false): number {
     const { source } = this;
     if (source[offset + 1] === '>') {
-      const close = this.parseChildren(offset + 2, 'element');
-      return this.parseClosingTag(close, '');
+      const opener = { start: offset, end: offset + 2 };
+      const close = this.parseChildren(offset + 2, 'element', undefined, opener);
+      return this.parseClosingTag(close, '', opener);
     }
     if (source[offset + 1] === '{') {
       return this.parseDynamicElement(offset, braces);
@@ -448,11 +462,8 @@ export class TemplateParser {
     if (scope) {
       this.output.appendLeft(nameEnd, ` ${scope.attribute}`);
     }
-    const { end, attributesEnd, selfClosing, hasStyle } = this.parseAttributes(
-      nameEnd,
-      name,
-      scope,
-      element,
+    const { end, attributesEnd, selfClosing, hasStyle } = this.recoverTag(offset, () =>
+      this.parseAttributes(nameEnd, name, scope, element),
     );
     if (scope?.variables && !hasStyle) {
       this.output.appendLeft(attributesEnd, ` style={${scope.variables}()}`);
@@ -464,8 +475,36 @@ export class TemplateParser {
       this.output.appendLeft(end - 1, '/');
       return end;
     }
-    const close = this.parseChildren(end, 'element');
-    return this.parseClosingTag(close, name);
+    const opener = { start: offset, end };
+    const close = this.parseChildren(end, 'element', undefined, opener);
+    return this.parseClosingTag(close, name, opener);
+  }
+
+  /**
+   * Runs `parse` on the tag that starts at `offset`. If it fails, editors
+   * blank the tag up to the error, as in an unfinished `<div cla`.
+   */
+  private recoverTag<T>(offset: number, parse: () => T): T {
+    try {
+      return parse();
+    } catch (error) {
+      if (error instanceof SFCError && !error.recover) {
+        error.recover = { start: offset, end: Math.max(error.offset, offset + 1) };
+      }
+      throw error;
+    }
+  }
+
+  /** Fails, and tells editors to blank `recover` to compile the rest. */
+  private failAndRecover(message: string, offset: number, recover: Range): never {
+    try {
+      return this.fail(message, offset);
+    } catch (error) {
+      if (error instanceof SFCError) {
+        error.recover = recover;
+      }
+      throw error;
+    }
   }
 
   /**
@@ -515,7 +554,7 @@ export class TemplateParser {
       attributesEnd,
       selfClosing,
       hasStyle,
-    } = this.parseAttributes(nameEnd, '', scope, element);
+    } = this.recoverTag(offset, () => this.parseAttributes(nameEnd, '', scope, element));
     if (scope?.variables && !hasStyle) {
       output.appendLeft(attributesEnd, ` style={${scope.variables}()}`);
     }
@@ -524,9 +563,10 @@ export class TemplateParser {
       output.appendLeft(tagEnd, after);
       return tagEnd;
     }
-    const closing = this.parseChildren(tagEnd, 'element');
+    const opener = { start: offset, end: tagEnd };
+    const closing = this.parseChildren(tagEnd, 'element', undefined, opener);
     output.appendLeft(closing + 2, DYNAMIC_TAG);
-    const elementEnd = this.parseClosingTag(closing, '');
+    const elementEnd = this.parseClosingTag(closing, '', opener);
     output.appendLeft(elementEnd, after);
     return elementEnd;
   }
@@ -576,7 +616,11 @@ export class TemplateParser {
     }
   }
 
-  private parseClosingTag(offset: number, name: string): number {
+  /**
+   * Parses the closing tag of the element that `opener` opened. If it does
+   * not match, editors blank the opener, so its children belong to the parent.
+   */
+  private parseClosingTag(offset: number, name: string, opener: Range): number {
     const { source } = this;
     let i = this.scanner.skipWhitespace(offset + 2);
     const closing = matchAt(TAG_NAME, source, i) ?? '';
@@ -586,7 +630,11 @@ export class TemplateParser {
         closing === 'script' && name !== 'script'
           ? '. In a script, <T> starts an element, as in a .tsx file. Write type parameters as <T,> and assertions as "value as T"'
           : '';
-      this.fail(`${name ? `Expected </${name}>` : 'Expected </>'}${hint}`, offset);
+      this.failAndRecover(
+        `${name ? `Expected </${name}>` : 'Expected </>'}${hint}`,
+        offset,
+        opener,
+      );
     }
     i = this.scanner.skipWhitespace(i + closing.length);
     if (source[i] !== '>') {

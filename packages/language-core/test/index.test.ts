@@ -2,6 +2,7 @@ import type { CodeMapping, IScriptSnapshot, VirtualCode } from '@volar/language-
 import { describe, expect, it } from 'vitest';
 import {
   createSolidLanguagePlugin,
+  compileForEditor,
   createSolidVirtualCode,
   getClosingTag,
   getDocumentSymbols,
@@ -259,21 +260,57 @@ describe('markup in scripts', () => {
   });
 
   it('masks it in the fallback script', () => {
-    const file = '<script>\n  const icon = <Icon size=16 />;\n</script>\n<p>';
+    const file = `<script>\n  const icon = <Icon size=16 />;\n</script>\n${UNRECOVERABLE}`;
     const text = textOf(embedded(file, 'tsx'));
     expect(text).toContain('const icon = null');
     expect(text).not.toContain('size=16');
   });
 });
 
+/** More broken lines than the editor blanks before it gives up on the markup. */
+const UNRECOVERABLE = '<a b=c+d />\n'.repeat(10);
+
 describe('scripts of blocks', () => {
   it('leaves them out of the outline and the fallback script', () => {
-    const file =
-      '<script>\n  let a = 1;\n</script>\n#if (a) {\n  <script>\n    let b = 2;\n  </script>\n  <p>{b}\n}';
+    const file = `<script>\n  let a = 1;\n</script>\n#if (a) {\n  <script>\n    let b = 2;\n  </script>\n  <p>{b}</p>\n}\n${UNRECOVERABLE}`;
     expect(getDocumentSymbols(file).map((symbol) => symbol.name)).toEqual(['<script>']);
     const code = embedded(file, 'tsx');
     expect(textOf(code)).toContain('let a = 1;');
     expect(textOf(code)).not.toContain('let b = 2;');
+  });
+});
+
+describe('recovery from syntax errors', () => {
+  const script = '<script>\n  let count = $signal(0);\n</script>\n';
+
+  it.each([
+    ['an unfinished tag', '<div>\n  <butt\n  <p>{count}</p>\n</div>'],
+    ['an unfinished attribute', '<div>\n  <input value= />\n  <p>{count}</p>\n</div>'],
+    ['an unclosed element', '<div>\n  <section>\n  <p>{count}</p>\n</div>'],
+    ['an element closed at the end of the file', '<div>\n  <p>{count}</p>'],
+    ['a stray closing tag', '<p>{count}</p>\n</span>'],
+    ['an unclosed block', '#if (count > 1) {\n  <p>{count}</p>'],
+    ['an unfinished expression', '<p>{count}</p>\n<p>{count.</p>'],
+    ['a syntax error in the script', '<p>{count}</p>'],
+  ])('keeps the markup typed with %s', (name, markup) => {
+    const file =
+      name === 'a syntax error in the script'
+        ? `<script>\n  let count = $signal(0);\n  const x = ;\n</script>\n${markup}`
+        : script + markup;
+    const { result, error } = compileForEditor(file);
+    expect(error).toBeDefined();
+    expect(result?.code).toContain('{count}');
+  });
+
+  it('returns no error for a valid file', () => {
+    const { result, error } = compileForEditor(`${script}<p>{count}</p>`);
+    expect(error).toBeUndefined();
+    expect(result).toBeDefined();
+  });
+
+  it('maps the markup of a broken file', () => {
+    const code = embedded(`${script}<p>{count}</p>\n<butt`, 'tsx');
+    expect(textOf(code)).toContain('{count}');
   });
 });
 

@@ -9,7 +9,7 @@ import type {
 import type { TypeScriptServiceScript } from '@volar/typescript';
 import { parseSync } from 'oxc-parser';
 import { SFCError, compileStructure, maskScriptMarkup } from 'solid-sfc';
-import type { SourceMap } from 'solid-sfc';
+import type { SourceMap, StructureResult } from 'solid-sfc';
 
 export const LANGUAGE_ID = 'solid';
 export const EXTENSION = '.solid';
@@ -237,13 +237,61 @@ function createStyleCodes(source: string): VirtualCode[] {
   });
 }
 
+/** Replaces a range with spaces, keeping line breaks, so offsets do not move. */
+function blank(source: string, start: number, end: number): string {
+  return (
+    source.slice(0, start) + source.slice(start, end).replace(/[^\n]/g, ' ') + source.slice(end)
+  );
+}
+
+const MAX_RECOVERIES = 8;
+
+/**
+ * Compiles a file for the editor. If the file has a syntax error, the part
+ * with the error is blanked out and the file is compiled again, so the rest
+ * of the file still gets type information. The first error is returned
+ * together with the result, if there is one.
+ */
+export function compileForEditor(
+  source: string,
+  fileName?: string,
+): { result: StructureResult | undefined; error: SFCError | undefined } {
+  let text = source;
+  let first: SFCError | undefined;
+  for (let attempt = 0; attempt <= MAX_RECOVERIES; attempt++) {
+    try {
+      return { result: compileStructure(text, { filename: fileName }), error: first };
+    } catch (error) {
+      if (!(error instanceof SFCError)) {
+        throw error;
+      }
+      first ??= error;
+      let { start, end } = error.recover ?? { start: error.offset, end: error.offset };
+      if (!text.slice(start, end).trim()) {
+        // Without a hint, or when the hint is already blank, the line goes.
+        start = text.lastIndexOf('\n', Math.min(error.offset, text.length) - 1) + 1;
+        const lineEnd = text.indexOf('\n', error.offset);
+        end = lineEnd === -1 ? text.length : lineEnd;
+      }
+      if (!text.slice(start, end).trim()) {
+        break;
+      }
+      text = blank(text, start, end);
+    }
+  }
+  return { result: undefined, error: first };
+}
+
 function createScriptCode(
   fileName: string,
   source: string,
   options: SolidLanguagePluginOptions,
 ): VirtualCode {
-  try {
-    const result = compileStructure(source, { filename: fileName });
+  const { result, error } = compileForEditor(source, fileName);
+  if (error) {
+    options.onError?.(fileName, error);
+  }
+  if (result) {
     return {
       id: 'tsx',
       languageId: 'typescriptreact',
@@ -261,13 +309,8 @@ function createScriptCode(
         })),
       ],
     };
-  } catch (error) {
-    if (!(error instanceof SFCError)) {
-      throw error;
-    }
-    options.onError?.(fileName, error);
-    return createFallbackScript(source);
   }
+  return createFallbackScript(source);
 }
 
 export function createSolidVirtualCode(
@@ -357,14 +400,12 @@ export function getFoldingRanges(source: string): FoldingRange[] {
   for (const match of markup.matchAll(/<!--[\s\S]*?-->/g)) {
     ranges.push({ start: match.index, end: match.index + match[0].length - 3, kind: 'comment' });
   }
-  try {
-    for (const body of compileStructure(source).bodies) {
-      ranges.push({ start: body.start, end: before(body.end) });
-    }
-  } catch (error) {
-    // The markup has a syntax error, so its blocks are not known.
-    if (!(error instanceof SFCError)) {
-      throw error;
+  // With a syntax error, the blocks outside the broken part still fold.
+  for (const body of compileForEditor(source).result?.bodies ?? []) {
+    const end = before(body.end);
+    // A block on one line does not fold.
+    if (end > body.start) {
+      ranges.push({ start: body.start, end });
     }
   }
   return ranges.toSorted((a, b) => a.start - b.start);

@@ -20,6 +20,11 @@ export class SFCError extends Error {
   readonly line: number;
   readonly column: number;
   readonly filename: string | undefined;
+  /**
+   * The part of the source that editors blank out to compile the rest of the
+   * file, such as an unfinished tag. Without it, they blank the line.
+   */
+  recover: { start: number; end: number } | undefined;
 
   constructor(message: string, source: string, offset: number, filename?: string) {
     const { line, column } = getLocation(source, offset);

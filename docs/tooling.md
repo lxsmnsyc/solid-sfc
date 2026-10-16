@@ -99,7 +99,7 @@ Install the Solid SFC extension from the Visual Studio Marketplace or Open VSX. 
 - Syntax highlighting for scripts, styles, markup and control flow blocks.
 - Type errors, hover, completion, go-to-definition and rename in scripts and markup.
 - CSS completion and errors in `<style>` blocks.
-- Markup syntax errors.
+- Markup syntax errors. The rest of the file keeps its types while you type: the editor leaves out the broken part, such as an unfinished tag or an unclosed element, and checks the rest.
 - Folding for `<script>` and `<style>` blocks, control flow blocks, elements and comments.
 - An outline with the `<script>` blocks and their declarations, the `<style>` blocks and their rules, and `#template` declarations.
 - Closing tags inserted after the `>` of an opening tag. The `solid.autoClosingTags` setting turns this off.

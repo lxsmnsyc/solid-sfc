@@ -3,6 +3,7 @@
  * They are rewritten in place into JSX expressions and SolidJS components.
  */
 import type { MagicString } from 'magic-string';
+import { SFCError } from './error.ts';
 import type { BlockImport } from './imports.ts';
 import type { Scanner } from './scanner.ts';
 import { isIdentifierPart, isWhitespace } from './scanner.ts';
@@ -335,8 +336,20 @@ export class ControlFlowParser {
     }
     const frame: Frame = { start: open + 1, declarationsEnd: undefined, imports: [] };
     this.frames.push(frame);
-    const end = this.host.parseBody(open + 1);
-    this.frames.pop();
+    let end: number;
+    try {
+      end = this.host.parseBody(open + 1);
+    } catch (error) {
+      // A body that runs to the end of the file is unclosed. Editors blank
+      // its opening line, such as `#if (a) {`, up to the brace.
+      if (error instanceof SFCError && !error.recover && error.offset >= source.length) {
+        const line = source.lastIndexOf('\n', open) + 1;
+        error.recover = { start: scanner.skipWhitespace(line), end: open + 1 };
+      }
+      throw error;
+    } finally {
+      this.frames.pop();
+    }
     for (const info of frame.imports) {
       info.scope.end = end;
     }
