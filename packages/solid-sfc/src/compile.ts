@@ -20,12 +20,7 @@ import { minifyCSS } from './minify.ts';
 import { getScopeAttribute, getVariableName, hash, processStyles } from './style.ts';
 import type { ScopedSelector, StyleLang } from './style.ts';
 import type { Block, ElementInfo, GeneratedText, Range, TemplateScope } from './template.ts';
-import {
-  DYNAMIC_IDENTIFIER,
-  LISTEN_IDENTIFIER,
-  SELECT_VALUES_IDENTIFIER,
-  TemplateParser,
-} from './template.ts';
+import { DYNAMIC_IDENTIFIER, LISTEN_IDENTIFIER, TemplateParser } from './template.ts';
 
 export type { SourceMap };
 
@@ -166,7 +161,6 @@ export function compileStructure(source: string, options: StructureOptions = {})
     usesKey,
     usesListen,
     usesDynamic,
-    usesSelectValues,
     scriptMarkup,
     blockImports,
     generated,
@@ -276,7 +270,6 @@ export function compileStructure(source: string, options: StructureOptions = {})
       sheet && `useStyle as ${USE_STYLE_IDENTIFIER}`,
       usesKey && `key as ${KEY_IDENTIFIER}`,
       usesListen && `listen as ${LISTEN_IDENTIFIER}`,
-      usesSelectValues && `selectValues as ${SELECT_VALUES_IDENTIFIER}`,
       mergesStyle && `mergeStyle as ${MERGE_STYLE_IDENTIFIER}`,
     ].filter(Boolean);
     if (runtime.length > 0) {

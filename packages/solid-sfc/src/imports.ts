@@ -325,7 +325,7 @@ export function localizeImports(options: {
   const rename = (node: Node, group: NameGroup, shorthand = false): void => {
     const start = toSource(node.start);
     const local = renamed.get(group);
-    // Text that the compiler copies, such as the setter of `bind:`, maps to
+    // Text that the compiler copies maps to
     // another place in the file. Only the name itself is renamed.
     const end = start === undefined ? 0 : start + group.local.length;
     if (

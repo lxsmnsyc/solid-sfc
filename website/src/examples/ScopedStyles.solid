@@ -45,5 +45,17 @@
   The hue is <strong>{hue}</strong>.
 </div>
 
-<label>Hue <input type="range" min="0" max="360" bind:value=hue></label>
-<label><input type="checkbox" bind:checked=round> Round corners</label>
+<label>
+  Hue
+  <input
+    type="range"
+    min="0"
+    max="360"
+    value=hue
+    onInput=((event) => (hue = event.currentTarget.valueAsNumber))
+  >
+</label>
+<label>
+  <input type="checkbox" checked=round onChange=((event) => (round = event.currentTarget.checked))>
+  Round corners
+</label>

@@ -44,9 +44,9 @@ A value without parentheses ends at whitespace, `/` or `>`. Operators other than
 <input [ariaAttribute]=label [dataAttribute]>
 ```
 
-## Bindings
+## Form fields
 
-`bind:` connects a form field to a variable in both directions. The field shows the variable, and typing into the field writes the variable:
+A form field shows a variable through its property, and its event handler writes the variable back:
 
 ```html
 <script>
@@ -55,49 +55,12 @@ A value without parentheses ends at whitespace, `/` or `>`. Operators other than
   let subscribed = $signal(false);
 </script>
 
-<input bind:value=name>
-<input type="number" bind:value=age>
-<input type="checkbox" bind:checked=subscribed>
+<input value=name onInput=((event) => (name = event.currentTarget.value))>
+<input type="number" value=age onInput=((event) => (age = event.currentTarget.valueAsNumber))>
+<input type="checkbox" checked=subscribed onChange=((event) => (subscribed = event.currentTarget.checked))>
 ```
 
-`bind:value=name` compiles to:
-
-```tsx
-<input value={name} onInput={(event) => (name = event.currentTarget.value)} />
-```
-
-| Binding        | Elements                                                    | Reads                                           | Listens to |
-| -------------- | ----------------------------------------------------------- | ----------------------------------------------- | ---------- |
-| `bind:value`   | `<input>`, `<textarea>`, `<select>`                         | `value`                                         | `input`    |
-| `bind:value`   | `<input type="number">` and `type="range"`                  | `valueAsNumber`                                 | `input`    |
-| `bind:value`   | `<select multiple>`                                         | The values of the selected options, as an array | `change`   |
-| `bind:checked` | `<input>`                                                   | `checked`                                       | `change`   |
-| `bind:group`   | `<input type="radio">` and `type="checkbox"` with a `value` | See below                                       | `change`   |
-| `bind:open`    | `<details>`                                                 | `open`                                          | `toggle`   |
-| `bind:open`    | `<dialog>`                                                  | `open`                                          | `close`    |
-| `bind:files`   | `<input type="file">`                                       | `files`, without writing it back                | `change`   |
-
-`bind:group` connects a set of radio buttons or checkboxes to one variable. A radio button sets the variable to its `value`, and checkboxes keep an array of the values that are checked:
-
-```html
-<script>
-  let size = $signal('m');
-  let toppings: string[] = $signal([]);
-</script>
-
-#for (option of ['s', 'm', 'l']) {
-  <label><input type="radio" value=option bind:group=size> {option}</label>
-}
-#for (option of ['cheese', 'ham']) {
-  <label><input type="checkbox" value=option bind:group=toppings> {option}</label>
-}
-```
-
-- The value must be a variable or a property, such as `name`, `form.name` or `rows[i]`.
-- The binding sets the event handler, so the element cannot also have that handler. Use an `$effect` to react to the change instead.
-- The `type` must be a string for `valueAsNumber`, `bind:group` and `bind:files` to be used.
-- `bind:value` on `<select multiple>` selects the options with a `ref`, so the element cannot have its own `ref`.
-- TypeScript checks that the variable can hold the value. `bind:value=age` on a text input is an error when `age` is a number.
+Assigning to a `$signal` variable calls its setter, so the field and the variable stay in sync. There is no `bind:` syntax: `bind:value` is a syntax error that shows this form.
 
 ## Attribute names
 

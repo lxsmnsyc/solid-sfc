@@ -57,87 +57,21 @@ describe('attributes', () => {
 });
 
 describe('bind:', () => {
-  it.each([
-    [
-      '<input bind:value=name>',
-      '<input value={name} onInput={(event) => (name = event.currentTarget.value)}/>',
-    ],
-    [
-      '<input type="number" bind:value=age />',
-      '<input type="number" value={age} onInput={(event) => (age = event.currentTarget.valueAsNumber)} />',
-    ],
-    [
-      "<input bind:value=age type='range' />",
-      "<input value={age} onInput={(event) => (age = event.currentTarget.valueAsNumber)} type='range' />",
-    ],
-    [
-      '<input type="checkbox" bind:checked=done />',
-      '<input type="checkbox" checked={done} onChange={(event) => (done = event.currentTarget.checked)} />',
-    ],
-    [
-      '<select bind:value=form.choice></select>',
-      '<select value={form.choice} onInput={(event) => (form.choice = event.currentTarget.value)}></select>',
-    ],
-    [
-      '<textarea bind:value=notes[i]></textarea>',
-      '<textarea value={notes[i]} onInput={(event) => (notes[i] = event.currentTarget.value)}></textarea>',
-    ],
-    [
-      '<input type="radio" value="a" bind:group=choice>',
-      '<input type="radio" value="a" checked={(choice) === "a"} onChange={(event) => (choice = "a")}/>',
-    ],
-    [
-      '<input type="checkbox" value=item.id bind:group=picked>',
-      '<input type="checkbox" value={item.id} checked={(picked).includes((item.id))} onChange={(event) => (picked = event.currentTarget.checked ? [...picked, (item.id)] : picked.filter((__item) => __item !== (item.id)))}/>',
-    ],
-    [
-      '<details bind:open=open></details>',
-      '<details open={open} onToggle={(event) => (open = event.currentTarget.open)}></details>',
-    ],
-    [
-      '<dialog bind:open=open></dialog>',
-      '<dialog open={open} onClose={(event) => (open = event.currentTarget.open)}></dialog>',
-    ],
-    [
-      '<input type="file" bind:files=files>',
-      '<input type="file" onChange={(event) => (files = event.currentTarget.files)}/>',
-    ],
-    [
-      '<select multiple bind:value=picked></select>',
-      '<select multiple ref={__selectValues(() => picked)} onChange={(event) => (picked = Array.from(event.currentTarget.selectedOptions, (option) => option.value))}></select>',
-    ],
-  ])('%s', (input, output) => {
-    expect(markup(input)).toBe(output);
-  });
+  it.each(['<input bind:value=name>', '<input type="checkbox" bind:checked=done />'])(
+    'rejects %s',
+    (input) => {
+      expect(() => compile(input)).toThrow('bind: is not supported');
+    },
+  );
 
-  it('imports the helper of <select multiple>', () => {
-    const { code } = compile('<select multiple bind:value=picked></select>', {
-      filename: 'S.solid',
-    });
-    expect(code).toContain("import { selectValues as __selectValues } from 'solid-sfc/runtime';");
-  });
-
-  it('writes signals with their setters', () => {
-    expect(markup('<script>let name = $signal("");</script><input bind:value=name>')).toBe(
+  it('writes signals from event handlers instead', () => {
+    expect(
+      markup(
+        '<script>let name = $signal("");</script><input value=name onInput=((event) => (name = event.currentTarget.value))>',
+      ),
+    ).toBe(
       '<input value={name()} onInput={(event) => (setName(() => event.currentTarget.value))}/>',
     );
-  });
-
-  it.each([
-    ['<div bind:value=a />', 'bind:value is not supported on <div>'],
-    ['<input bind:open=a />', 'bind:open is not supported on <input>'],
-    ['<input bind:value=a onInput=b />', 'bind:value sets onInput'],
-    ['<input bind:value=a() />', 'bind:value needs a variable or a property'],
-    ['<input bind:value=(a) />', 'bind:value needs a variable or a property'],
-    ['<input bind:value />', 'Expected a value for bind:value'],
-    ['<input bind:group=a value="b" />', 'bind:group needs type="radio" or type="checkbox"'],
-    ['<input type="radio" bind:group=a />', 'bind:group needs a value attribute'],
-    ['<input type="radio" value="b" checked bind:group=a />', 'bind:group sets checked'],
-    ['<input bind:files=a />', 'bind:files needs type="file"'],
-    ['<dialog bind:open=a onClose=b />', 'bind:open sets onClose'],
-    ['<select multiple ref=el bind:value=a />', 'sets ref'],
-  ])('rejects %s', (input, message) => {
-    expect(() => compile(input)).toThrow(message);
   });
 });
 
@@ -198,7 +132,6 @@ describe('dynamic tags', () => {
   it.each([
     ['<{} />', 'Expected an expression for the tag'],
     ['<{tag}>a</tag>', 'Expected </>'],
-    ['<{tag} bind:value=a />', 'bind:value is not supported on a dynamic tag'],
     ['<solid:dynamic component=a />', 'Use <{tag}> instead of <solid:dynamic>'],
   ])('rejects %s', (input, message) => {
     expect(() => compile(input)).toThrow(message);

@@ -119,7 +119,6 @@ const tagRules = [
   match('=', TOKENS.operator, enter('attr_value')),
   match('{', TOKENS.expression, enter('expression_body')),
   match('[', RAW, enter('raw_group')),
-  match('bind:', TOKENS.svelte_directive),
   match(ATTR_NAME_CHARS, TOKENS.attr_name),
   match(':', TOKENS.attr_name),
 ];

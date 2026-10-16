@@ -45,8 +45,13 @@
 </style>
 
 <form onSubmit=add>
-  <!-- bind:value keeps the field and the variable in sync. -->
-  <input bind:value=draft placeholder="What needs doing?" aria-label="New todo">
+  <!-- The field shows the variable, and typing writes it. -->
+  <input
+    value=draft
+    onInput=((event) => (draft = event.currentTarget.value))
+    placeholder="What needs doing?"
+    aria-label="New todo"
+  >
   <button disabled=!draft.trim()>Add</button>
 </form>
 

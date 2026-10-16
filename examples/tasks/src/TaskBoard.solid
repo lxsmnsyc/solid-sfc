@@ -182,7 +182,8 @@
     <input
       id=inputId
       ref=input
-      bind:value=draft
+      value=draft
+      onInput=((event) => (draft = event.currentTarget.value))
       placeholder="What needs doing?"
     >
     <button type="submit" disabled=!draft.trim()>Add</button>
@@ -196,8 +197,13 @@
         const selected = $memo(option === filter);
       </script>
       <label class={ selected }>
-        <!-- Radio buttons in a group write the value of the checked one. -->
-        <input class="visually-hidden" type="radio" name="filter" value=option bind:group=filter>
+        <input
+          class="visually-hidden"
+          type="radio"
+          name="filter"
+          checked=selected
+          onChange=(() => (filter = option))
+        >
         {option}
         <span class="count">{counts[option]}</span>
       </label>

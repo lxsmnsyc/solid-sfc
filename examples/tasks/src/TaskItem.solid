@@ -131,7 +131,8 @@
       class="rename"
       aria-label="Task title"
       ref=focus
-      bind:value=draft
+      value=draft
+      onInput=((event) => (draft = event.currentTarget.value))
       {onKeyDown}
       onBlur=(() => finish(true))
     >

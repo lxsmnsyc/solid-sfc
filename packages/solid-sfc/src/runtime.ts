@@ -1,6 +1,6 @@
 import type { JSX } from '@solidjs/web';
 import { isServer, useHead } from '@solidjs/web';
-import { createEffect, createMemo, onCleanup, untrack } from 'solid-js';
+import { createMemo, onCleanup, untrack } from 'solid-js';
 import type { Accessor, Element } from 'solid-js';
 
 type Style = JSX.CSSProperties | string | null | undefined;
@@ -58,25 +58,6 @@ export function listen<T extends keyof EventMaps, K extends keyof EventMaps[T]>(
   element.addEventListener(type as string, handler);
   onCleanup(() => element.removeEventListener(type as string, handler));
   return undefined;
-}
-
-/**
- * Selects the options of a `<select multiple>` whose values are in `values`,
- * whenever `values` changes. Used by `bind:value` on `<select multiple>`.
- */
-export function selectValues(
-  values: () => readonly string[],
-): (element: HTMLSelectElement) => void {
-  return (element) => {
-    createEffect(
-      () => [...values()],
-      (selected) => {
-        for (const option of element.options) {
-          option.selected = selected.includes(option.value);
-        }
-      },
-    );
-  };
 }
 
 /**

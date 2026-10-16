@@ -247,7 +247,7 @@ const { code, map, css } = compile(source, {
 
 `compileStructure` takes the same options and returns the TSX before the compile-time functions are replaced. Type checking uses this code with `typeCheck: true`, because the global declarations of the compile-time functions already describe it. With `typeCheck`, `#if` is a conditional expression, so TypeScript narrows inside its branches, and the stylesheet is left out.
 
-It also returns `generated`. Some code in the TSX has no text in the file, such as the `each` prop that `#for` generates, or the assignment that `bind:value` generates. TypeScript can report errors on that code, so each entry maps it to the text in the file that it comes from. `@solid-sfc/language-core` adds these to its mappings, so the errors show up in the file.
+It also returns `generated`. Some code in the TSX has no text in the file, such as the `each` prop that `#for` generates. TypeScript can report errors on that code, so each entry maps it to the text in the file that it comes from. `@solid-sfc/language-core` adds these to its mappings, so the errors show up in the file.
 
 ### `SFCError`
 

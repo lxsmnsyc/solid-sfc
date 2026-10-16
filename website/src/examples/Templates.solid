@@ -10,7 +10,10 @@
 <fieldset>
   <legend>Heading level</legend>
   #for (option of [1, 2, 3] as const) {
-    <label><input type="radio" value=option bind:group=level> h{option}</label>
+    <label>
+      <input type="radio" name="level" checked=(option === level) onChange=(() => (level = option))>
+      h{option}
+    </label>
   }
 </fieldset>
 
