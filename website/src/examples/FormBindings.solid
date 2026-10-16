@@ -1,0 +1,65 @@
+<script>
+  let name = $signal('Ada');
+  let age = $signal(36);
+  let size = $signal('m');
+  let toppings: string[] = $signal(['cheese']);
+  let delivery = $signal(true);
+  let notes = $signal('');
+</script>
+
+<style>
+  form {
+    display: grid;
+    gap: 0.75rem;
+    max-width: 22rem;
+  }
+
+  fieldset {
+    display: flex;
+    gap: 1rem;
+    border: 1px solid #ddd;
+    border-radius: 0.5rem;
+  }
+
+  output {
+    display: block;
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+    background: #f4f0ff;
+  }
+</style>
+
+<form onSubmit=((event) => event.preventDefault())>
+  <label>Name <input bind:value=name></label>
+  <!-- A number field writes a number. -->
+  <label>Age <input type="number" min="0" bind:value=age></label>
+
+  <fieldset>
+    <legend>Size</legend>
+    #for (option of ['s', 'm', 'l']) {
+      <!-- Radio buttons in a group write the value of the checked one. -->
+      <label><input type="radio" value=option bind:group=size> {option.toUpperCase()}</label>
+    }
+  </fieldset>
+
+  <fieldset>
+    <legend>Toppings</legend>
+    #for (option of ['cheese', 'olives', 'basil']) {
+      <!-- Checkboxes in a group keep an array of the checked values. -->
+      <label><input type="checkbox" value=option bind:group=toppings> {option}</label>
+    }
+  </fieldset>
+
+  <label><input type="checkbox" bind:checked=delivery> Deliver it</label>
+  <textarea bind:value=notes placeholder="Notes for the kitchen" />
+
+  <output>
+    <!-- Text and expressions on different lines join without a space, as in JSX. -->
+    {`${name}, ${age}, orders a size ${size.toUpperCase()} pizza`}
+    {toppings.length > 0 ? ` with ${toppings.join(', ')}` : ''}
+    {delivery ? ', delivered.' : ', to pick up.'}
+    #if (notes) {
+      <br>Notes: {notes}
+    }
+  </output>
+</form>

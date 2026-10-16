@@ -1,0 +1,34 @@
+<script>
+  // A signal is a variable that updates the page when it changes.
+  let count = $signal(0);
+  // A memo is computed from other values.
+  const doubled = $memo(count * 2);
+</script>
+
+<style>
+  button {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 0.5rem;
+    font: inherit;
+    color: white;
+    /* ${...} inserts a value from the script, and updates with it. */
+    background: ${count > 4 ? 'crimson' : 'rebeccapurple'};
+    cursor: pointer;
+    transition: background 200ms;
+  }
+
+  p {
+    color: #555;
+  }
+</style>
+
+<button onClick=(() => count++)>
+  Clicked {count} {count === 1 ? 'time' : 'times'}
+</button>
+
+#if (count > 4) {
+  <p>That is a lot of clicks. Doubled, it is {doubled}.</p>
+} #else {
+  <p>Click {5 - count} more times.</p>
+}

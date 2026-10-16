@@ -86,10 +86,16 @@ function splitId(id: string): { file: string; query: string } {
     : { file: id.slice(0, index), query: id.slice(index) };
 }
 
-/** True for a `.solid` module, and false for its stylesheet. */
+// Queries that ask for the file as something else, such as its text.
+const OTHER_QUERY = /[?&](?:solid-sfc|raw|url|inline)\b/;
+
+/**
+ * True for a `.solid` module. False for its stylesheet, and for imports such
+ * as `App.solid?raw` that ask for the file as something else.
+ */
 export function isSFC(id: string): boolean {
   const { file, query } = splitId(id);
-  return file.endsWith(EXTENSION) && !query.includes('solid-sfc');
+  return file.endsWith(EXTENSION) && !OTHER_QUERY.test(query);
 }
 
 /** Removes TypeScript types and keeps the JSX. */
