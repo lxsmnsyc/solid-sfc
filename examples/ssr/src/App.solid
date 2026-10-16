@@ -1,6 +1,8 @@
 <script>
   let count = $signal(0);
   const doubled = $memo(count * 2);
+  // The tag of the doubled count changes once the count is above 2.
+  const tag = $memo(count > 2 ? 'strong' : 'span');
 
   async function fetchGreeting(name: string): Promise<string> {
     await new Promise((resolve) => setTimeout(resolve, 300));
@@ -20,7 +22,7 @@
 <main>
   <h1>Solid SFC with SSR</h1>
   <button type="button" onClick=(() => count++)>Count: {count}</button>
-  <p>Doubled: {doubled}</p>
+  <p>Doubled: <{tag}>{doubled}</></p>
   #loading {
     <p class="greeting">{greeting}</p>
   } #else {

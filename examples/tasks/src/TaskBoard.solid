@@ -1,6 +1,7 @@
 <script>
   import TaskItem from './TaskItem.solid';
   import Progress from './Progress.solid';
+  import Panel from './Panel.solid';
   import { FILTERS, loadTasks, saveTasks, type Filter, type Task } from './tasks.ts';
 
   let tasks: Task[] = $signal(loadTasks());
@@ -52,14 +53,6 @@
 </script>
 
 <style>
-  section {
-    display: grid;
-    gap: 1rem;
-    padding: 1rem;
-    border-radius: 1rem;
-    background: var(--surface);
-  }
-
   .summary {
     display: flex;
     gap: 1rem;
@@ -137,7 +130,7 @@
   }
 </style>
 
-<section>
+<Panel>
   <div class="summary">
     <!-- {percent} is short for percent={percent}. -->
     <Progress {percent} />
@@ -195,7 +188,7 @@
       <li class="empty">Nothing here.</li>
     }
   </ul>
-</section>
+</Panel>
 
 <!-- A template is markup that the file can render with arguments. -->
 #template plural(count: number, word: string) {

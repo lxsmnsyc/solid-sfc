@@ -1,4 +1,6 @@
 <script>
+  import Panel from './Panel.solid';
+
   let notes: string[] = $signal(['Buy oat milk', 'Call the bank']);
 
   function update(index: number, value: string) {
@@ -11,14 +13,6 @@
 </script>
 
 <style>
-  section {
-    display: grid;
-    gap: 0.5rem;
-    padding: 1rem;
-    border-radius: 1rem;
-    background: var(--surface);
-  }
-
   p {
     margin: 0;
     color: var(--muted);
@@ -55,7 +49,7 @@
   }
 </style>
 
-<section>
+<Panel>
   <p>Notes are saved for this visit only.</p>
   <ol>
     <!-- "by index" keeps one input per position, so an input keeps its focus while you type. -->
@@ -69,4 +63,4 @@
     }
   </ol>
   <button type="button" onClick=(() => (notes = [...notes, '']))>Add a note</button>
-</section>
+</Panel>

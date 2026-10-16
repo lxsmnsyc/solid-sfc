@@ -8,6 +8,7 @@ A task board built with `.solid` files. Each file shows a few features:
 | [`TaskBoard.solid`](./src/TaskBoard.solid) | `$signal`, `$memo`, `$settled`, `$uid`, `ref`, `bind:value`, `#for … by` / `#else`, a `<script>` in a block, `#template`, `#if` / `#else if`, the `{percent}` shorthand, void elements |
 | [`TaskItem.solid`](./src/TaskItem.solid)   | `$props` destructuring with defaults, `#repeat`, computed attribute names, `<style lang="scss">`, `@keyframes`, `:global()`, a style interpolation                                     |
 | [`Progress.solid`](./src/Progress.solid)   | Style interpolations joined with units, such as `${size}px`                                                                                                                            |
+| [`Panel.solid`](./src/Panel.solid)         | A dynamic tag, `<{as}>`, chosen by a prop, with scoped styles                                                                                                                          |
 | [`Notes.solid`](./src/Notes.solid)         | `#for … by index`                                                                                                                                                                      |
 | [`QuoteCard.solid`](./src/QuoteCard.solid) | An async `$memo`, `$isPending`, `#try` / `#catch`, `#loading` / `#else`, `#key`                                                                                                        |
 
