@@ -18,7 +18,7 @@
   // An async memo. Reading it inside #loading waits for it.
   const quote = $memo(fetchQuote(id, failing));
   // True while the next quote loads and the last one is still shown.
-  const pending = () => $isPending(() => quote);
+  const pending = () => $isPending(quote);
 </script>
 
 <style>

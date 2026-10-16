@@ -59,8 +59,16 @@ declare global {
   function $effect(callback: () => (() => void) | void, options?: solid.EffectOptions): void;
   function $renderEffect(callback: () => (() => void) | void, options?: solid.EffectOptions): void;
 
+  // These take a value, which the compiler wraps in a function, or a function.
+  function $untrack<T>(fn: () => T): T;
   function $untrack<T>(value: T): T;
+  function $resolve<T>(fn: () => T): Promise<Awaited<T>>;
   function $resolve<T>(value: T): Promise<Awaited<T>>;
+  /** True while a new value of `value` loads and the last one is still shown. */
+  function $isPending(value: unknown): boolean;
+  /** The newest value of `value`, even while an update that changes it is in progress. */
+  function $latest<T>(fn: () => T): T;
+  function $latest<T>(value: T): T;
 
   function $lazy<T extends Component<any>>(
     fn: Promise<{ default: T }>,
@@ -113,8 +121,6 @@ declare global {
   const $cleanup: typeof solid.onCleanup;
 
   const $action: typeof solid.action;
-  const $isPending: typeof solid.isPending;
-  const $latest: typeof solid.latest;
   const $refresh: typeof solid.refresh;
   const $affects: typeof solid.affects;
 

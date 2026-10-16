@@ -85,7 +85,7 @@ A memo can hold a promise. The variable is the resolved value, and reading it be
 #loading {
   <p>{user.name}</p>
   <!-- True while a new user loads and the old one is still shown. -->
-  #if ($isPending(() => user)) {
+  #if ($isPending(user)) {
     <p>Updating…</p>
   }
 } #else {
@@ -292,15 +292,17 @@ Both declare read-only variables. In markup, the [`#for` and `#repeat` blocks](.
 
 ## Async
 
-| Function          | Solid 2.0 function     |
-| ----------------- | ---------------------- |
-| `$action`         | `action`               |
-| `$isPending`      | `isPending`            |
-| `$latest`         | `latest`               |
-| `$refresh`        | `refresh`              |
-| `$affects`        | `affects`              |
-| `$flush`          | `flush`                |
-| `$resolve(value)` | `resolve(() => value)` |
+| Function            | Solid 2.0 function       |
+| ------------------- | ------------------------ |
+| `$action`           | `action`                 |
+| `$isPending(value)` | `isPending(() => value)` |
+| `$latest(value)`    | `latest(() => value)`    |
+| `$refresh`          | `refresh`                |
+| `$affects`          | `affects`                |
+| `$flush`            | `flush`                  |
+| `$resolve(value)`   | `resolve(() => value)`   |
+
+`$isPending`, `$latest` and `$resolve` wrap their argument in a function, so `$isPending(user)` reads `user` when Solid calls it. An argument that is already a function, as in `$isPending(() => user)`, stays as it is.
 
 ## Stores
 

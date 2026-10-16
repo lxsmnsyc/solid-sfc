@@ -72,6 +72,20 @@ const settled = $resolve(user);
 `),
     ).toMatchSnapshot();
   });
+  it('wraps the value of $isPending and $latest in a function', () => {
+    const code = transform(`
+const quote = $memo(fetchQuote(id));
+let count = $signal(0);
+const a = $isPending(quote);
+const b = $isPending(quote.text);
+const c = $isPending(() => quote);
+const d = $latest(count);
+`);
+    expect(code).toContain('const a = _isPending(() => quote());');
+    expect(code).toContain('const b = _isPending(() => quote().text);');
+    expect(code).toContain('const c = _isPending(() => quote());');
+    expect(code).toContain('const d = _latest(() => count());');
+  });
   it('respects shadowing', () => {
     expect(
       transform(`

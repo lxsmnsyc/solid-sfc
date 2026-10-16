@@ -18,7 +18,7 @@ const save = _action(function* (todo) {
   _refresh(todos);
 });
 const pending = _isPending(() => user());
-const peeked = _latest(id);
+const peeked = _latest(() => id);
 _affects(user);
 "
 `;

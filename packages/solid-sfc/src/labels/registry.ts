@@ -15,8 +15,6 @@ export const AUTO_ALIAS: Record<string, ImportDef> = {
 
   // Async
   $action: ['action', 'solid-js'],
-  $isPending: ['isPending', 'solid-js'],
-  $latest: ['latest', 'solid-js'],
   $refresh: ['refresh', 'solid-js'],
   $affects: ['affects', 'solid-js'],
 
@@ -39,11 +37,16 @@ export const AUTO_ALIAS: Record<string, ImportDef> = {
   $deep: ['deep', 'solid-js'],
 };
 
-/** Call CTFs whose first argument is wrapped in an arrow function. */
+/**
+ * Call CTFs whose first argument is wrapped in an arrow function, unless it
+ * is a function already: `$isPending(quote)` is `isPending(() => quote())`.
+ */
 export const ARROW_CTF: Record<string, [name: string, source: string, args: number]> = {
   $lazy: ['lazy', 'solid-js', 2],
   $untrack: ['untrack', 'solid-js', 1],
   $resolve: ['resolve', 'solid-js', 1],
+  $isPending: ['isPending', 'solid-js', 1],
+  $latest: ['latest', 'solid-js', 1],
 };
 
 /**
