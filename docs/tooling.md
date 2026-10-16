@@ -15,10 +15,10 @@ export default defineConfig({
 The plugin compiles `.solid` files in these steps:
 
 1. Compile the file into TSX and CSS.
-2. Remove TypeScript types with Vite's Oxc transform.
-3. Compile the JSX with `@solidjs/vite-plugin`, which the plugin includes.
+2. Remove TypeScript types with Oxc.
+3. Compile the JSX with `@solidjs/vite-plugin`, which the plugin includes. It also adds HMR and start mode.
 
-The CSS of each component is a separate module, `App.solid?solid-sfc&type=style&lang.css`, which Vite processes like any CSS file.
+The CSS of each component is a separate module, `App.solid?solid-sfc&type=style&lang.css`, which Vite processes like any CSS file, including SCSS and Less.
 
 ### Server-side rendering
 
@@ -57,9 +57,41 @@ The [`ssr` example](../examples/ssr) is a complete app.
 
 ### Options
 
-| Option  | Description                                                                |
-| ------- | -------------------------------------------------------------------------- |
-| `solid` | Options for `@solidjs/vite-plugin`. `.solid` is added to its `extensions`. |
+| Option  | Description                                                                                   |
+| ------- | --------------------------------------------------------------------------------------------- |
+| `solid` | Options for `@solidjs/vite-plugin`. `.solid` is added to its `extensions`.                    |
+| `root`  | The project root, for stable scoped style hashes. Defaults to Vite's root.                    |
+| `dev`   | Adds debug names to signals and memos. Defaults to true outside production builds.            |
+
+## Other bundlers
+
+The plugin is built on [unplugin](https://unplugin.unjs.io), so it also works with Rollup, Rolldown, webpack, Rspack and esbuild. Outside Vite, it compiles the JSX itself with Solid's compiler, `@solidjs/compiler`, so no Solid plugin is needed. HMR and start mode are only available in Vite.
+
+```ts
+// rollup.config.js
+import solidSFC from 'solid-sfc/rollup';
+
+export default {
+  input: 'src/main.js',
+  plugins: [solidSFC()],
+};
+```
+
+The other bundlers import from `solid-sfc/rolldown`, `solid-sfc/webpack`, `solid-sfc/rspack` and `solid-sfc/esbuild`, and take the same options:
+
+| Option     | Description                                                                                                                    |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `compiler` | Options for Solid's compiler, such as `generate: 'ssr'` and `hydratable: true` for server rendering. Defaults to DOM output. |
+| `root`     | The project root, for stable scoped style hashes. Defaults to the working directory.                                          |
+| `dev`      | Adds debug names to signals and memos. Defaults to `process.env.NODE_ENV !== 'production'`.                                    |
+
+### Stylesheets
+
+The stylesheet of each component is a module whose name ends with `.css`, `.scss` or `.less`, so the bundler handles it with its usual rules:
+
+- esbuild bundles it into the CSS output.
+- webpack and Rspack need a rule for `.css` files, such as `{ test: /\.css$/, type: 'css' }` with `experiments.css`, or `css-loader`. SCSS and Less need their loaders too.
+- Rollup and Rolldown need a CSS plugin. Rolldown reads `.css` modules as CSS, which it does not bundle, so the plugin must set `moduleType: 'js'` on what it returns.
 
 ## Type checking
 

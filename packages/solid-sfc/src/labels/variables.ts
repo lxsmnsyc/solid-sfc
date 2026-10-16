@@ -81,12 +81,14 @@ function devNameOptions(
     return;
   }
   const label = JSON.stringify(name);
+  // The text after an argument goes on the next chunk, so it follows the
+  // rewrites of the argument itself, such as `start` read as `start()`.
   if (args.length > optionsIndex) {
     const options = args[optionsIndex];
     ctx.s.prependRight(options.start, `Object.assign({ name: ${label} }, `);
-    ctx.s.appendLeft(options.end, ')');
+    ctx.s.prependRight(options.end, ')');
   } else if (args.length === optionsIndex) {
-    ctx.s.appendLeft(args[optionsIndex - 1].end, `, { name: ${label} }`);
+    ctx.s.prependRight(args[optionsIndex - 1].end, `, { name: ${label} }`);
   } else {
     // No arguments at all; fill the gaps.
     const filler = [];

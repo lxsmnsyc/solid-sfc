@@ -1,0 +1,152 @@
+/**
+ * The bundler plugin, built on unplugin. It compiles `.solid` files to
+ * TypeScript JSX, removes the types, and, outside Vite, compiles the JSX with
+ * Solid's compiler. In Vite, `@solidjs/vite-plugin` compiles the JSX.
+ */
+import { readFile } from 'node:fs/promises';
+import path from 'node:path';
+import remapping from '@jridgewell/remapping';
+import { transform as transformJSX } from '@solidjs/compiler';
+import type { TransformOptions as SolidCompilerOptions } from '@solidjs/compiler';
+import { transformSync as transformTypeScript } from 'oxc-transform';
+import type { UnpluginFactory } from 'unplugin';
+import { compile } from './compile.ts';
+import type { CompileResult, SourceMap } from './compile.ts';
+import { hash } from './style.ts';
+
+export type { SolidCompilerOptions };
+
+export interface SolidSFCPluginOptions {
+  /**
+   * The project root. Scoped style hashes use paths from it, so they are the
+   * same on every machine. Defaults to the working directory.
+   */
+  root?: string;
+  /** Adds debug names to signals and memos. Defaults to `NODE_ENV !== 'production'`. */
+  dev?: boolean;
+  /**
+   * Options for Solid's JSX compiler, such as `generate: 'ssr'` and
+   * `hydratable`. Not used in Vite, where `@solidjs/vite-plugin` compiles
+   * the JSX.
+   */
+  compiler?: SolidCompilerOptions;
+}
+
+/** Internal options of the factory. */
+export interface FactoryOptions extends SolidSFCPluginOptions {
+  /** False when another plugin compiles the JSX, as `@solidjs/vite-plugin` does. */
+  jsx?: boolean;
+}
+
+export const EXTENSION = '.solid';
+// Bundlers process the stylesheet by the extension at the end, such as `.scss`.
+const STYLE_QUERY = /\?solid-sfc&type=style&lang\.(?:css|scss|less)$/;
+
+function styleQuery(lang: string): string {
+  return `?solid-sfc&type=style&lang.${lang}`;
+}
+
+function splitId(id: string): { file: string; query: string } {
+  const index = id.indexOf('?');
+  return index === -1
+    ? { file: id, query: '' }
+    : { file: id.slice(0, index), query: id.slice(index) };
+}
+
+/** True for a `.solid` module, and false for its stylesheet. */
+export function isSFC(id: string): boolean {
+  const { file, query } = splitId(id);
+  return file.endsWith(EXTENSION) && !query.includes('solid-sfc');
+}
+
+/** Removes TypeScript types and keeps the JSX. */
+export function stripTypes(code: string, file: string): { code: string; map: SourceMap } {
+  const result = transformTypeScript(`${file}.tsx`, code, {
+    jsx: 'preserve',
+    sourcemap: true,
+  });
+  const error = result.errors[0];
+  if (error) {
+    throw new Error(`${error.message} (${file})`);
+  }
+  return { code: result.code, map: result.map as SourceMap };
+}
+
+export const factory: UnpluginFactory<FactoryOptions | undefined> = (options = {}, meta) => {
+  let root = options.root ?? process.cwd();
+  let dev = options.dev ?? process.env.NODE_ENV !== 'production';
+  const jsx = options.jsx ?? true;
+
+  const compileFile = (code: string, file: string): CompileResult =>
+    compile(code, {
+      filename: file,
+      dev,
+      // The path from the root is the same on every machine.
+      scope: hash(path.relative(root, file).split(path.sep).join('/')),
+    });
+
+  return {
+    name: 'solid-sfc',
+    enforce: 'pre',
+    vite: {
+      configResolved(config) {
+        root = options.root ?? config.root;
+        dev = options.dev ?? !config.isProduction;
+      },
+    },
+    resolveId(source, importer) {
+      if (importer && STYLE_QUERY.test(source)) {
+        return path.resolve(path.dirname(splitId(importer).file), source);
+      }
+      return null;
+    },
+    loadInclude(id) {
+      return STYLE_QUERY.test(id);
+    },
+    async load(id) {
+      const { file } = splitId(id);
+      // Compile again instead of caching, so the CSS always matches the file.
+      const { css } = compileFile(await readFile(file, 'utf8'), file);
+      if (!css) {
+        return '';
+      }
+      // esbuild writes the map of a stylesheet as a `//` comment, which CSS
+      // does not have.
+      return meta.framework === 'esbuild' ? css.code : { code: css.code, map: css.map };
+    },
+    transformInclude(id) {
+      return isSFC(id);
+    },
+    transform(code, id) {
+      const { file } = splitId(id);
+      const result = compileFile(code, file);
+      for (const warning of result.warnings) {
+        const location = `${path.relative(root, file)}:${warning.line}:${warning.column}`;
+        this.warn(`${warning.code}: ${warning.message} (${location})`);
+      }
+      // Solid's JSX compilers keep TypeScript types, so they go first.
+      const plain = stripTypes(result.code, file);
+      let output = plain.code;
+      // The maps go from the last step to the first.
+      const maps: unknown[] = [plain.map, result.map];
+      if (jsx) {
+        const compiled = transformJSX(output, {
+          filename: `${file}.jsx`,
+          dev,
+          sourceMap: true,
+          ...options.compiler,
+        });
+        output = compiled.code;
+        if (compiled.map) {
+          maps.unshift(JSON.parse(compiled.map));
+        }
+      }
+      const map = remapping(maps as never, () => null) as unknown as SourceMap;
+      if (result.css) {
+        const style = `./${path.basename(file)}${styleQuery(result.css.lang)}`;
+        output += `\nimport ${JSON.stringify(style)};`;
+      }
+      return { code: output, map };
+    },
+  };
+};

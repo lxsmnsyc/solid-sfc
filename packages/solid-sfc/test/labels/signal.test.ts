@@ -17,6 +17,12 @@ describe('$signal', () => {
       }),
     ).toMatchSnapshot();
   });
+  it('adds debug names after reads in the arguments', () => {
+    const source = 'let start = $signal(1);\nlet options = $memo({ equals: false });\nlet count = $signal(start, options);\nlet other = $signal(start);';
+    const output = transform(source, { dev: true });
+    expect(output).toContain('(() => start(), Object.assign({ name: "count" }, options()))');
+    expect(output).toContain('(() => start(), { name: "other" })');
+  });
   it('rewrites reads', () => {
     expect(
       transform(`

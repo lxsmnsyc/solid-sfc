@@ -1,0 +1,18 @@
+<script>
+  const { start } = $props<{ start: number }>();
+  let count = $signal(start);
+</script>
+
+<style>
+  button {
+    color: ${count > 2 ? 'red' : 'black'};
+  }
+</style>
+
+#for (step of [1, 2]) {
+  <script>
+    const label = `+${step}`;
+  </script>
+  <button type="button" onClick=(() => (count += step))>{label}</button>
+}
+<output>{count}</output>

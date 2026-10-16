@@ -33,6 +33,26 @@
       "types": "./dist/vite.d.ts",
       "default": "./dist/vite.js"
     },
+    "./rollup": {
+      "types": "./dist/rollup.d.ts",
+      "default": "./dist/rollup.js"
+    },
+    "./rolldown": {
+      "types": "./dist/rolldown.d.ts",
+      "default": "./dist/rolldown.js"
+    },
+    "./webpack": {
+      "types": "./dist/webpack.d.ts",
+      "default": "./dist/webpack.js"
+    },
+    "./rspack": {
+      "types": "./dist/rspack.d.ts",
+      "default": "./dist/rspack.js"
+    },
+    "./esbuild": {
+      "types": "./dist/esbuild.d.ts",
+      "default": "./dist/esbuild.js"
+    },
     "./runtime": {
       "types": "./dist/runtime.d.ts",
       "default": "./dist/runtime.js"
@@ -54,24 +74,32 @@
   "dependencies": {
     "@jridgewell/remapping": "^2.3.5",
     "@jridgewell/trace-mapping": "^0.3.31",
+    "@solidjs/compiler": "^2.0.0-rc.15",
     "magic-string": "^1.4.3",
     "oxc-parser": "^0.154.0",
+    "oxc-transform": "^0.154.0",
     "postcss": "^8.5.30",
     "postcss-less": "^6.0.0",
     "postcss-scss": "^4.0.9",
-    "postcss-selector-parser": "^7.1.6"
+    "postcss-selector-parser": "^7.1.6",
+    "unplugin": "^3.4.0"
   },
   "devDependencies": {
     "@oxc-project/types": "^0.154.0",
+    "@rspack/core": "2.2.9",
     "@solidjs/vite-plugin": "3.0.0-next.35",
     "@solidjs/web": "2.0.0-rc.15",
     "@types/node": "^24.0.0",
     "@types/postcss-less": "^4.0.7",
+    "esbuild": "0.28.2",
+    "rolldown": "1.2.14",
+    "rollup": "4.64.7",
     "solid-js": "2.0.0-rc.15",
     "tsdown": "^0.23.1",
     "typescript": "^7.0.2",
     "vite": "^8.3.4",
-    "vitest": "^5.0.4"
+    "vitest": "^5.0.4",
+    "webpack": "5.112.0"
   },
   "peerDependencies": {
     "@solidjs/vite-plugin": "^3.0.0-next.35",
