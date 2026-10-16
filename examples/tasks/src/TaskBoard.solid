@@ -16,6 +16,11 @@
   const percent = $memo(
     tasks.length === 0 ? 0 : Math.round(((tasks.length - remaining) / tasks.length) * 100),
   );
+  const counts = $memo<Record<Filter, number>>({
+    all: tasks.length,
+    active: remaining,
+    done: tasks.length - remaining,
+  });
 
   const inputId = $uid();
   let input!: HTMLInputElement;
@@ -70,7 +75,7 @@
     gap: 0.5rem;
   }
 
-  input {
+  form input {
     flex: 1;
     padding: 0.5rem 0.75rem;
     border: 1px solid var(--muted);
@@ -83,7 +88,7 @@
     padding: 0.5rem 0.75rem;
     border: none;
     border-radius: 0.5rem;
-    color: white;
+    color: var(--on-accent);
     background: var(--accent);
     cursor: pointer;
   }
@@ -95,17 +100,40 @@
 
   .filters {
     display: flex;
-    gap: 0.5rem;
+    gap: 0.25rem;
+    margin: 0;
+    padding: 0;
+    border: none;
   }
 
-  .filters button {
-    color: inherit;
-    background: none;
+  .filters label {
+    display: flex;
+    gap: 0.4rem;
+    align-items: center;
+    padding: 0.35rem 0.75rem;
+    border-radius: 999px;
     text-transform: capitalize;
+    cursor: pointer;
   }
 
   .filters .selected {
+    color: var(--on-accent);
+    background: var(--accent);
+  }
+
+  /* The radio button is hidden, and its label shows the choice. */
+  .filters label:has(:focus-visible) {
     outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  .count {
+    min-width: 1.25rem;
+    padding: 0 0.3rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    text-align: center;
+    background: color-mix(in srgb, currentColor 15%, transparent);
   }
 
   ul {
@@ -143,7 +171,9 @@
         {plural(remaining, 'task')} left.
       }
     </p>
-    <button type="button" onClick=clearDone disabled=(remaining === tasks.length)>Clear done</button>
+    #if (remaining < tasks.length) {
+      <button type="button" onClick=clearDone>Clear done</button>
+    }
   </div>
 
   <form onSubmit=add>
@@ -158,22 +188,21 @@
     <button type="submit" disabled=!draft.trim()>Add</button>
   </form>
 
-  <div class="filters">
+  <fieldset class="filters">
+    <legend class="visually-hidden">Show</legend>
     #for (option of FILTERS) {
       <!-- A script in a block runs once for each item. -->
       <script>
         const selected = $memo(option === filter);
       </script>
-      <button
-        type="button"
-        class={ selected }
-        aria-pressed=(selected ? 'true' : 'false')
-        onClick=(() => (filter = option))
-      >
+      <label class={ selected }>
+        <!-- Radio buttons in a group write the value of the checked one. -->
+        <input class="visually-hidden" type="radio" name="filter" value=option bind:group=filter>
         {option}
-      </button>
+        <span class="count">{counts[option]}</span>
+      </label>
     }
-  </div>
+  </fieldset>
 
   <ul>
     <!-- "by task.id" keeps the element of a task when the task is replaced with an edited copy. -->
@@ -182,10 +211,19 @@
         {task}
         onToggle=(() => update(task.id, { done: !task.done }))
         onPriority=((priority: number) => update(task.id, { priority }))
+        onRename=((title: string) => update(task.id, { title }))
         onRemove=(() => remove(task.id))
       />
     } #else {
-      <li class="empty">Nothing here.</li>
+      <li class="empty">
+        #if (filter === 'done') {
+          Nothing is done yet.
+        } #else if (filter === 'active') {
+          Nothing left to do.
+        } #else {
+          Add a task to get started.
+        }
+      </li>
     }
   </ul>
 </Panel>

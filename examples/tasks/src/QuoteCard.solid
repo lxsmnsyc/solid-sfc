@@ -55,7 +55,7 @@
     padding: 0.5rem 0.75rem;
     border: none;
     border-radius: 0.5rem;
-    color: white;
+    color: var(--on-accent);
     background: var(--accent);
     cursor: pointer;
   }

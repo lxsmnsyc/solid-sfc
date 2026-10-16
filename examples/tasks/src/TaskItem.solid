@@ -6,16 +6,50 @@
     maxPriority?: number;
     onToggle: () => void;
     onPriority: (priority: number) => void;
+    onRename: (title: string) => void;
     onRemove: () => void;
   }
 
   // Destructured props stay reactive, and defaults apply when a prop is undefined.
-  const { task, maxPriority = 3, onToggle, onPriority, onRemove } = $props<Props>();
+  const { task, maxPriority = 3, onToggle, onPriority, onRename, onRemove } = $props<Props>();
 
   const COLORS = ['#a1a1aa', '#22c55e', '#f59e0b', '#ef4444'];
 
   // The name of an attribute can be computed too.
   const state = $memo(task.done ? 'data-done' : 'data-open');
+
+  // Double-clicking the title renames the task.
+  let editing = $signal(false);
+  let draft = $signal('');
+
+  function edit() {
+    draft = task.title;
+    editing = true;
+  }
+
+  function finish(keep: boolean) {
+    if (!editing) {
+      return;
+    }
+    editing = false;
+    const title = draft.trim();
+    if (keep && title && title !== task.title) {
+      onRename(title);
+    }
+  }
+
+  function onKeyDown(event: KeyboardEvent) {
+    if (event.key === 'Enter') {
+      finish(true);
+    } else if (event.key === 'Escape') {
+      finish(false);
+    }
+  }
+
+  // A ref callback runs when the element is created.
+  function focus(element: HTMLInputElement) {
+    requestAnimationFrame(() => element.select());
+  }
 </script>
 
 <!-- SCSS works too. Vite compiles it with the sass package. -->
@@ -55,6 +89,17 @@
 
   .title {
     flex: 1;
+    cursor: text;
+  }
+
+  .rename {
+    flex: 1;
+    min-width: 0;
+    padding: 0.1rem 0.4rem;
+    border: 1px solid var(--accent);
+    border-radius: 0.25rem;
+    color: inherit;
+    background: var(--surface);
   }
 
   .stars {
@@ -81,7 +126,18 @@
 
 <li [state]>
   <input type="checkbox" checked=task.done onChange=onToggle aria-label="Done">
-  <span class="title">{task.title}</span>
+  #if (editing) {
+    <input
+      class="rename"
+      aria-label="Task title"
+      ref=focus
+      bind:value=draft
+      {onKeyDown}
+      onBlur=(() => finish(true))
+    >
+  } #else {
+    <span class="title" title="Double-click to rename" onDblClick=edit>{task.title}</span>
+  }
   <span class="stars">
     #repeat (index of maxPriority) {
       <button

@@ -1,7 +1,12 @@
 <script>
   import Panel from './Panel.solid';
+  import { load, save } from './storage.ts';
 
-  let notes: string[] = $signal(['Buy oat milk', 'Call the bank']);
+  let notes: string[] = $signal(load('notes', ['Buy oat milk', 'Call the bank']));
+
+  $effect(() => {
+    save('notes', notes);
+  });
 
   function update(index: number, value: string) {
     notes = notes.with(index, value);
@@ -47,10 +52,16 @@
     background: var(--background);
     cursor: pointer;
   }
+
+  .add {
+    justify-self: start;
+    color: var(--on-accent);
+    background: var(--accent);
+  }
 </style>
 
 <Panel>
-  <p>Notes are saved for this visit only.</p>
+  <p>Notes are saved in this browser.</p>
   <ol>
     <!-- "by index" keeps one input per position, so an input keeps its focus while you type. -->
     #for (note, index of notes by index) {
@@ -62,5 +73,5 @@
       <li>No notes yet.</li>
     }
   </ol>
-  <button type="button" onClick=(() => (notes = [...notes, '']))>Add a note</button>
+  <button class="add" type="button" onClick=(() => (notes = [...notes, '']))>Add a note</button>
 </Panel>
