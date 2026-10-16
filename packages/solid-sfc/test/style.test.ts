@@ -273,7 +273,7 @@ describe('preprocessors', () => {
 describe('stylesheet', () => {
   it('adds the stylesheet with useStyle', () => {
     const { code } = compile('<style>p { color: red }</style><p />', { scope: 'x' });
-    expect(code).toContain('const __stylesheet = "p[s-x] { color: red }\\n";');
+    expect(code).toContain('const __stylesheet = "p[s-x]{color:red}";');
     expect(code).toContain('  __useStyle("s-x", __stylesheet);');
   });
 

@@ -16,6 +16,7 @@ import {
 } from './script.ts';
 import type { SourceMap } from './style.ts';
 import { layout } from './layout.ts';
+import { minifyCSS } from './minify.ts';
 import { getScopeAttribute, getVariableName, hash, processStyles } from './style.ts';
 import type { ScopedSelector, StyleLang } from './style.ts';
 import type { Block, ElementInfo, GeneratedText, Range, TemplateScope } from './template.ts';
@@ -36,7 +37,10 @@ export interface CompileOptions {
    * across builds. Defaults to a hash of `filename`.
    */
   scope?: string;
-  /** Adds debug names to signals and memos. */
+  /**
+   * Adds debug names to signals and memos, and keeps the stylesheet as it is
+   * written. Otherwise the stylesheet is minified.
+   */
   dev?: boolean;
   /**
    * Returns a module whose default export is the stylesheet of the
@@ -286,7 +290,10 @@ export function compileStructure(source: string, options: StructureOptions = {})
       addText(
         options.stylesheet
           ? `import ${STYLESHEET_IDENTIFIER} from ${JSON.stringify(options.stylesheet(css.lang))};`
-          : `const ${STYLESHEET_IDENTIFIER} = ${JSON.stringify(css.code)};`,
+          : `const ${STYLESHEET_IDENTIFIER} = ${JSON.stringify(
+              // Only CSS can be minified here. A bundler compiles the other languages.
+              options.dev || css.lang !== 'css' ? css.code : minifyCSS(css.code),
+            )};`,
       );
     }
 

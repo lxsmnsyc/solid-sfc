@@ -13,6 +13,7 @@ import type { TransformOptions as SolidCompilerOptions } from '@solidjs/compiler
 import { transformSync as transformTypeScript } from 'oxc-transform';
 import type { UnpluginFactory } from 'unplugin';
 import { compile } from './compile.ts';
+import { minifyCSS } from './minify.ts';
 import type { CompileResult, SourceMap } from './compile.ts';
 import { hash } from './style.ts';
 
@@ -164,7 +165,7 @@ export const factory: UnpluginFactory<FactoryOptions | undefined> = (options = {
         return css ? { code: css.code, map: css.map } : '';
       }
       const sheet = css ? await preprocess(css.code, css.lang, file) : '';
-      return `export default ${JSON.stringify(sheet)};`;
+      return `export default ${JSON.stringify(dev ? sheet : minifyCSS(sheet))};`;
     },
     transformInclude(id) {
       return isSFC(id);

@@ -34,6 +34,8 @@ export default function List() {
 
 Without a bundler plugin, as in `compile()`, the stylesheet is a string in the module.
 
+Stylesheets are minified, without comments and the whitespace that CSS does not need. Vite minifies them in production builds. With the other bundlers and `compile()`, the compiler minifies them unless `dev` is set.
+
 ## How scoping works
 
 The compiler adds an `s-<hash>` attribute to every native element and [dynamic tag](markup.md#dynamic-tags) in the markup, and adds the same attribute to each selector:

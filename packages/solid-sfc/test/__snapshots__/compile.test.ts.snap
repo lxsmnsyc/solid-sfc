@@ -11,7 +11,7 @@ export interface Props {
   items: string[];
 }
 type Item = string;
-const __stylesheet = "li[s-x] { color: var(--s-x-0); content: \\"\\\\201C\\"; }\\n\\nbody { margin: 0 }\\n";
+const __stylesheet = "li[s-x]{color:var(--s-x-0);content:\\"\\\\201C\\"}body{margin:0}";
 
 export default function ItemList($$props: Props) {
   __useStyle("s-x", __stylesheet);
