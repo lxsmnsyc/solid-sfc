@@ -73,18 +73,12 @@ export const COMPONENTS: Record<string, ImportDef> = {
   NoHydration: ['NoHydration', '@solidjs/web'],
 };
 
-/** `<solid:loading>`-style namespaced JSX components. */
+/**
+ * `<solid:dynamic>`-style namespaced JSX components. Components that a
+ * control flow block replaces, such as `<solid:for>`, are not included.
+ */
 export const NAMESPACE_COMPONENTS: Record<string, ImportDef> = {
-  for: ['For', 'solid-js'],
-  show: ['Show', 'solid-js'],
-  switch: ['Switch', 'solid-js'],
-  match: ['Match', 'solid-js'],
-  repeat: ['Repeat', 'solid-js'],
-  errored: ['Errored', 'solid-js'],
-  loading: ['Loading', 'solid-js'],
-  reveal: ['Reveal', 'solid-js'],
   dynamic: ['Dynamic', '@solidjs/web'],
-  portal: ['Portal', '@solidjs/web'],
   'hydration-script': ['HydrationScript', '@solidjs/web'],
   hydration: ['Hydration', '@solidjs/web'],
   'no-hydration': ['NoHydration', '@solidjs/web'],

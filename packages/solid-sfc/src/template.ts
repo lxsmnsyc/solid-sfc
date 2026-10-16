@@ -146,6 +146,28 @@ export interface TemplateScope {
   mergeStyle: string;
 }
 
+// The `solid:` elements. Solid components that a control flow block replaces
+// are not elements, so `<solid:for>` points to `#for`.
+const SOLID_ELEMENTS = new Set([
+  'window',
+  'document',
+  'dynamic',
+  'hydration',
+  'hydration-script',
+  'no-hydration',
+]);
+const REPLACED_ELEMENTS: Record<string, string> = {
+  for: '#for',
+  show: '#if',
+  switch: '#switch',
+  match: '#case',
+  repeat: '#repeat',
+  errored: '#try',
+  loading: '#loading',
+  reveal: '#reveal',
+  portal: '#portal',
+};
+
 /** Helper from `solid-sfc/runtime` used by `<solid:window>` and `<solid:document>`. */
 export const LISTEN_IDENTIFIER = '__listen';
 
@@ -349,6 +371,13 @@ export class TemplateParser {
     const nameEnd = offset + 1 + name.length;
     if (name === 'solid:window' || name === 'solid:document') {
       return this.parseListeners(offset, nameEnd, name.slice(6) as 'window' | 'document');
+    }
+    if (name.startsWith('solid:') && !SOLID_ELEMENTS.has(name.slice(6))) {
+      const block = REPLACED_ELEMENTS[name.slice(6)];
+      this.fail(
+        block ? `Use ${block} instead of <${name}>` : `Unknown element <${name}>`,
+        offset + 1,
+      );
     }
     const native = NATIVE_ELEMENT.test(name);
     const scope = this.scope && native ? this.scope : undefined;

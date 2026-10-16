@@ -240,6 +240,9 @@ describe('errors', () => {
     ['<script>$props(1)</script>', '$props() takes no arguments'],
     ['<script>let a = (</script>', 'Expected'],
     ['<!-- open', 'Unterminated comment'],
+    ['<solid:for each=a>{f}</solid:for>', 'Use #for instead of <solid:for>'],
+    ['<solid:show when=a />', 'Use #if instead of <solid:show>'],
+    ['<solid:widget />', 'Unknown element <solid:widget>'],
   ])('%s', (input, message) => {
     expect(() => compile(input, { filename: 'Err.solid' })).toThrow(message);
   });

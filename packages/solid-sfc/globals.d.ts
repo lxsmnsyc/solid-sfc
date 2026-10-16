@@ -157,17 +157,8 @@ declare module '@solidjs/web' {
   // JSX namespace augmentation
   namespace JSX {
     interface IntrinsicElements {
-      'solid:for': Props<typeof For>;
-      'solid:show': Props<typeof Show>;
-      'solid:switch': Props<typeof Switch>;
-      'solid:match': Props<typeof Match>;
-      'solid:repeat': Props<typeof Repeat>;
-      'solid:errored': Props<typeof Errored>;
-      'solid:loading': Props<typeof Loading>;
-      'solid:reveal': Props<typeof Reveal>;
       // `Props<typeof Dynamic>` would be circular through IntrinsicElements.
       'solid:dynamic': Record<string, unknown>;
-      'solid:portal': Props<typeof Portal>;
       'solid:hydration-script': Props<typeof solidWeb.HydrationScript>;
       'solid:hydration': Props<typeof solidWeb.Hydration>;
       'solid:no-hydration': Props<typeof solidWeb.NoHydration>;

@@ -36,16 +36,13 @@ const view = <Show when={cond}>hi</Show>;
 `;
 
 exports[`components > supports the solid: namespace 1`] = `
-"import { Errored as _Errored } from "solid-js";
-import { Loading as _Loading } from "solid-js";
-import { For as _For } from "solid-js";
+"import { NoHydration as _NoHydration } from "@solidjs/web";
+import { Dynamic as _Dynamic } from "@solidjs/web";
 
 const view = (
-  <_Errored fallback={report}>
-    <_Loading fallback={<Spinner />}>
-      <_For each={items()}>{(item) => <Row item={item} />}</_For>
-    </_Loading>
-  </_Errored>
+  <_NoHydration>
+    <_Dynamic component={tag()}>{label()}</_Dynamic>
+  </_NoHydration>
 );
 "
 `;

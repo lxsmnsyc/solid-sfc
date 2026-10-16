@@ -31,11 +31,9 @@ const view = (
     expect(
       transform(`
 const view = (
-  <solid:errored fallback={report}>
-    <solid:loading fallback={<Spinner />}>
-      <solid:for each={items()}>{(item) => <Row item={item} />}</solid:for>
-    </solid:loading>
-  </solid:errored>
+  <solid:no-hydration>
+    <solid:dynamic component={tag()}>{label()}</solid:dynamic>
+  </solid:no-hydration>
 );
 `),
     ).toMatchSnapshot();
