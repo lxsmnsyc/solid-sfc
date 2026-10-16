@@ -1,6 +1,7 @@
 packages:
   - packages/*
   - examples/*
+  - website
 minimumReleaseAgeExclude:
   - '@solidjs/signals@2.0.0-rc.15'
   - '@solidjs/web@2.0.0-rc.15'
@@ -37,3 +38,5 @@ allowBuilds:
   '@vscode/vsce-sign': false
   keytar: false
   '@parcel/watcher': false
+  # The tests use its JavaScript API, which works without its install script.
+  esbuild: false

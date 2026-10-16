@@ -1,0 +1,134 @@
+<script>
+  import example from '../content/example.md';
+  import { href } from '../router.ts';
+
+  const FEATURES = [
+    {
+      title: 'One file per component',
+      text: 'A script, scoped styles and markup, in that order. The script runs once per instance, like the body of a Solid component.',
+    },
+    {
+      title: 'Compile-time reactivity',
+      text: '$signal, $memo and $effect read like plain variables. The compiler turns them into Solid 2.0 calls.',
+    },
+    {
+      title: 'Control flow blocks',
+      text: '#if, #for, #loading, #try and more compile to Solid components, with typed headers and fallbacks.',
+    },
+    {
+      title: 'Scoped, reactive styles',
+      text: 'Styles only match the elements of their file, and ${…} turns script values into CSS variables. SCSS and Less work too.',
+    },
+    {
+      title: 'Typed everywhere',
+      text: 'Volar tooling type-checks the markup, and the VS Code extension adds completion, folding and an outline.',
+    },
+    {
+      title: 'Any bundler',
+      text: 'Plugins for Vite, Rollup, Rolldown, webpack, Rspack and esbuild. Vite adds HMR, SSR and server functions.',
+    },
+  ];
+
+  $effect(() => {
+    document.title = 'solid-sfc: single-file components for SolidJS';
+  });
+</script>
+
+<style>
+  main {
+    max-width: 68rem;
+    margin: 0 auto;
+    padding: 4rem 1.5rem;
+  }
+
+  .hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+    gap: 3rem;
+    align-items: center;
+  }
+
+  h1 {
+    margin: 0;
+    font-size: clamp(2.25rem, 5vw, 3.25rem);
+    line-height: 1.1;
+  }
+
+  .tagline {
+    margin: 1.25rem 0 2rem;
+    font-size: 1.2rem;
+    color: var(--muted);
+  }
+
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .install {
+    margin-top: 1.5rem;
+    color: var(--muted);
+  }
+
+  .features {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+    gap: 1.5rem;
+    margin-top: 5rem;
+  }
+
+  .feature {
+    padding: 1.25rem;
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    background: var(--surface);
+  }
+
+  h2 {
+    margin: 0 0 0.5rem;
+    font-size: 1.05rem;
+  }
+
+  .feature p {
+    margin: 0;
+    color: var(--muted);
+  }
+
+  @media (max-width: 56rem) {
+    main {
+      padding: 2.5rem 1rem;
+    }
+
+    .hero {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+</style>
+
+<main>
+  <section class="hero">
+    <div>
+      <h1>Single-file components for SolidJS</h1>
+      <p class="tagline">
+        Write a Solid 2.0 component as one <code>.solid</code> file, with reactive variables,
+        control flow blocks and scoped styles.
+      </p>
+      <div class="actions">
+        <a class="button primary" href=href('/docs/getting-started')>Get started</a>
+        <a class="button" href=href('/playground')>Try the playground</a>
+      </div>
+      <p class="install"><code>npm install solid-sfc</code></p>
+    </div>
+    <div innerHTML=example.html />
+  </section>
+
+  <section class="features">
+    #for (feature of FEATURES) {
+      <div class="feature">
+        <h2>{feature.title}</h2>
+        <p>{feature.text}</p>
+      </div>
+    }
+  </section>
+</main>

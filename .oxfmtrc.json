@@ -2,5 +2,10 @@
   "$schema": "./node_modules/oxfmt/configuration_schema.json",
   "singleQuote": true,
   "embeddedLanguageFormatting": "off",
-  "ignorePatterns": ["**/dist/**", "pnpm-lock.yaml", ".changeset/*.md"]
+  "ignorePatterns": [
+    "**/dist/**",
+    "pnpm-lock.yaml",
+    ".changeset/*.md",
+    "website/public/coi-serviceworker.js"
+  ]
 }

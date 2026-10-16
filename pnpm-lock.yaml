@@ -471,6 +471,67 @@ importers:
         specifier: ^9.3.2
         version: 9.3.2
 
+  website:
+    dependencies:
+      '@oxc-parser/binding-wasm32-wasi':
+        specifier: 0.154.0
+        version: 0.154.0
+      '@solidjs/web':
+        specifier: 2.0.0-rc.15
+        version: 2.0.0-rc.15(solid-js@2.0.0-rc.15)
+      '@twinkleplop/bash':
+        specifier: 0.1.7
+        version: 0.1.7
+      '@twinkleplop/core':
+        specifier: 0.3.1
+        version: 0.3.1
+      '@twinkleplop/css':
+        specifier: 0.1.7
+        version: 0.1.7
+      '@twinkleplop/json':
+        specifier: 0.1.7
+        version: 0.1.7
+      '@twinkleplop/theme-github':
+        specifier: 0.2.4
+        version: 0.2.4
+      '@twinkleplop/tsx':
+        specifier: 0.1.7
+        version: 0.1.7
+      '@twinkleplop/typescript':
+        specifier: 0.1.7
+        version: 0.1.7
+      solid-js:
+        specifier: 2.0.0-rc.15
+        version: 2.0.0-rc.15
+      solid-sfc:
+        specifier: workspace:*
+        version: link:../packages/solid-sfc
+    devDependencies:
+      '@solid-sfc/tsc':
+        specifier: workspace:*
+        version: link:../packages/tsc
+      '@solidjs/vite-plugin':
+        specifier: 3.0.0-next.35
+        version: 3.0.0-next.35(@solidjs/web@2.0.0-rc.15(solid-js@2.0.0-rc.15))(solid-js@2.0.0-rc.15)(supports-color@7.2.0)(vite@8.3.4(@types/node@24.19.2)(esbuild@0.28.2)(jiti@1.21.7)(sass@1.105.1)(terser@5.51.2)(yaml@2.9.1))
+      '@twinkleplop/markdown-it':
+        specifier: 0.1.7
+        version: 0.1.7
+      '@types/markdown-it':
+        specifier: 14.1.2
+        version: 14.1.2
+      '@types/node':
+        specifier: ^24.0.0
+        version: 24.19.2
+      markdown-it:
+        specifier: 14.1.0
+        version: 14.1.0
+      typescript:
+        specifier: ^7.0.2
+        version: 7.0.2
+      vite:
+        specifier: ^8.3.4
+        version: 8.3.4(@types/node@24.19.2)(esbuild@0.28.2)(jiti@1.21.7)(sass@1.105.1)(terser@5.51.2)(yaml@2.9.1)
+
 packages:
 
   '@ampproject/remapping@2.3.0':
@@ -1326,6 +1387,10 @@ packages:
     engines: {node: ^20.19.0 || >=22.12.0}
     cpu: [arm64]
     os: [openharmony]
+
+  '@oxc-parser/binding-wasm32-wasi@0.154.0':
+    resolution: {integrity: sha512-QDMs+0lDr3nIX/aq5in1fgkas7sRvnkGFr6sNhcjJONU9PvB/QnkE+X9oSX6plhocMQeiNNoBmQ2DI5TE7/0/g==}
+    engines: {node: ^20.19.0 || ^22.13.0 || >=23.5.0}
 
   '@oxc-parser/binding-wasm32-wasip1@0.154.0':
     resolution: {integrity: sha512-c8DoAkJv/KaaEp7JvXvmfwXZiTuWiaG2FEPq9mLWQojejmBHfMY0/bgslvWOPOFB+M7LpbfxvvXU/UbVV33zhQ==}
@@ -2402,6 +2467,39 @@ packages:
   '@textlint/types@15.8.0':
     resolution: {integrity: sha512-Anhc6y5736YIsvqae0U6k0YmB2M/QVHkEeOv2aydAn/WIkdI69dCOiDbe3/+RagS3qstFTSFWJzNRA2lUjv19w==}
 
+  '@twinkleplop/bash@0.1.7':
+    resolution: {integrity: sha512-/cBFzqKcfffT6aaWlSeUhjoXJS3VhG4Tz1sg1oJILooVlbD3WX2Ke+zRWFLS+GmoXrl8hlQF/ZsMNmila41/Jw==}
+
+  '@twinkleplop/core@0.3.1':
+    resolution: {integrity: sha512-fMbce7NcJlVROsyI34tz3DCWkAWRWLRlBNCbgwz36mm6yoEO09eyafi8JRN5HJGQIzMr0qjXQ3t3asc7MFSh8Q==}
+
+  '@twinkleplop/css@0.1.7':
+    resolution: {integrity: sha512-eznre7EgC0IBE3/jqAUKXG2S4iWLczOSAxwLnknS+9BQQGuD82u2A2rCok94E+nMpjkeshhbSvnQxDSEo8YpUA==}
+
+  '@twinkleplop/html@0.1.7':
+    resolution: {integrity: sha512-tpc+I1OXR5UJYkIhna74rxxEBYUJMWTNkjAVH9sA6fKeWq9lmbLRhutb10PHeMuF6BTHuHgD9oyET7yKdZGeQA==}
+
+  '@twinkleplop/javascript@0.1.7':
+    resolution: {integrity: sha512-qZDFx0bTM8YdKBTCxIS+6dZ1itaTnn1Udf2wFW5Uo+S6liGm40Lq2rlCk3PYa+Hm4lmX6HSzFeO4ZaDqk6Cn9Q==}
+
+  '@twinkleplop/json@0.1.7':
+    resolution: {integrity: sha512-3V2BmcvHCF7MTmDxNSk0sliZqwW1BDB29ZQY2W07auiOGyPQJVhYPiyeoIIN51Q02YnvSg+hxfXSRY9FptMJKg==}
+
+  '@twinkleplop/markdown-core@0.2.1':
+    resolution: {integrity: sha512-B8SBW5kKCwmVKTtm2r1hK0PyJk4qQYem33v7aIHQv0f2jNsuvnkhboM1p/oCNyt/Q8lau2yjygP4soSvTi+ALA==}
+
+  '@twinkleplop/markdown-it@0.1.7':
+    resolution: {integrity: sha512-XacNvughgJli5dA6TK/pyA0B9bkI7RX8uzJOZynh/ByZm6Re38vb7u2CLGY+qghe1/5O3L0YtrqZa0bA8e67rQ==}
+
+  '@twinkleplop/theme-github@0.2.4':
+    resolution: {integrity: sha512-gCo1G/dGspjNSUoLPLE49MZx97LoEdGYQQHqh985Vfg0jsdupCPHRRvRkgXm8RsP7TvZ2ib/nORpCPNiauflSA==}
+
+  '@twinkleplop/tsx@0.1.7':
+    resolution: {integrity: sha512-Vx7821K7/cciCZPpVj1gsxHp6pI75frlMVGoqtu8QjZH9l26DaiIM3wcv1NqvMDsNnQX7vOV1cTAXawJ9wyB5g==}
+
+  '@twinkleplop/typescript@0.1.7':
+    resolution: {integrity: sha512-3lVdFUnOc40QQUJPnmTsiyTf7+RSEoXhDnmMwkUQ5Kzgemkk6eeXQGietPjxro8k+QuTAY/aQuWOtR/nUgfENw==}
+
   '@tybys/wasm-util@0.10.4':
     resolution: {integrity: sha512-W3c4gRigFS0T/Ma4qIYF3GDAc5AQdHb1yL5znJT1Zv1YaD9Kitx656wBjvr19qbiosmZT8lWDM5BEMynUqX65A==}
 
@@ -2428,6 +2526,15 @@ packages:
 
   '@types/json-schema@7.0.15':
     resolution: {integrity: sha512-5+fP8P8MFNC+AyZCDxrB2pkZFPGzqQWUzpSeuuVLvm8VMcorNYavBqoFcxK8bQz4Qsbn4oUEEem4wDLfcysGHA==}
+
+  '@types/linkify-it@5.0.0':
+    resolution: {integrity: sha512-sVDA58zAw4eWAffKOaQH5/5j3XeayukzDk+ewSsnv3p4yJEZHCCzMDiZM8e0OUrRvmpGZ85jf4yDHkHsgBNr9Q==}
+
+  '@types/markdown-it@14.1.2':
+    resolution: {integrity: sha512-promo4eFwuiW+TfGxhi+0x3czqTYJkG8qB17ZUJiVF10Xm7NLVRSLUsfRTU/6h1e24VvRnXCx+hG7li58lkzog==}
+
+  '@types/mdurl@2.0.0':
+    resolution: {integrity: sha512-RGdgjQUZba5p6QEFAVx2OGb8rQDL/cPRG7GiedRzMcJ1tYnUANBncjbSB1NRGwbvjcPeikRABz2nshyPk1bhWg==}
 
   '@types/node@24.19.2':
     resolution: {integrity: sha512-93d49wCWJkCyN87MxLpNN6KXPCwFw7bVUg79mGUV1OS40JGWwVCr8n61DXCSqz7CV6/VfPkb7xec7uP2M+QHWQ==}
@@ -3588,6 +3695,10 @@ packages:
 
   magic-string@1.4.3:
     resolution: {integrity: sha512-z12OxmaPGE0F4xlpGdjuAUckipLpQlTAuAmyGhNoD7ODpYUzvDfvtxUbjM/jwznyP178oju/KDdyi220wNJ0RQ==}
+
+  markdown-it@14.1.0:
+    resolution: {integrity: sha512-a54IwgWPaeBCAAsv13YgmALOF1elABB08FxO9i+r4VFk5Vl4pKokRPeX8u5TCgSsPi6ec1otfLjdOpVcgbpshg==}
+    hasBin: true
 
   markdown-it@14.3.2:
     resolution: {integrity: sha512-sHHjZ5fJKlgrG4qns2YwVcdNep35h5fERrfkD2YNsb9UFk0UIHarbiTaHKVMlPuWAoiilyK8Fv/jAm11slsY7Q==}
@@ -5423,6 +5534,12 @@ snapshots:
   '@oxc-parser/binding-openharmony-arm64@0.154.0':
     optional: true
 
+  '@oxc-parser/binding-wasm32-wasi@0.154.0':
+    dependencies:
+      '@emnapi/core': 2.0.0-alpha.6
+      '@emnapi/runtime': 2.0.0-alpha.6
+      '@napi-rs/wasm-runtime': 1.2.5(@emnapi/core@2.0.0-alpha.6)(@emnapi/runtime@2.0.0-alpha.6)
+
   '@oxc-parser/binding-wasm32-wasip1@0.154.0':
     dependencies:
       '@emnapi/core': 2.0.0-alpha.6
@@ -6109,6 +6226,55 @@ snapshots:
     dependencies:
       '@textlint/ast-node-types': 15.8.0
 
+  '@twinkleplop/bash@0.1.7':
+    dependencies:
+      '@twinkleplop/core': 0.3.1
+
+  '@twinkleplop/core@0.3.1': {}
+
+  '@twinkleplop/css@0.1.7':
+    dependencies:
+      '@twinkleplop/core': 0.3.1
+
+  '@twinkleplop/html@0.1.7':
+    dependencies:
+      '@twinkleplop/core': 0.3.1
+      '@twinkleplop/css': 0.1.7
+      '@twinkleplop/javascript': 0.1.7
+
+  '@twinkleplop/javascript@0.1.7':
+    dependencies:
+      '@twinkleplop/core': 0.3.1
+      '@twinkleplop/css': 0.1.7
+      '@twinkleplop/html': 0.1.7
+
+  '@twinkleplop/json@0.1.7':
+    dependencies:
+      '@twinkleplop/core': 0.3.1
+
+  '@twinkleplop/markdown-core@0.2.1':
+    dependencies:
+      '@twinkleplop/core': 0.3.1
+
+  '@twinkleplop/markdown-it@0.1.7':
+    dependencies:
+      '@twinkleplop/markdown-core': 0.2.1
+
+  '@twinkleplop/theme-github@0.2.4':
+    dependencies:
+      '@twinkleplop/core': 0.3.1
+
+  '@twinkleplop/tsx@0.1.7':
+    dependencies:
+      '@twinkleplop/core': 0.3.1
+      '@twinkleplop/javascript': 0.1.7
+      '@twinkleplop/typescript': 0.1.7
+
+  '@twinkleplop/typescript@0.1.7':
+    dependencies:
+      '@twinkleplop/core': 0.3.1
+      '@twinkleplop/javascript': 0.1.7
+
   '@tybys/wasm-util@0.10.4':
     dependencies:
       tslib: 2.8.1
@@ -6144,6 +6310,15 @@ snapshots:
   '@types/estree@1.0.9': {}
 
   '@types/json-schema@7.0.15': {}
+
+  '@types/linkify-it@5.0.0': {}
+
+  '@types/markdown-it@14.1.2':
+    dependencies:
+      '@types/linkify-it': 5.0.0
+      '@types/mdurl': 2.0.0
+
+  '@types/mdurl@2.0.0': {}
 
   '@types/node@24.19.2':
     dependencies:
@@ -7264,6 +7439,15 @@ snapshots:
   magic-string@1.4.3:
     dependencies:
       '@jridgewell/sourcemap-codec': 1.6.0
+
+  markdown-it@14.1.0:
+    dependencies:
+      argparse: 2.0.1
+      entities: 4.5.0
+      linkify-it: 5.0.2
+      mdurl: 2.1.0
+      punycode.js: 2.3.1
+      uc.micro: 2.1.0
 
   markdown-it@14.3.2:
     dependencies:

@@ -53,7 +53,7 @@ Start mode renders `src/App.*` inside `src/Document.*`. When `start` is set, `so
 - `<solid:window>` and `<solid:document>` do nothing on the server.
 - Without `ssr: true`, start mode renders on the client into a prerendered document. `vite build` then writes a static site.
 
-The [`ssr` example](../examples/ssr) is a complete app.
+The [`ssr` example](../../examples/ssr) is a complete app.
 
 ### Server functions
 

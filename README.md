@@ -4,7 +4,7 @@
 
 [![NPM](https://img.shields.io/npm/v/solid-sfc.svg)](https://www.npmjs.com/package/solid-sfc)
 
-Read the [documentation](./docs/README.md) to get started.
+Read the [documentation](./website/docs/README.md) to get started.
 
 ## Packages
 

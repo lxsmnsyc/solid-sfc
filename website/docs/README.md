@@ -31,5 +31,5 @@
 4. [Control flow](./control-flow.md): `#if`, `#for` and the other blocks.
 5. [Reactivity](./reactivity.md): `$signal`, `$memo`, `$effect` and the other compile-time functions.
 6. [Styles](./styles.md): scoped styles and reactive CSS values.
-7. [Tooling](./tooling.md): type checking, editors, the Vite plugin and the compiler API.
+7. [Tooling](./tooling.md): type checking, editors, bundler plugins and the compiler API.
 8. [Migrating from 0.x](./migration.md): moving from `babel-plugin-solid-sfc`.

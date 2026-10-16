@@ -58,6 +58,11 @@ Elements that another component renders itself are not scoped, and the styles of
   color: white;
 }
 
+/* Matches any p inside .content of this component, such as HTML from innerHTML. */
+.content :global(p) {
+  margin: 0;
+}
+
 /* Matches every body element. */
 :global(body) {
   margin: 0;

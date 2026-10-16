@@ -1,0 +1,173 @@
+<script>
+  import { lazy } from 'solid-js';
+  import { href, path } from './router.ts';
+  import Docs from './pages/Docs.solid';
+  import Home from './pages/Home.solid';
+
+  // The playground loads the compiler, so it is a separate chunk.
+  const Playground = lazy(() => import('./pages/Playground.solid'));
+
+  const section = $memo(
+    path().startsWith('/docs') ? 'docs' : path().startsWith('/playground') ? 'playground' : 'home',
+  );
+</script>
+
+<style global>
+  :root {
+    color-scheme: light dark;
+    --background: #ffffff;
+    --surface: #f5f7fa;
+    --border: #dde3ea;
+    --text: #1c2430;
+    --muted: #5b6676;
+    --accent: #2f5f9e;
+    --accent-text: #ffffff;
+    --code-background: #f5f7fa;
+    --header-height: 3.5rem;
+    --font: system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --background: #0f141b;
+      --surface: #161d27;
+      --border: #273140;
+      --text: #e3e8ef;
+      --muted: #97a3b4;
+      --accent: #7aa7e0;
+      --accent-text: #0f141b;
+      --code-background: #161d27;
+    }
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    scroll-padding-top: calc(var(--header-height) + 1rem);
+  }
+
+  body {
+    margin: 0;
+    font-family: var(--font);
+    line-height: 1.6;
+    color: var(--text);
+    background: var(--background);
+  }
+
+  a {
+    color: var(--accent);
+  }
+
+  code,
+  pre,
+  textarea {
+    font-family: var(--mono);
+    font-size: 0.875rem;
+  }
+
+  pre.twinkleplop {
+    overflow-x: auto;
+    margin: 1rem 0;
+    padding: 1rem;
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    line-height: 1.5;
+    background: var(--code-background);
+  }
+
+  .button {
+    display: inline-block;
+    padding: 0.6rem 1.1rem;
+    border: 1px solid var(--accent);
+    border-radius: 0.5rem;
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  .button.primary {
+    color: var(--accent-text);
+    background: var(--accent);
+  }
+</style>
+
+<style>
+  header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    display: flex;
+    gap: 1.5rem;
+    align-items: center;
+    height: var(--header-height);
+    padding: 0 1.5rem;
+    border-bottom: 1px solid var(--border);
+    background: var(--background);
+  }
+
+  .logo {
+    font-weight: 700;
+    font-size: 1.125rem;
+    color: var(--text);
+    text-decoration: none;
+  }
+
+  nav {
+    display: flex;
+    gap: 1.25rem;
+    margin-left: auto;
+  }
+
+  nav a {
+    color: var(--muted);
+    text-decoration: none;
+  }
+
+  nav a:hover,
+  nav .active {
+    color: var(--text);
+  }
+
+  .loading {
+    padding: 2rem 1.5rem;
+    color: var(--muted);
+  }
+
+  @media (max-width: 40rem) {
+    header {
+      gap: 1rem;
+      padding: 0 1rem;
+    }
+
+    nav {
+      gap: 0.75rem;
+    }
+  }
+</style>
+
+<header>
+  <a class="logo" href=href('/')>solid-sfc</a>
+  <nav>
+    <a href=href('/docs') class={ active: section === 'docs' }>Docs</a>
+    <a href=href('/playground') class={ active: section === 'playground' }>Playground</a>
+    <a href="https://github.com/lxsmnsyc/solid-sfc" target="_blank" rel="noreferrer">GitHub</a>
+  </nav>
+</header>
+
+#switch {
+  #case (section === 'docs') {
+    <Docs />
+  }
+  #case (section === 'playground') {
+    #loading {
+      <Playground />
+    } #else {
+      <p class="loading">Loading the compiler…</p>
+    }
+  }
+  #default {
+    <Home />
+  }
+}

@@ -11,6 +11,7 @@
     "format": "oxfmt",
     "format:check": "oxfmt --check",
     "vscode": "pnpm build && code --new-window --extensionDevelopmentPath=\"$PWD/packages/vscode\" examples/tasks",
+    "website": "pnpm build && pnpm --filter website dev",
     "changeset": "changeset",
     "version": "changeset version",
     "release": "pnpm build && changeset publish"

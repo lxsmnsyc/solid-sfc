@@ -8,12 +8,18 @@
   },
   "rules": {
     "typescript/consistent-type-imports": "error",
-    "import/no-cycle": "error"
+    "import/no-cycle": "error",
+    "import/no-unassigned-import": [
+      "warn",
+      {
+        "allow": ["**/*.css"]
+      }
+    ]
   },
   "env": {
     "builtin": true
   },
-  "ignorePatterns": ["**/dist/**", "**/node_modules/**"],
+  "ignorePatterns": ["**/dist/**", "**/node_modules/**", "website/public/coi-serviceworker.js"],
   "overrides": [
     {
       "files": ["**/*.d.ts"],
