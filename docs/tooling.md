@@ -51,17 +51,38 @@ Start mode renders `src/App.*` inside `src/Document.*`. When `start` is set, `so
 - Scoped styles and their CSS variables are rendered on the server, so the page has its styles before it hydrates.
 - `#loading` blocks stream their content when it is ready.
 - `<solid:window>` and `<solid:document>` do nothing on the server.
-- Without `ssr: true`, start mode renders on the client into a prerendered document.
+- Without `ssr: true`, start mode renders on the client into a prerendered document. `vite build` then writes a static site.
 
 The [`ssr` example](../examples/ssr) is a complete app.
 
+### Server functions
+
+With `serverFunctions: true`, a function whose body starts with `'use server'` runs on the server, and the browser calls it over HTTP:
+
+```ts
+export default defineConfig({
+  plugins: [solidSFC({ solid: { start: true, ssr: true, serverFunctions: true } })],
+});
+```
+
+```html
+<script module>
+  async function getServerTime(): Promise<string> {
+    'use server';
+    return new Date().toISOString();
+  }
+</script>
+```
+
+Server functions work in `<script module>`, in the component script and in other modules, with and without `ssr: true`.
+
 ### Options
 
-| Option  | Description                                                                                   |
-| ------- | --------------------------------------------------------------------------------------------- |
-| `solid` | Options for `@solidjs/vite-plugin`. `.solid` is added to its `extensions`.                    |
-| `root`  | The project root, for stable scoped style hashes. Defaults to Vite's root.                    |
-| `dev`   | Adds debug names to signals and memos. Defaults to true outside production builds.            |
+| Option  | Description                                                                        |
+| ------- | ---------------------------------------------------------------------------------- |
+| `solid` | Options for `@solidjs/vite-plugin`. `.solid` is added to its `extensions`.         |
+| `root`  | The project root, for stable scoped style hashes. Defaults to Vite's root.         |
+| `dev`   | Adds debug names to signals and memos. Defaults to true outside production builds. |
 
 ## Other bundlers
 
@@ -79,11 +100,11 @@ export default {
 
 The other bundlers import from `solid-sfc/rolldown`, `solid-sfc/webpack`, `solid-sfc/rspack` and `solid-sfc/esbuild`, and take the same options:
 
-| Option     | Description                                                                                                                    |
-| ---------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| Option     | Description                                                                                                                  |
+| ---------- | ---------------------------------------------------------------------------------------------------------------------------- |
 | `compiler` | Options for Solid's compiler, such as `generate: 'ssr'` and `hydratable: true` for server rendering. Defaults to DOM output. |
-| `root`     | The project root, for stable scoped style hashes. Defaults to the working directory.                                          |
-| `dev`      | Adds debug names to signals and memos. Defaults to `process.env.NODE_ENV !== 'production'`.                                    |
+| `root`     | The project root, for stable scoped style hashes. Defaults to the working directory.                                         |
+| `dev`      | Adds debug names to signals and memos. Defaults to `process.env.NODE_ENV !== 'production'`.                                  |
 
 ### Stylesheets
 

@@ -97,7 +97,12 @@ describe('bundlers', () => {
   ] as const)('%s', async (name, plugin, load) => {
     expect.hasAssertions();
     const bundler = (await load()) as unknown as (config: object) => {
-      run(callback: (error: Error | null, stats?: { hasErrors(): boolean; toString(): string }) => void): void;
+      run(
+        callback: (
+          error: Error | null,
+          stats?: { hasErrors(): boolean; toString(): string },
+        ) => void,
+      ): void;
     };
     const outdir = path.join(outputs, name);
     const compiler = bundler({

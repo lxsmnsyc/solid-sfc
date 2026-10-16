@@ -3,6 +3,7 @@
  * TypeScript JSX, removes the types, and, outside Vite, compiles the JSX with
  * Solid's compiler. In Vite, `@solidjs/vite-plugin` compiles the JSX.
  */
+import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import remapping from '@jridgewell/remapping';
@@ -97,6 +98,12 @@ export const factory: UnpluginFactory<FactoryOptions | undefined> = (options = {
     resolveId(source, importer) {
       if (importer && STYLE_QUERY.test(source)) {
         return path.resolve(path.dirname(splitId(importer).file), source);
+      }
+      // The manifest of Vite's server functions names `.solid` modules as
+      // `App.solid.tsx`. See `withServerFunctionNames` in vite.ts.
+      if (source.endsWith(`${EXTENSION}.tsx`) && path.isAbsolute(source)) {
+        const file = source.slice(0, -'.tsx'.length);
+        return existsSync(file) ? file : null;
       }
       return null;
     },

@@ -2,10 +2,10 @@
 
 A `.solid` app rendered on the server with the start mode of `@solidjs/vite-plugin`. It streams a `#loading` block and hydrates in the browser.
 
-- [`App.solid`](./src/App.solid) is the app: scoped styles with a reactive value, an async `$memo` in `#loading`, `#for`, and a dynamic tag whose tag changes with the count.
+- [`App.solid`](./src/App.solid) is the app: scoped styles with a reactive value, an async `$memo` in `#loading`, `#for`, a dynamic tag whose tag changes with the count, and a server function that the button calls again from the browser.
 - [`Document.solid`](./src/Document.solid) is the HTML document around it, with `<solid:hydration-script />`.
 
-`solid-sfc/vite` finds `src/App.solid` and `src/Document.solid` when `start` is set, so [`vite.config.ts`](./vite.config.ts) only sets `start: true` and `ssr: true`.
+`solid-sfc/vite` finds `src/App.solid` and `src/Document.solid` when `start` is set, so [`vite.config.ts`](./vite.config.ts) only sets `start: true`, `ssr: true` and `serverFunctions: true`.
 
 Run it from the root of the repository. `pnpm build` builds the packages that the example uses.
 
