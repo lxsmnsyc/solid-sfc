@@ -92,6 +92,8 @@ export interface ElementInfo {
   /** True if a class or an id is set by an expression or a spread. */
   dynamicClass: boolean;
   dynamicId: boolean;
+  /** True for `<{tag}>`, whose tag is only known at runtime. */
+  dynamicTag: boolean;
 }
 
 /** Where children are parsed. Each mode ends at a different token. */
@@ -146,10 +148,11 @@ export interface TemplateScope {
   mergeStyle: string;
 }
 
-// The `solid:` elements. Solid components that a control flow block replaces
-// are not elements, so `<solid:for>` points to `#for`.
-const SOLID_ELEMENTS = new Set(['window', 'document', 'dynamic', 'hydration-script']);
+// The `solid:` elements. Solid components that a control flow block or
+// `<{tag}>` replaces are not elements, so `<solid:for>` points to `#for`.
+const SOLID_ELEMENTS = new Set(['window', 'document', 'hydration-script']);
 const REPLACED_ELEMENTS: Record<string, string> = {
+  dynamic: '<{tag}>',
   for: '#for',
   show: '#if',
   switch: '#switch',
@@ -361,6 +364,9 @@ export class TemplateParser {
       const close = this.parseChildren(offset + 2, 'element');
       return this.parseClosingTag(close, '');
     }
+    if (source[offset + 1] === '{') {
+      return this.parseDynamicElement(offset);
+    }
     const name = matchAt(TAG_NAME, source, offset + 1);
     if (!name) {
       return this.fail('Expected a tag name', offset + 1);
@@ -393,6 +399,7 @@ export class TemplateParser {
       ids: new Set(),
       dynamicClass: false,
       dynamicId: false,
+      dynamicTag: false,
     };
     if (native) {
       this.elements.push(element);
@@ -418,6 +425,57 @@ export class TemplateParser {
     }
     const close = this.parseChildren(end, 'element');
     return this.parseClosingTag(close, name);
+  }
+
+  /**
+   * `<{tag} a=b>children</>` becomes
+   * `<Dynamic component={tag} a={b}>children</Dynamic>`. The tag can be any
+   * expression. It gets the scope attribute, since it can be a native element.
+   */
+  private parseDynamicElement(offset: number): number {
+    const { source, output } = this;
+    const close = this.scanner.scanExpression(offset + 2, '}');
+    if (!source.slice(offset + 2, close).trim()) {
+      return this.fail('Expected an expression for the tag', offset + 1);
+    }
+    const nameEnd = close + 1;
+    const scope = this.scope;
+    const ignores =
+      this.ignore && this.scanner.skipWhitespace(this.ignore.end) === offset
+        ? this.ignore.codes
+        : new Set<string>();
+    const element: ElementInfo = {
+      tag: '*',
+      offset,
+      attributes: new Map(),
+      spread: false,
+      ignores,
+      classes: new Set(),
+      ids: new Set(),
+      dynamicClass: false,
+      dynamicId: false,
+      dynamicTag: true,
+    };
+    this.elements.push(element);
+    output.appendLeft(offset + 1, 'Dynamic component=');
+    if (scope) {
+      output.appendLeft(nameEnd, ` ${scope.attribute}`);
+    }
+    const { end, attributesEnd, selfClosing, hasStyle } = this.parseAttributes(
+      nameEnd,
+      '',
+      scope,
+      element,
+    );
+    if (scope?.variables && !hasStyle) {
+      output.appendLeft(attributesEnd, ` style={${scope.variables}()}`);
+    }
+    if (selfClosing) {
+      return end;
+    }
+    const closing = this.parseChildren(end, 'element');
+    output.appendLeft(closing + 2, 'Dynamic');
+    return this.parseClosingTag(closing, '');
   }
 
   /**
@@ -654,7 +712,10 @@ export class TemplateParser {
       const name = `bind:${binding.property}`;
       const config = BINDINGS[binding.property];
       if (!config || !config.tags.includes(tag)) {
-        this.fail(`${name} is not supported on <${tag}>`, binding.start);
+        this.fail(
+          `${name} is not supported on ${tag ? `<${tag}>` : 'a dynamic tag'}`,
+          binding.start,
+        );
       }
       if (names.has(config.event)) {
         this.fail(

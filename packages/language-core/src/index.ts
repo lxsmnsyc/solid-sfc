@@ -551,6 +551,10 @@ export function getClosingTag(source: string, offset: number): string | undefine
     } else if (char === '>' && depth === 0) {
       return undefined;
     } else if (char === '<' && depth === 0) {
+      // A dynamic tag `<{tag}>` closes like a fragment.
+      if (source[i + 1] === '{') {
+        return '</>';
+      }
       const name = /^[A-Za-z][\w$.:-]*/.exec(source.slice(i + 1))?.[0];
       if (
         !name ||

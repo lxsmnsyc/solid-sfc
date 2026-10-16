@@ -74,10 +74,10 @@ export const COMPONENTS: Record<string, ImportDef> = {
 };
 
 /**
- * `<solid:dynamic>`-style namespaced JSX components. Components that a
- * control flow block replaces, such as `<solid:for>`, are not included.
+ * `<solid:hydration-script>`-style namespaced JSX components. Components that
+ * a control flow block or `<{tag}>` replaces, such as `<solid:for>`, are not
+ * included.
  */
 export const NAMESPACE_COMPONENTS: Record<string, ImportDef> = {
-  dynamic: ['Dynamic', '@solidjs/web'],
   'hydration-script': ['HydrationScript', '@solidjs/web'],
 };

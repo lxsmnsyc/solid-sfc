@@ -157,8 +157,6 @@ declare module '@solidjs/web' {
   // JSX namespace augmentation
   namespace JSX {
     interface IntrinsicElements {
-      // `Props<typeof Dynamic>` would be circular through IntrinsicElements.
-      'solid:dynamic': Record<string, unknown>;
       'solid:hydration-script': Props<typeof solidWeb.HydrationScript>;
     }
   }

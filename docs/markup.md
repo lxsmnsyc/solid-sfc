@@ -92,7 +92,8 @@ Attributes must be separated by whitespace. `<a title="a"href="b">` is a syntax 
 - Lowercase names, such as `<div>` and `<my-element>`, are native elements. Scoped styles apply to them.
 - Other names, such as `<Button>` and `<Form.Field>`, are components.
 - `<>` and `</>` are fragments.
-- `<solid:dynamic>` and `<solid:hydration-script>` are the Solid components `Dynamic` and `HydrationScript`. Control flow blocks replace the other Solid components, so `<solid:for>` and `<solid:no-hydration>` are errors that name the block to use. `<solid:window>` and `<solid:document>` are [described below](#window-and-document-events).
+- `<{tag}>` and `</>` are a [dynamic tag](#dynamic-tags).
+- `<solid:hydration-script>` is the Solid component `HydrationScript`. Control flow blocks and dynamic tags replace the other Solid components, so `<solid:for>` and `<solid:dynamic>` are errors that say what to use. `<solid:window>` and `<solid:document>` are [described below](#window-and-document-events).
 
 Void elements do not need `/>`: `area`, `base`, `br`, `col`, `embed`, `hr`, `img`, `input`, `link`, `meta`, `source`, `track` and `wbr`.
 
@@ -102,6 +103,31 @@ Void elements do not need `/>`: `area`, `base`, `br`, `col`, `embed`, `hr`, `img
 ```
 
 Every other element needs a closing tag or `/>`.
+
+## Dynamic tags
+
+A tag in braces is an expression. It can be a tag name or a component, and it is only known at runtime:
+
+```html
+<script>
+  import type { Component } from 'solid-js';
+
+  const { as = 'h2', icon } = $props<{ as?: string; icon: Component<{ size: number }> }>();
+</script>
+
+<{as} class="title">
+  <{icon} size=16 />
+  Hello
+</>
+```
+
+The closing tag is `</>`, so the expression is only written once.
+
+A dynamic tag compiles to Solid's `<Dynamic component={as}>`, so its attributes are type-checked against the tag. Any expression works, such as `<{props.as ?? 'div'}>` or `<{icons[name]}>`.
+
+- Scoped styles apply to a dynamic tag, because it can be a native element. When the tag is a component, the component gets the scope attribute as a prop.
+- A dynamic tag can be any tag, so it matches every tag selector when the compiler [looks for unused selectors](styles.md#unused-selectors).
+- It gets no [accessibility warnings](#accessibility-warnings), and `bind:` is not supported on it.
 
 ## Children
 

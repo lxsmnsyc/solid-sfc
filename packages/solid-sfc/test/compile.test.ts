@@ -127,6 +127,34 @@ describe('<solid:window> and <solid:document>', () => {
   });
 });
 
+describe('dynamic tags', () => {
+  it('compiles to Dynamic', () => {
+    expect(markup('<{tag} class="a" {...rest}>Hi</>')).toBe(
+      '<_Dynamic component={tag} class="a" {...rest}>Hi</_Dynamic>',
+    );
+  });
+
+  it('takes any expression', () => {
+    expect(markup("<{props.as ?? 'div'} />")).toBe("<_Dynamic component={props.as ?? 'div'} />");
+  });
+
+  it('works inside expressions and attributes', () => {
+    expect(markup('<p>{a && <{icon} size=2 />}</p>')).toBe(
+      '<p>{a && <_Dynamic component={icon} size={2} />}</p>',
+    );
+    expect(markup('<A icon=<{b} /> />')).toBe('<A icon=<_Dynamic component={b} /> />');
+  });
+
+  it.each([
+    ['<{} />', 'Expected an expression for the tag'],
+    ['<{tag}>a</tag>', 'Expected </>'],
+    ['<{tag} bind:value=a />', 'bind:value is not supported on a dynamic tag'],
+    ['<solid:dynamic component=a />', 'Use <{tag}> instead of <solid:dynamic>'],
+  ])('rejects %s', (input, message) => {
+    expect(() => compile(input)).toThrow(message);
+  });
+});
+
 describe('children', () => {
   it('removes XML comments', () => {
     expect(markup('<div><!-- note --></div>')).toBe('<div></div>');

@@ -238,7 +238,10 @@ export class Scanner {
           break;
         case '<': {
           const next = source[i + 1];
-          if ((next === '>' || isIdentifierStart(next)) && this.expectsOperand(offset, i)) {
+          if (
+            (next === '>' || next === '{' || isIdentifierStart(next)) &&
+            this.expectsOperand(offset, i)
+          ) {
             i = this.hooks.element(i);
           } else {
             i++;

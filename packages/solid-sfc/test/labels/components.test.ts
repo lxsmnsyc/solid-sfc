@@ -32,7 +32,7 @@ const view = (
       transform(`
 const view = (
   <div>
-    <solid:dynamic component={tag()}>{label()}</solid:dynamic>
+    <solid:hydration-script />
   </div>
 );
 `),

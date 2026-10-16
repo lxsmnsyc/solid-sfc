@@ -264,7 +264,8 @@ describe('closing tags', () => {
     ['<div>', '</div>'],
     ['<p>text</p><Card title="a > b" onClick=(() => a > b)>', '</Card>'],
     ['<>', '</>'],
-    ['<solid:show when=a>', '</solid:show>'],
+    ['<solid:hydration-script>', '</solid:hydration-script>'],
+    ['<{props.as ?? "div"} class={ a: b }>', '</>'],
   ])('closes %s', (text, tag) => {
     expect(close(text)).toBe(tag);
   });

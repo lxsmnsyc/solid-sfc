@@ -8,6 +8,7 @@ function codes(template: string): string[] {
 describe('accessibility', () => {
   it.each([
     ['<img src="a.png">', ['a11y-missing-alt']],
+    ['<{tag} onClick=go role="nope" />', []],
     ['<img src="a.png" alt="">', []],
     ['<iframe src="x" />', ['a11y-missing-title']],
     ['<a>Link</a>', ['a11y-missing-href']],

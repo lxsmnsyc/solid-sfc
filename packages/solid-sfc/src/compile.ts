@@ -241,7 +241,10 @@ export function compileStructure(source: string, options: CompileOptions = {}): 
 /** True if the scoped part of a selector can match an element. */
 function matches(selector: ScopedSelector, element: ElementInfo): boolean {
   return (
-    (selector.tag === undefined || selector.tag === '*' || selector.tag === element.tag) &&
+    (selector.tag === undefined ||
+      selector.tag === '*' ||
+      element.dynamicTag ||
+      selector.tag === element.tag) &&
     (element.dynamicClass || selector.classes.every((name) => element.classes.has(name))) &&
     (element.dynamicId || selector.ids.every((name) => element.ids.has(name)))
   );

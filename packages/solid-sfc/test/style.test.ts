@@ -125,6 +125,12 @@ describe('markup', () => {
     ).toBe('<div s-x><Comp /><svg:rect /><my-el s-x>{x && <b s-x />}</my-el></div>');
   });
 
+  it('adds the scope attribute to dynamic tags', () => {
+    expect(markup('<style>a {}</style><{tag}>x</>')).toBe(
+      '<_Dynamic component={tag} s-x>x</_Dynamic>',
+    );
+  });
+
   it('does not scope markup when every style is global', () => {
     expect(markup('<style global>a {}</style><div />')).toBe('<div />');
   });
@@ -164,6 +170,12 @@ describe('unused selectors', () => {
       '3:5 Unused CSS selector "p.a"',
       '4:1 Unused CSS selector "#c"',
       '5:1 Unused CSS selector "li"',
+    ]);
+  });
+
+  it('lets a dynamic tag match any tag', () => {
+    expect(warnings('<style>li.a { } .b { }</style><{tag} class="a" />')).toEqual([
+      '1:17 Unused CSS selector ".b"',
     ]);
   });
 

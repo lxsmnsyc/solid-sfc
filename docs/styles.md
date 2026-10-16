@@ -18,7 +18,7 @@ The styles become a CSS file that Vite bundles, so nothing is added to the page 
 
 ## How scoping works
 
-The compiler adds an `s-<hash>` attribute to every native element in the markup, and adds the same attribute to each selector:
+The compiler adds an `s-<hash>` attribute to every native element and [dynamic tag](markup.md#dynamic-tags) in the markup, and adds the same attribute to each selector:
 
 ```html
 <ul s-x1y2z3 class="list">
@@ -186,6 +186,7 @@ The editor shows the same warnings.
 - Only the scoped part of a selector is checked. In `.list .item`, the compiler checks `.item`, because `.list` can be an element of another component.
 - Classes from `class="a b"` and from the keys of `class={ active: on }` are known. A `class` or `id` set by an expression, or a spread such as `{...props}`, can be anything, so every class or id selector matches that element.
 - Selectors in `:global(...)` and `<style global>` blocks are not checked, and neither are selectors that a preprocessor builds, such as `.btn-#{$name}`.
+- A [dynamic tag](markup.md#dynamic-tags) such as `<{tag}>` can be any element, so every tag selector matches it.
 - Elements that a child component renders are not scoped, so they never count.
 
 ## Syntax errors

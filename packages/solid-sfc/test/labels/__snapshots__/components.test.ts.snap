@@ -36,11 +36,11 @@ const view = <Show when={cond}>hi</Show>;
 `;
 
 exports[`components > supports the solid: namespace 1`] = `
-"import { Dynamic as _Dynamic } from "@solidjs/web";
+"import { HydrationScript as _HydrationScript } from "@solidjs/web";
 
 const view = (
   <div>
-    <_Dynamic component={tag()}>{label()}</_Dynamic>
+    <_HydrationScript />
   </div>
 );
 "

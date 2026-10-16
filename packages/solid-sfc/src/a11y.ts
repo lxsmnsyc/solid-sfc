@@ -211,6 +211,10 @@ function isInteractive(element: ElementInfo, attributes: Map<string, unknown>): 
 export function checkAccessibility(source: string, elements: ElementInfo[]): SFCWarning[] {
   const warnings: SFCWarning[] = [];
   for (const element of elements) {
+    // The tag of `<{tag}>` is only known at runtime.
+    if (element.dynamicTag) {
+      continue;
+    }
     const attributes = lowercase(element);
     const warn = (code: string, message: string): void => {
       if (!element.ignores.has(code)) {

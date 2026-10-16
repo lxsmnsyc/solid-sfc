@@ -90,6 +90,13 @@ describe('markup', () => {
     expect(scopeOf(source, 0, '"a"')).toContain('string.quoted.double.solid');
   });
 
+  it('embeds TSX in dynamic tags', () => {
+    const source = '<{props.as} class="a">text</>';
+    expect(scopeOf(source, 0, 'props.as')).toContain('meta.embedded.expression.tsx');
+    expect(scopeOf(source, 0, 'class')).toContain('entity.other.attribute-name.solid');
+    expect(scopeOf(source, 0, '</')).toContain('punctuation.definition.tag.begin.solid');
+  });
+
   it('scopes attribute values without braces', () => {
     const source = '<button onClick=increment tabIndex=0 disabled=false title=(a + b) />';
     expect(scopeOf(source, 0, 'increment')).toContain('variable.other.readwrite.solid');
