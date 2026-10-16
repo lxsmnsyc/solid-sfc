@@ -38,6 +38,18 @@ count--;
 `),
     ).toMatchSnapshot();
   });
+  it('reads signals at the end of the written value', () => {
+    const code = transform(`
+let open = $signal(false);
+let size = $signal(0);
+open = !open;
+size = size;
+size += size;
+`);
+    expect(code).toContain('setopen_1(() => !open());');
+    expect(code).toContain('setsize_1(() => size());');
+    expect(code).toContain('setsize_1(current_1 => current_1 += size());');
+  });
   it('rewrites awaited writes', () => {
     expect(
       transform(`

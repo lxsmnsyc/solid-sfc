@@ -222,6 +222,10 @@ function rewriteWrite(ctx: Ctx, binding: Binding, info: ReactiveInfo, ref: Ref):
  */
 export function rewriteReferences(ctx: Ctx): void {
   const { s } = ctx;
+  // Writes run after every read. A write closes its setter call at the end
+  // of the value, and a read at the same place, as in `open = !open`, must
+  // add its `()` first.
+  const writes: [Binding, ReactiveInfo, Ref][] = [];
   for (const [binding, info] of ctx.reactive) {
     if (info.kind === 'raw') {
       continue;
@@ -264,7 +268,10 @@ export function rewriteReferences(ctx: Ctx): void {
       }
       // write / readwrite
       ctx.consumed.add(ref.node);
-      rewriteWrite(ctx, binding, info, ref);
+      writes.push([binding, info, ref]);
     }
+  }
+  for (const [binding, info, ref] of writes) {
+    rewriteWrite(ctx, binding, info, ref);
   }
 }
