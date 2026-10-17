@@ -1,0 +1,57 @@
+{
+  "name": "@solid-sfc/tsc",
+  "version": "0.0.0",
+  "description": "Type-checks solid-sfc projects, including .solid files",
+  "keywords": [
+    "sfc",
+    "solid-js",
+    "typescript",
+    "volar"
+  ],
+  "homepage": "https://github.com/lxsmnsyc/solid-sfc/tree/main/packages/tsc",
+  "bugs": {
+    "url": "https://github.com/lxsmnsyc/solid-sfc/issues"
+  },
+  "license": "MIT",
+  "author": "Alexis Munsayac",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lxsmnsyc/solid-sfc.git",
+    "directory": "packages/tsc"
+  },
+  "bin": {
+    "solid-tsc": "./bin/solid-tsc.js"
+  },
+  "files": [
+    "bin",
+    "dist"
+  ],
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@solid-sfc/language-core": "workspace:*",
+    "@volar/typescript": "2.4.28",
+    "typescript-api": "npm:typescript@6.0.3"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "tsdown": "^0.23.1",
+    "typescript": "^7.0.2"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

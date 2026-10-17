@@ -1,0 +1,78 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`auto-import aliases > compiles arrow CTFs 1`] = `
+"import { createSignal as _createSignal, untrack as _untrack, lazy as _lazy, resolve as _resolve } from 'solid-js';
+
+let [count, setCount] = _createSignal(0);
+const value = _untrack(() => count());
+const Page = _lazy(() => import('./Page'));
+const settled = _resolve(() => user);
+"
+`;
+
+exports[`auto-import aliases > compiles async aliases 1`] = `
+"import { action as _action, refresh as _refresh, isPending as _isPending, latest as _latest, affects as _affects } from 'solid-js';
+
+const save = _action(function* (todo) {
+  yield api.add(todo);
+  _refresh(todos);
+});
+const pending = _isPending(() => user());
+const peeked = _latest(() => id);
+_affects(user);
+"
+`;
+
+exports[`auto-import aliases > compiles component API aliases 1`] = `
+"import { createUniqueId as _createUniqueId, merge as _merge, omit as _omit, createContext as _createContext, useContext as _useContext, getOwner as _getOwner, runWithOwner as _runWithOwner } from 'solid-js';
+
+const id = _createUniqueId();
+const merged = _merge(defaults, props);
+const rest = _omit(props, 'class');
+const Ctx = _createContext(0);
+const value = _useContext(Ctx);
+const owner = _getOwner();
+_runWithOwner(owner, () => work());
+"
+`;
+
+exports[`auto-import aliases > compiles lifecycle aliases 1`] = `
+"import { onSettled as _onSettled, onCleanup as _onCleanup } from 'solid-js';
+
+_onSettled(() => {
+  const id = setInterval(tick, 1000);
+  return () => clearInterval(id);
+});
+_onCleanup(() => dispose());
+"
+`;
+
+exports[`auto-import aliases > compiles reactivity aliases 1`] = `
+"import { createRoot as _createRoot, createTrackedEffect as _createTrackedEffect, createReaction as _createReaction, flush as _flush } from 'solid-js';
+
+const dispose = _createRoot(() => setup());
+_createTrackedEffect(() => console.log('tracked'));
+const track = _createReaction(() => console.log('reacted'));
+_flush();
+"
+`;
+
+exports[`auto-import aliases > compiles store aliases 1`] = `
+"import { createStore as _createStore, createProjection as _createProjection, createOptimistic as _createOptimistic, createOptimisticStore as _createOptimisticStore, reconcile as _reconcile, snapshot as _snapshot, deep as _deep } from 'solid-js';
+
+const [store, setStore] = _createStore({ list: [] });
+const items = _createProjection(() => api.list(), [], { key: 'id' });
+const [name, setName] = _createOptimistic('Alice');
+const [todos, setTodos] = _createOptimisticStore(() => api.list(), []);
+setStore(s => { _reconcile(data, 'id')(s.list); });
+const plain = _snapshot(store);
+const tracked = _deep(store);
+"
+`;
+
+exports[`auto-import aliases > respects shadowing 1`] = `
+"
+const $merge = (a, b) => ({ ...a, ...b });
+const merged = $merge(a, b);
+"
+`;

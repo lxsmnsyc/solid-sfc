@@ -1,0 +1,40 @@
+{
+  "name": "website",
+  "version": "0.0.0",
+  "private": true,
+  "description": "The website of solid-sfc: documentation and a playground",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "solid-tsc --noEmit"
+  },
+  "dependencies": {
+    "@oxc-parser/binding-wasm32-wasi": "0.154.0",
+    "@oxc-transform/binding-wasm32-wasip1": "0.154.0",
+    "@solidjs/compiler-wasm32-wasi": "2.0.0-rc.15",
+    "@solidjs/web": "2.0.0-rc.15",
+    "@twinkleplop/bash": "0.1.7",
+    "@twinkleplop/core": "0.3.1",
+    "@twinkleplop/css": "0.1.7",
+    "@twinkleplop/json": "0.1.7",
+    "@twinkleplop/theme-github": "0.2.4",
+    "@twinkleplop/tsx": "0.1.7",
+    "@twinkleplop/typescript": "0.1.7",
+    "oxc-transform": "0.154.0",
+    "solid-js": "2.0.0-rc.15",
+    "solid-sfc": "workspace:*",
+    "terracotta": "2.0.0-next.10"
+  },
+  "devDependencies": {
+    "@solid-sfc/tsc": "workspace:*",
+    "@solidjs/vite-plugin": "3.0.0-next.35",
+    "@twinkleplop/markdown-it": "0.1.7",
+    "@types/markdown-it": "14.1.2",
+    "@types/node": "^24.0.0",
+    "markdown-it": "14.1.0",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.4"
+  }
+}

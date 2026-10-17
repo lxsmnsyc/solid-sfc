@@ -1,0 +1,47 @@
+<script>
+  let x = $signal(0);
+  let y = $signal(0);
+  let keys: string[] = $signal([]);
+
+  function track(event: PointerEvent) {
+    x = event.clientX;
+    y = event.clientY;
+  }
+
+  function press(event: KeyboardEvent) {
+    keys = [...keys.slice(-4), event.key];
+  }
+</script>
+
+<style>
+  .dot {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 1rem;
+    height: 1rem;
+    border-radius: 50%;
+    background: rebeccapurple;
+    pointer-events: none;
+    transform: translate(${x - 8}px, ${y - 8}px);
+  }
+
+  kbd {
+    padding: 0.1rem 0.4rem;
+    border: 1px solid #ccc;
+    border-radius: 0.25rem;
+  }
+</style>
+
+<!-- Listens to window events while the component is on the page. -->
+<solid:window onPointerMove=track onKeyDown=press />
+
+<div class="dot" />
+<p>The pointer is at {x}, {y}. Press some keys.</p>
+<p>
+  #for (key of keys) {
+    <kbd>{key}</kbd>{' '}
+  } #else {
+    No keys yet.
+  }
+</p>

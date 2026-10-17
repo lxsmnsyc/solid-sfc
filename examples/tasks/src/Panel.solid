@@ -1,0 +1,28 @@
+<script>
+  import type { Element } from 'solid-js';
+
+  interface Props {
+    // The element that wraps the panel.
+    as?: 'section' | 'figure' | 'article';
+    children: Element;
+  }
+
+  const { as = 'section', children } = $props<Props>();
+</script>
+
+<style>
+  /* Scoped styles apply to a dynamic tag too. */
+  .panel {
+    display: grid;
+    gap: 1rem;
+    margin: 0;
+    padding: 1rem;
+    border-radius: 1rem;
+    background: var(--surface);
+  }
+</style>
+
+<!-- A tag in braces is chosen at runtime. It closes with </>. -->
+<{as} class="panel">
+  {children}
+</>

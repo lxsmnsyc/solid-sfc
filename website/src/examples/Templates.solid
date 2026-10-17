@@ -1,0 +1,37 @@
+<script>
+  let level: 1 | 2 | 3 = $signal(2);
+  const parts = [
+    { name: 'Script', about: 'The body of the component.' },
+    { name: 'Style', about: 'CSS scoped to the file.' },
+    { name: 'Markup', about: 'What the component renders.' },
+  ];
+</script>
+
+<fieldset>
+  <legend>Heading level</legend>
+  #for (option of [1, 2, 3] as const) {
+    <label>
+      <input type="radio" name="level" checked=(option === level) onChange=(() => (level = option))>
+      h{option}
+    </label>
+  }
+</fieldset>
+
+<!-- A tag in braces is chosen when the component runs. It closes with </>. -->
+<{`h${level}`}>Parts of a file</>
+
+<dl>
+  #for (part of parts) {
+    {row(part.name, part.about)}
+  }
+</dl>
+
+<!-- A template is markup with parameters, which the file can render anywhere. -->
+#template row(term: string, description: string) {
+  <!-- A script in a block runs each time the block renders. -->
+  <script>
+    const id = term.toLowerCase();
+  </script>
+  <dt id=id><strong>{term}</strong></dt>
+  <dd>{description}</dd>
+}

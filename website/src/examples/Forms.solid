@@ -1,0 +1,97 @@
+<script>
+  let name = $signal('Ada');
+  let age = $signal(36);
+  let size = $signal('m');
+  let toppings: string[] = $signal(['cheese']);
+  let delivery = $signal(true);
+  let notes = $signal('');
+
+  function toggleTopping(option: string, checked: boolean) {
+    toppings = checked ? [...toppings, option] : toppings.filter((item) => item !== option);
+  }
+</script>
+
+<style>
+  form {
+    display: grid;
+    gap: 0.75rem;
+    max-width: 22rem;
+  }
+
+  fieldset {
+    display: flex;
+    gap: 1rem;
+    border: 1px solid #ddd;
+    border-radius: 0.5rem;
+  }
+
+  output {
+    display: block;
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+    background: #f4f0ff;
+  }
+</style>
+
+<!-- Each field shows a variable, and its event handler writes the variable. -->
+<form onSubmit=((event) => event.preventDefault())>
+  <label>Name <input value=name onInput=((event) => (name = event.currentTarget.value))></label>
+  <!-- valueAsNumber reads a number. -->
+  <label>
+    Age
+    <input
+      type="number"
+      min="0"
+      value=age
+      onInput=((event) => (age = event.currentTarget.valueAsNumber))
+    >
+  </label>
+
+  <fieldset>
+    <legend>Size</legend>
+    #for (option of ['s', 'm', 'l']) {
+      <label>
+        <input type="radio" name="size" checked=(size === option) onChange=(() => (size = option))>
+        {option.toUpperCase()}
+      </label>
+    }
+  </fieldset>
+
+  <fieldset>
+    <legend>Toppings</legend>
+    #for (option of ['cheese', 'olives', 'basil']) {
+      <label>
+        <input
+          type="checkbox"
+          checked=toppings.includes(option)
+          onChange=((event) => toggleTopping(option, event.currentTarget.checked))
+        >
+        {option}
+      </label>
+    }
+  </fieldset>
+
+  <label>
+    <input
+      type="checkbox"
+      checked=delivery
+      onChange=((event) => (delivery = event.currentTarget.checked))
+    >
+    Deliver it
+  </label>
+  <textarea
+    value=notes
+    onInput=((event) => (notes = event.currentTarget.value))
+    placeholder="Notes for the kitchen"
+  />
+
+  <output>
+    <!-- Text and expressions on different lines join without a space, as in JSX. -->
+    {`${name}, ${age}, orders a size ${size.toUpperCase()} pizza`}
+    {toppings.length > 0 ? ` with ${toppings.join(', ')}` : ''}
+    {delivery ? ', delivered.' : ', to pick up.'}
+    #if (notes) {
+      <br>Notes: {notes}
+    }
+  </output>
+</form>

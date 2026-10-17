@@ -1,0 +1,61 @@
+<script>
+  type Tab = 'about' | 'shapes' | 'random';
+  let tab = $signal<Tab>('about');
+  let seed = $signal(1);
+</script>
+
+<style>
+  nav {
+    display: flex;
+    gap: 0.25rem;
+  }
+
+  nav button {
+    padding: 0.4rem 0.8rem;
+    border: 1px solid #ccc;
+    border-radius: 999px;
+    background: none;
+    cursor: pointer;
+  }
+
+  nav .active {
+    color: white;
+    background: rebeccapurple;
+  }
+
+  .fade {
+    animation: fade 300ms ease-out;
+  }
+
+  @keyframes fade {
+    from {
+      opacity: 0;
+    }
+  }
+</style>
+
+<nav>
+  #for (item of ['about', 'shapes', 'random'] as const) {
+    <button class={ active: tab === item } onClick=(() => (tab = item))>{item}</button>
+  }
+</nav>
+
+#switch {
+  #case (tab === 'about') {
+    <p>#switch shows the first #case whose condition is true.</p>
+  }
+  #case (tab === 'shapes') {
+    <p>
+      #repeat (index of 5) {
+        {index % 2 === 0 ? '●' : '■'}
+      }
+    </p>
+  }
+  #default {
+    <!-- #key creates its body again when the value changes, which replays the animation. -->
+    #key (seed) {
+      <p class="fade">Your number is {Math.floor(Math.random() * 100)}.</p>
+    }
+    <button onClick=(() => seed++)>Roll again</button>
+  }
+}

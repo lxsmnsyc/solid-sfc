@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Preview</title>
+    <script src="/coi-serviceworker.js"></script>
+    <!-- Base styles, so the examples do not need their own. -->
+    <style>
+      body {
+        margin: 0;
+        padding: 1rem;
+        font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+        line-height: 1.5;
+        color: #1c2430;
+        background: #ffffff;
+      }
+
+      .error {
+        color: #d33f49;
+        white-space: pre-wrap;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/preview/frame.ts"></script>
+  </body>
+</html>

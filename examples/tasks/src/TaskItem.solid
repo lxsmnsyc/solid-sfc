@@ -1,0 +1,155 @@
+<script>
+  import type { Task } from './tasks.ts';
+
+  interface Props {
+    task: Task;
+    maxPriority?: number;
+    onToggle: () => void;
+    onPriority: (priority: number) => void;
+    onRename: (title: string) => void;
+    onRemove: () => void;
+  }
+
+  // Destructured props stay reactive, and defaults apply when a prop is undefined.
+  const { task, maxPriority = 3, onToggle, onPriority, onRename, onRemove } = $props<Props>();
+
+  const COLORS = ['#a1a1aa', '#22c55e', '#f59e0b', '#ef4444'];
+
+  // The name of an attribute can be computed too.
+  const state = $memo(task.done ? 'data-done' : 'data-open');
+
+  // Double-clicking the title renames the task.
+  let editing = $signal(false);
+  let draft = $signal('');
+
+  function edit() {
+    draft = task.title;
+    editing = true;
+  }
+
+  function finish(keep: boolean) {
+    if (!editing) {
+      return;
+    }
+    editing = false;
+    const title = draft.trim();
+    if (keep && title && title !== task.title) {
+      onRename(title);
+    }
+  }
+
+  function onKeyDown(event: KeyboardEvent) {
+    if (event.key === 'Enter') {
+      finish(true);
+    } else if (event.key === 'Escape') {
+      finish(false);
+    }
+  }
+
+  // A ref callback runs when the element is created.
+  function focus(element: HTMLInputElement) {
+    requestAnimationFrame(() => element.select());
+  }
+</script>
+
+<!-- SCSS works too. Vite compiles it with the sass package. -->
+<style lang="scss">
+  $star: #f59e0b;
+
+  @mixin plain-button {
+    border: none;
+    color: var(--muted);
+    background: none;
+    cursor: pointer;
+  }
+
+  li {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    padding: 0.5rem 0.75rem;
+    border-left: 4px solid ${COLORS[task.priority] ?? COLORS[0]};
+    border-radius: 0.5rem;
+    background: var(--background);
+    animation: enter 200ms ease-out;
+
+    &[data-done] .title {
+      color: var(--muted);
+      text-decoration: line-through;
+    }
+  }
+
+  // Keyframe names get a suffix, so other components can use the same name.
+  @keyframes enter {
+    from {
+      opacity: 0;
+      transform: translateY(-0.25rem);
+    }
+  }
+
+  .title {
+    flex: 1;
+    cursor: text;
+  }
+
+  .rename {
+    flex: 1;
+    min-width: 0;
+    padding: 0.1rem 0.4rem;
+    border: 1px solid var(--accent);
+    border-radius: 0.25rem;
+    color: inherit;
+    background: var(--surface);
+  }
+
+  .stars {
+    button {
+      @include plain-button;
+      padding: 0;
+    }
+
+    .filled {
+      color: $star;
+    }
+  }
+
+  .remove {
+    @include plain-button;
+    padding: 0 0.25rem;
+  }
+
+  // :global() leaves part of a selector unscoped.
+  :global([data-theme='dark']) .remove:hover {
+    color: white;
+  }
+</style>
+
+<li [state]>
+  <input type="checkbox" checked=task.done onChange=onToggle aria-label="Done">
+  #if (editing) {
+    <input
+      class="rename"
+      aria-label="Task title"
+      ref=focus
+      value=draft
+      onInput=((event) => (draft = event.currentTarget.value))
+      {onKeyDown}
+      onBlur=(() => finish(true))
+    >
+  } #else {
+    <span class="title" title="Double-click to rename" onDblClick=edit>{task.title}</span>
+  }
+  <span class="stars">
+    #repeat (index of maxPriority) {
+      <button
+        type="button"
+        class={ filled: index < task.priority }
+        aria-label=`Priority ${index + 1}`
+        onClick=(() => onPriority(index + 1))
+      >
+        ★
+      </button>
+    }
+  </span>
+  <button class="remove" type="button" aria-label="Remove" onClick=onRemove>×</button>
+</li>

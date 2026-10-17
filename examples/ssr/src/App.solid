@@ -1,0 +1,51 @@
+<script module>
+  // A server function runs on the server. The browser calls it over HTTP.
+  async function getServerTime(request: number): Promise<string> {
+    'use server';
+    const where = typeof window === 'undefined' ? 'the server' : 'the browser';
+    return `Request ${request} ran on ${where} at ${new Date().toLocaleTimeString('en')}`;
+  }
+</script>
+
+<script>
+  let count = $signal(0);
+  const doubled = $memo(count * 2);
+  // The tag of the doubled count changes once the count is above 2.
+  const tag = $memo(count > 2 ? 'strong' : 'span');
+
+  async function fetchGreeting(name: string): Promise<string> {
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    return `Hello, ${name}`;
+  }
+
+  const greeting = $memo(fetchGreeting('server'));
+
+  // Changing `request` calls the server function again, from the browser.
+  let request = $signal(1);
+  const time = $memo(getServerTime(request));
+</script>
+
+<style>
+  main {
+    font-family: system-ui, sans-serif;
+    color: ${count > 2 ? 'crimson' : 'black'};
+  }
+</style>
+
+<main>
+  <h1>Solid SFC with SSR</h1>
+  <button type="button" onClick=(() => count++)>Count: {count}</button>
+  <p>Doubled: <{tag}>{doubled}</></p>
+  #loading {
+    <p class="greeting">{greeting}</p>
+    <p class="time">{time}</p>
+  } #else {
+    <p>Loading…</p>
+  }
+  <button type="button" class="refresh" onClick=(() => request++)>Call the server again</button>
+  <ul>
+    #for (n of [1, 2, 3]) {
+      <li>{n}</li>
+    }
+  </ul>
+</main>

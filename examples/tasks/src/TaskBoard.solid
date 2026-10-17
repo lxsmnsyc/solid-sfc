@@ -1,0 +1,240 @@
+<script>
+  import TaskItem from './TaskItem.solid';
+  import Progress from './Progress.solid';
+  import Panel from './Panel.solid';
+  import { FILTERS, loadTasks, saveTasks, type Filter, type Task } from './tasks.ts';
+
+  let tasks: Task[] = $signal(loadTasks());
+  let filter = $signal<Filter>('all');
+  let draft = $signal('');
+
+  // Memos recompute when the signals they read change.
+  const visible = $memo(
+    tasks.filter((task) => (filter === 'all' ? true : filter === 'done' ? task.done : !task.done)),
+  );
+  const remaining = $memo(tasks.filter((task) => !task.done).length);
+  const percent = $memo(
+    tasks.length === 0 ? 0 : Math.round(((tasks.length - remaining) / tasks.length) * 100),
+  );
+  const counts = $memo<Record<Filter, number>>({
+    all: tasks.length,
+    active: remaining,
+    done: tasks.length - remaining,
+  });
+
+  const inputId = $uid();
+  let input!: HTMLInputElement;
+
+  // Runs once the component is on the page.
+  $settled(() => {
+    input.focus();
+  });
+
+  // Saves the tasks every time they change.
+  $effect(() => {
+    saveTasks(tasks);
+  });
+
+  function add(event: SubmitEvent) {
+    event.preventDefault();
+    const title = draft.trim();
+    if (title) {
+      tasks = [...tasks, { id: Date.now(), title, done: false, priority: 1 }];
+      draft = '';
+    }
+  }
+
+  function update(id: number, changes: Partial<Task>) {
+    tasks = tasks.map((task) => (task.id === id ? { ...task, ...changes } : task));
+  }
+
+  function remove(id: number) {
+    tasks = tasks.filter((task) => task.id !== id);
+  }
+
+  function clearDone() {
+    tasks = tasks.filter((task) => !task.done);
+  }
+</script>
+
+<style>
+  .summary {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+  }
+
+  .summary p {
+    flex: 1;
+    margin: 0;
+    color: var(--muted);
+  }
+
+  form {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  form input {
+    flex: 1;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--muted);
+    border-radius: 0.5rem;
+    color: inherit;
+    background: none;
+  }
+
+  button {
+    padding: 0.5rem 0.75rem;
+    border: none;
+    border-radius: 0.5rem;
+    color: var(--on-accent);
+    background: var(--accent);
+    cursor: pointer;
+  }
+
+  button:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+
+  .filters {
+    display: flex;
+    gap: 0.25rem;
+    margin: 0;
+    padding: 0;
+    border: none;
+  }
+
+  .filters label {
+    display: flex;
+    gap: 0.4rem;
+    align-items: center;
+    padding: 0.35rem 0.75rem;
+    border-radius: 999px;
+    text-transform: capitalize;
+    cursor: pointer;
+  }
+
+  .filters .selected {
+    color: var(--on-accent);
+    background: var(--accent);
+  }
+
+  /* The radio button is hidden, and its label shows the choice. */
+  .filters label:has(:focus-visible) {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  .count {
+    min-width: 1.25rem;
+    padding: 0 0.3rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    text-align: center;
+    background: color-mix(in srgb, currentColor 15%, transparent);
+  }
+
+  ul {
+    display: grid;
+    gap: 0.5rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .empty {
+    color: var(--muted);
+    text-align: center;
+  }
+
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+</style>
+
+<Panel>
+  <div class="summary">
+    <!-- {percent} is short for percent={percent}. -->
+    <Progress {percent} />
+    <p>
+      #if (remaining === 0) {
+        All done!
+      } #else if (remaining === tasks.length) {
+        {plural(remaining, 'task')} to go.
+      } #else {
+        {plural(remaining, 'task')} left.
+      }
+    </p>
+    #if (remaining < tasks.length) {
+      <button type="button" onClick=clearDone>Clear done</button>
+    }
+  </div>
+
+  <form onSubmit=add>
+    <label class="visually-hidden" for=inputId>New task</label>
+    <!-- Void elements need no closing slash. -->
+    <input
+      id=inputId
+      ref=input
+      value=draft
+      onInput=((event) => (draft = event.currentTarget.value))
+      placeholder="What needs doing?"
+    >
+    <button type="submit" disabled=!draft.trim()>Add</button>
+  </form>
+
+  <fieldset class="filters">
+    <legend class="visually-hidden">Show</legend>
+    #for (option of FILTERS) {
+      <!-- A script in a block runs once for each item. -->
+      <script>
+        const selected = $memo(option === filter);
+      </script>
+      <label class={ selected }>
+        <input
+          class="visually-hidden"
+          type="radio"
+          name="filter"
+          checked=selected
+          onChange=(() => (filter = option))
+        >
+        {option}
+        <span class="count">{counts[option]}</span>
+      </label>
+    }
+  </fieldset>
+
+  <ul>
+    <!-- "by task.id" keeps the element of a task when the task is replaced with an edited copy. -->
+    #for (task of visible by task.id) {
+      <TaskItem
+        {task}
+        onToggle=(() => update(task.id, { done: !task.done }))
+        onPriority=((priority: number) => update(task.id, { priority }))
+        onRename=((title: string) => update(task.id, { title }))
+        onRemove=(() => remove(task.id))
+      />
+    } #else {
+      <li class="empty">
+        #if (filter === 'done') {
+          Nothing is done yet.
+        } #else if (filter === 'active') {
+          Nothing left to do.
+        } #else {
+          Add a task to get started.
+        }
+      </li>
+    }
+  </ul>
+</Panel>
+
+<!-- A template is markup that the file can render with arguments. -->
+#template plural(count: number, word: string) {
+  {count} {count === 1 ? word : `${word}s`}
+}

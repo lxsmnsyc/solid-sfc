@@ -1,0 +1,56 @@
+<script>
+  const QUOTES = [
+    'Simplicity is prerequisite for reliability.',
+    'Make it work, make it right, make it fast.',
+    'Programs must be written for people to read.',
+  ];
+
+  async function fetchQuote(id: number, fail: boolean): Promise<string> {
+    await new Promise((resolve) => setTimeout(resolve, 600));
+    if (fail) {
+      throw new Error('The server is not responding.');
+    }
+    return QUOTES[id % QUOTES.length]!;
+  }
+
+  let id = $signal(0);
+  let failing = $signal(false);
+  // An async memo. Reading it inside #loading waits for it.
+  const quote = $memo(fetchQuote(id, failing));
+  // True while the next quote loads and the last one is still shown.
+  const pending = () => $isPending(quote);
+</script>
+
+<style>
+  blockquote {
+    margin: 0 0 1rem;
+    font-size: 1.25rem;
+    transition: opacity 200ms;
+  }
+
+  .error {
+    color: crimson;
+  }
+</style>
+
+#try {
+  #loading {
+    <blockquote style={ opacity: pending() ? 0.4 : 1 }>{quote}</blockquote>
+    <button onClick=(() => id++) disabled=pending()>Next</button>
+    <!-- $refresh runs the fetch of the memo again. -->
+    <button onClick=(() => $refresh(quote)) disabled=pending()>Reload</button>
+    <button onClick=(() => (failing = true))>Break the server</button>
+  } #else {
+    <p>Loading the first quote…</p>
+  }
+} #catch (error, reset) {
+  <p class="error">{error instanceof Error ? error.message : String(error)}</p>
+  <button
+    onClick=(() => {
+      failing = false;
+      reset();
+    })
+  >
+    Try again
+  </button>
+}
