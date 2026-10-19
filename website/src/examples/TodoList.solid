@@ -1,0 +1,75 @@
+<script>
+  interface Todo {
+    id: number;
+    title: string;
+    done: boolean;
+  }
+
+  let todos: Todo[] = $signal([
+    { id: 1, title: 'Learn the markup', done: true },
+    { id: 2, title: 'Try control flow blocks', done: false },
+  ]);
+  let draft = $signal('');
+  const remaining = $memo(todos.filter((todo) => !todo.done).length);
+
+  function add(event: SubmitEvent) {
+    event.preventDefault();
+    todos = [...todos, { id: Date.now(), title: draft.trim(), done: false }];
+    draft = '';
+  }
+
+  function toggle(id: number) {
+    todos = todos.map((todo) => (todo.id === id ? { ...todo, done: !todo.done } : todo));
+  }
+</script>
+
+<style>
+  form {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  ul {
+    padding: 0;
+    list-style: none;
+  }
+
+  li {
+    padding: 0.25rem 0;
+  }
+
+  .done {
+    color: #888;
+    text-decoration: line-through;
+  }
+</style>
+
+<form onSubmit=add>
+  <!-- The field shows the variable, and typing writes it. -->
+  <input
+    value=draft
+    onInput=((event) => (draft = event.currentTarget.value))
+    placeholder="What needs doing?"
+    aria-label="New todo"
+  >
+  <button disabled=!draft.trim()>Add</button>
+</form>
+
+<ul>
+  <!-- "by todo.id" keeps the element of a todo when it is replaced with a copy. -->
+  #for (todo of todos by todo.id) {
+    <li>
+      <label class={ done: todo.done }>
+        <input type="checkbox" checked=todo.done onChange=(() => toggle(todo.id))>
+        {todo.title}
+      </label>
+    </li>
+  } #else {
+    <li>Nothing to do.</li>
+  }
+</ul>
+
+<p>{remaining} left</p>
+#if (remaining < todos.length) {
+  <button onClick=(() => (todos = todos.filter((todo) => !todo.done)))>Clear done</button>
+}

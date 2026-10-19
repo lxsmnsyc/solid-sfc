@@ -1,0 +1,140 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`$signal > adds debug names in dev mode 1`] = `
+"import { createSignal as _createSignal } from 'solid-js';
+let [count, setCount] = _createSignal(0, { name: "count" });"
+`;
+
+exports[`$signal > adds debug names in dev mode 2`] = `
+"import { createSignal as _createSignal } from 'solid-js';
+let [count, setCount] = _createSignal(void 0, { name: "count" });"
+`;
+
+exports[`$signal > adds debug names in dev mode 3`] = `
+"import { createSignal as _createSignal } from 'solid-js';
+let [count, setCount] = _createSignal(0, Object.assign({ name: "count" }, { equals: false }));"
+`;
+
+exports[`$signal > can be disabled 1`] = `"let count = $signal(0);"`;
+
+exports[`$signal > keeps static initializers raw 1`] = `
+"import { createSignal as _createSignal } from 'solid-js';
+
+let [a, setA] = _createSignal(0);
+let [b, setB] = _createSignal('text');
+let [c, setC] = _createSignal({ nested: [1, 2] });
+let [d, setD] = _createSignal(initial);
+"
+`;
+
+exports[`$signal > respects shadowing 1`] = `
+"import { createSignal as _createSignal } from 'solid-js';
+
+let [count, setCount] = _createSignal(0);
+{
+  const count = 'local';
+  console.log(count);
+}
+console.log(count());
+"
+`;
+
+exports[`$signal > rewrites awaited writes 1`] = `
+"import { createSignal as _createSignal } from 'solid-js';
+
+let [count, setCount] = _createSignal(0);
+async function exampleA() {
+  const tmp = await asyncValue();
+setCount(() => tmp);
+}
+function* exampleB() {
+  const tmp_1 = yield asyncValue();
+setCount(() => tmp_1);
+}
+const exampleC = async () => { const tmp_2 = await asyncValue(); return setCount(() => tmp_2); };
+"
+`;
+
+exports[`$signal > rewrites reads 1`] = `
+"import { createSignal as _createSignal } from 'solid-js';
+
+let [count, setCount] = _createSignal(0);
+console.log(count());
+const doubled = count() * 2;
+const wrapped = { count: count() };
+"
+`;
+
+exports[`$signal > rewrites writes 1`] = `
+"import { createSignal as _createSignal } from 'solid-js';
+
+let [count, setCount] = _createSignal(0);
+setCount(() => 10);
+setCount(current => current += 5);
+setCount(current => ++current);
+setCount(current => --current);
+"
+`;
+
+exports[`$signal > supports object property transforms 1`] = `
+"import { createSignal as _createSignal } from 'solid-js';
+
+let [count, setCount] = _createSignal(0);
+const a = { get value() { return count(); } };
+const b = { set value(param) { setCount(() => param); } };
+const c = { get value() { return count(); }, set value(param) { setCount(() => param); } };
+"
+`;
+
+exports[`$signal > supports refs and derefs 1`] = `
+"import { createSignal as _createSignal } from 'solid-js';
+
+let [count, setCount] = _createSignal(0);
+const getter = count;
+const setter = setCount;
+const tuple = [count, setCount];
+"
+`;
+
+exports[`$signal > transforms declarations 1`] = `
+"import { createSignal as _createSignal } from 'solid-js';
+let [count, setCount] = _createSignal(0);"
+`;
+
+exports[`$signal > transforms declarations 2`] = `
+"import { createSignal as _createSignal } from 'solid-js';
+let [count, setCount] = _createSignal<number>();"
+`;
+
+exports[`$signal > transforms declarations 3`] = `
+"import { createSignal as _createSignal } from 'solid-js';
+let [count, setCount] = _createSignal(0);"
+`;
+
+exports[`$signal > transforms declarations 4`] = `
+"import { createSignal as _createSignal } from 'solid-js';
+let [count, setCount] = _createSignal(0, { equals: false });"
+`;
+
+exports[`$signal > wraps non-static initializers as computes 1`] = `
+"import { createSignal as _createSignal } from 'solid-js';
+let [value, setValue] = _createSignal(() => foo());"
+`;
+
+exports[`$signal > wraps non-static initializers as computes 2`] = `
+"import { createSignal as _createSignal } from 'solid-js';
+let [value, setValue] = _createSignal(() => props.count);"
+`;
+
+exports[`$signal > wraps non-static initializers as computes 3`] = `
+"import { createSignal as _createSignal } from 'solid-js';
+
+let [count, setCount] = _createSignal(0);
+let [doubled, setDoubled] = _createSignal(() => count() * 2);
+"
+`;
+
+exports[`$signal > wraps non-static initializers as computes 4`] = `
+"import { createSignal as _createSignal } from 'solid-js';
+let [value, setValue] = _createSignal(() => compute());"
+`;

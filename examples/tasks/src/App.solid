@@ -1,0 +1,206 @@
+<script>
+  import TaskBoard from './TaskBoard.solid';
+  import Notes from './Notes.solid';
+  import QuoteCard from './QuoteCard.solid';
+  import { load, save } from './storage.ts';
+
+  type Tab = 'tasks' | 'notes' | 'quote';
+  type Theme = 'light' | 'dark';
+
+  const TABS: { id: Tab; label: string }[] = [
+    { id: 'tasks', label: 'Tasks' },
+    { id: 'notes', label: 'Notes' },
+    { id: 'quote', label: 'Quote' },
+  ];
+
+  const href = 'https://github.com/lxsmnsyc/solid-sfc';
+
+  let tab = $signal<Tab>('tasks');
+  // The theme starts as the one of the system, until it is changed here.
+  const systemTheme: Theme = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  let theme = $signal<Theme>(load('theme', systemTheme));
+
+  // Keys 1 to 3 switch tabs, unless a field has the focus.
+  function switchTab(event: KeyboardEvent) {
+    const item = TABS[Number(event.key) - 1];
+    if (item && !(event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement)) {
+      tab = item.id;
+    }
+  }
+
+  // The effect runs again whenever `theme` changes.
+  $effect(() => {
+    document.documentElement.dataset.theme = theme;
+    save('theme', theme);
+  });
+</script>
+
+<!-- A global block styles the whole page. -->
+<style global>
+  :root {
+    --background: #f5f3ff;
+    --surface: #ffffff;
+    --text: #1e1b4b;
+    --muted: #6b7280;
+    --border: #ddd6fe;
+    --accent: #7c3aed;
+    /* Text on the accent color. */
+    --on-accent: #ffffff;
+    color-scheme: light;
+  }
+
+  :root[data-theme='dark'] {
+    --background: #0f0a1f;
+    --surface: #1e1b2e;
+    --text: #ede9fe;
+    --muted: #a1a1aa;
+    --border: #3b3354;
+    --accent: #a78bfa;
+    --on-accent: #1e1b4b;
+    color-scheme: dark;
+  }
+
+  body {
+    margin: 0;
+    font-family: system-ui, sans-serif;
+    color: var(--text);
+    background: var(--background);
+  }
+
+  button,
+  input,
+  textarea {
+    font: inherit;
+  }
+
+  /* Checkboxes and the focus ring follow the theme. */
+  input[type='checkbox'] {
+    accent-color: var(--accent);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+</style>
+
+<!-- Scoped styles only match elements in this file. -->
+<style>
+  main {
+    display: grid;
+    gap: 1rem;
+    max-width: 36rem;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+  }
+
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  h1 {
+    margin: 0;
+    font-size: 1.5rem;
+  }
+
+  nav {
+    display: flex;
+    gap: 0.25rem;
+    padding: 0.25rem;
+    border-radius: 0.75rem;
+    background: var(--surface);
+  }
+
+  nav button {
+    flex: 1;
+    padding: 0.5rem;
+    border: none;
+    border-radius: 0.5rem;
+    color: inherit;
+    background: none;
+    cursor: pointer;
+  }
+
+  nav .active {
+    color: var(--on-accent);
+    background: var(--accent);
+  }
+
+  .theme {
+    padding: 0.25rem 0.75rem;
+    border: 1px solid var(--muted);
+    border-radius: 999px;
+    color: inherit;
+    background: none;
+    cursor: pointer;
+  }
+
+  footer {
+    display: grid;
+    gap: 0.25rem;
+    color: var(--muted);
+    font-size: 0.875rem;
+    text-align: center;
+  }
+
+  kbd {
+    padding: 0 0.3rem;
+    border: 1px solid var(--border);
+    border-radius: 0.25rem;
+    font: inherit;
+  }
+
+  a {
+    color: var(--accent);
+  }
+</style>
+
+<!-- Listens to window events while the component is mounted. -->
+<solid:window onKeyDown=switchTab />
+
+<main>
+  <header>
+    <h1>Solid SFC tasks</h1>
+    <button class="theme" type="button" onClick=(() => (theme = theme === 'light' ? 'dark' : 'light'))>
+      #if (theme === 'light') {
+        ☾ Dark
+      } #else {
+        ☀ Light
+      }
+    </button>
+  </header>
+
+  <nav>
+    #for (item of TABS) {
+      <!-- Braces in an attribute value hold an object literal. -->
+      <button
+        type="button"
+        class={ active: item.id === tab }
+        aria-pressed=(item.id === tab ? 'true' : 'false')
+        onClick=(() => (tab = item.id))
+      >
+        {item.label}
+      </button>
+    }
+  </nav>
+
+  #switch {
+    #case (tab === 'tasks') {
+      <TaskBoard />
+    }
+    #case (tab === 'notes') {
+      <Notes />
+    }
+    #default {
+      <QuoteCard />
+    }
+  }
+
+  <footer>
+    <span>Press <kbd>1</kbd>, <kbd>2</kbd> or <kbd>3</kbd> to switch tabs.</span>
+    <!-- {href} is short for href={href}. -->
+    <span>Built with <a {href}>solid-sfc</a>.</span>
+  </footer>
+</main>

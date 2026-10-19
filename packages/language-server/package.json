@@ -1,0 +1,62 @@
+{
+  "name": "@solid-sfc/language-server",
+  "version": "0.0.0",
+  "description": "Language server for solid-sfc",
+  "keywords": [
+    "language-server",
+    "sfc",
+    "solid-js",
+    "volar"
+  ],
+  "homepage": "https://github.com/lxsmnsyc/solid-sfc/tree/main/packages/language-server",
+  "bugs": {
+    "url": "https://github.com/lxsmnsyc/solid-sfc/issues"
+  },
+  "license": "MIT",
+  "author": "Alexis Munsayac",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lxsmnsyc/solid-sfc.git",
+    "directory": "packages/language-server"
+  },
+  "bin": {
+    "solid-sfc-language-server": "./bin/solid-sfc-language-server.js"
+  },
+  "files": [
+    "bin",
+    "dist"
+  ],
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@solid-sfc/language-core": "workspace:*",
+    "@volar/language-server": "2.4.28",
+    "@volar/language-service": "2.4.28",
+    "solid-sfc": "workspace:*",
+    "typescript-api": "npm:typescript@6.0.3",
+    "volar-service-css": "0.0.71",
+    "volar-service-typescript": "0.0.71",
+    "vscode-uri": "^3.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "tsdown": "^0.23.1",
+    "typescript": "^7.0.2"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "unicorn", "oxc", "import", "vitest"],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "warn",
+    "perf": "warn"
+  },
+  "rules": {
+    "typescript/consistent-type-imports": "error",
+    "import/no-cycle": "error",
+    "import/no-unassigned-import": [
+      "warn",
+      {
+        "allow": ["**/*.css"]
+      }
+    ]
+  },
+  "env": {
+    "builtin": true
+  },
+  "ignorePatterns": ["**/dist/**", "**/node_modules/**", "website/public/coi-serviceworker.js"],
+  "overrides": [
+    {
+      "files": ["**/*.d.ts"],
+      "rules": {
+        "typescript/consistent-type-imports": "off",
+        "typescript/triple-slash-reference": "off"
+      }
+    },
+    {
+      "files": ["packages/solid-sfc/src/labels/**", "packages/solid-sfc/test/labels/**"],
+      "rules": {
+        "vitest/prefer-snapshot-hint": "off",
+        "import/no-named-as-default": "off",
+        "unicorn/consistent-function-scoping": "off",
+        "unicorn/no-array-sort": "off"
+      }
+    }
+  ]
+}

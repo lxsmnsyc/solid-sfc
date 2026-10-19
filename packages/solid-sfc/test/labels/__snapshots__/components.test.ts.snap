@@ -1,0 +1,44 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`components > auto-imports 2.0 components 1`] = `
+"import { Errored as _Errored, Loading as _Loading, Repeat as _Repeat } from 'solid-js';
+
+const view = (
+  <_Errored fallback={(err, reset) => <button onClick={reset}>retry</button>}>
+    <_Loading fallback={<Spinner />}>
+      <_Repeat count={10}>{(i) => <Row index={i} />}</_Repeat>
+    </_Loading>
+  </_Errored>
+);
+"
+`;
+
+exports[`components > auto-imports components in JSX 1`] = `
+"import { createSignal as _createSignal, Show as _Show } from 'solid-js';
+
+let [count, setCount] = _createSignal(0);
+const view = (
+  <_Show when={count() % 2 === 0} fallback={<h1>Odd</h1>}>
+    <h1>Even</h1>
+  </_Show>
+);
+"
+`;
+
+exports[`components > respects shadowed components 1`] = `
+"
+import { Show } from './my-show';
+const view = <Show when={cond}>hi</Show>;
+"
+`;
+
+exports[`components > supports the solid: namespace 1`] = `
+"import { HydrationScript as _HydrationScript } from '@solidjs/web';
+
+const view = (
+  <div>
+    <_HydrationScript />
+  </div>
+);
+"
+`;

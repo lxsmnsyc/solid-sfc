@@ -1,0 +1,38 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`$component > destructures object-pattern props 1`] = `
+"
+const App = (props) => {
+  const name = () => props.name,
+    def = 0,
+    count = () => { const value = props.count; return value === void 0 ? def : value; };
+  return <div>{name()}: {count()}</div>;
+};
+"
+`;
+
+exports[`$component > leaves plain parameters alone 1`] = `
+"
+const App = (props) => <div>{props.name}</div>;
+"
+`;
+
+exports[`$component > supports concise bodies 1`] = `
+"
+const App = (props) => {
+  const name = () => props.name;
+  return <div>{name()}</div>;
+};
+"
+`;
+
+exports[`$component > supports rest props 1`] = `
+"import { omit as _omit } from 'solid-js';
+
+const App = (props) => {
+  const name = () => props.name,
+    rest = _omit(props, "name");
+  return <div {...rest}>{name()}</div>;
+};
+"
+`;

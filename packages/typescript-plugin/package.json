@@ -1,0 +1,53 @@
+{
+  "name": "@solid-sfc/typescript-plugin",
+  "version": "0.0.0",
+  "description": "TypeScript server plugin for solid-sfc",
+  "keywords": [
+    "sfc",
+    "solid-js",
+    "typescript",
+    "volar"
+  ],
+  "homepage": "https://github.com/lxsmnsyc/solid-sfc/tree/main/packages/typescript-plugin",
+  "bugs": {
+    "url": "https://github.com/lxsmnsyc/solid-sfc/issues"
+  },
+  "license": "MIT",
+  "author": "Alexis Munsayac",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lxsmnsyc/solid-sfc.git",
+    "directory": "packages/typescript-plugin"
+  },
+  "files": [
+    "dist"
+  ],
+  "main": "./dist/index.cjs",
+  "types": "./dist/index.d.cts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.cts",
+      "default": "./dist/index.cjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@solid-sfc/language-core": "workspace:*",
+    "@volar/typescript": "2.4.28"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "tsdown": "^0.23.1",
+    "typescript": "^7.0.2"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

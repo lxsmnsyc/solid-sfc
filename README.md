@@ -1,130 +1,39 @@
 # solid-sfc
 
-> An experimental SFC syntax for SolidJS, extends [`solid-labels`](https://github.com/lxsmnsyc/solid-labels)
+> Single-file components for SolidJS 2.0.
 
-[![NPM](https://img.shields.io/npm/v/solid-sfc.svg)](https://www.npmjs.com/package/solid-sfc) [![JavaScript Style Guide](https://badgen.net/badge/code%20style/airbnb/ff5a5f?icon=airbnb)](https://github.com/airbnb/javascript)
+[![NPM](https://img.shields.io/npm/v/solid-sfc.svg)](https://www.npmjs.com/package/solid-sfc)
 
-## Install
+Read the [documentation](./website/docs/README.md) to get started.
+
+## Packages
+
+- [`solid-sfc`](./packages/solid-sfc) is the compiler, and the plugins for Vite, Rollup, Rolldown, webpack, Rspack and esbuild.
+- [`@solid-sfc/language-core`](./packages/language-core) is the Volar language plugin.
+- [`@solid-sfc/tsc`](./packages/tsc) type-checks projects with `.solid` files.
+- [`@solid-sfc/language-server`](./packages/language-server) is the language server.
+- [`@solid-sfc/typescript-plugin`](./packages/typescript-plugin) lets `.ts` files import `.solid` files with their props types in the TypeScript server.
+- [`solid-sfc-vscode`](./packages/vscode) is the VS Code extension.
+
+## Examples
+
+- [`tasks`](./examples/tasks) is a task board that uses most features of `.solid` files.
+- [`ssr`](./examples/ssr) renders a `.solid` app on the server with start mode and hydrates it.
+
+## Development
 
 ```bash
-npm install solid-sfc
+pnpm install
+pnpm build
+pnpm test
+pnpm lint
+pnpm format
+pnpm typecheck
 ```
 
-```bash
-yarn add solid-sfc
-```
+Add a changeset for each user-facing change with `pnpm changeset`.
 
-```bash
-pnpm add solid-sfc
-```
-
-## Usage
-
-### Basic example
-
-```jsx
-// Required for files that do not end in `.solid.(t|j)sx?`
-'use solid-sfc';
-
-let count = $signal(0);
-let message = $memo(`Count: ${count}`);
-
-effect: {
-  console.log(message);
-};
-
-// Export default is synonymous to "return".
-export default <h1>{message}</h1>;
-```
-
-### `<solid:fragment>`, `<solid:slot>` and `<solid:children>`
-
-If a component accepts a property that renders an element, you can use `<solid:fragment>` to render that property's element for the component to receive. `<solid:fragment>` has a single attribute, `name` which is used to define the fragment's key in the props of that component.
-
-```jsx
-<solid:suspense>
-  <solid:fragment name="fallback">
-    <h1>Loading...</h1>
-  </solid:fragment>
-  <Profile />
-</solid:suspense>
-```
-
-Which is equivalent to
-
-```jsx
-<Suspense fallback={<h1>Loading</h1>}>
-  <Profile />
-</Suspense>
-```
-
-You can use `<solid:slot>` to render the received fragment on the component's side. `<solid:slot>` also has the `name` attribute to pick from the props.
-
-```jsx
-/* Example.solid.jsx */
-export default <solid:slot name="example" />
-
-/* ParentExample.solid.jsx */
-import Example from './Example.solid';
-
-export default (
-  <Example>
-    <solid:fragment name="example">
-      <h1>Hello World</h1>
-    </solid:fragment>
-  </Example>
-);
-```
-
-### `$props`
-
-`$props` is a compile-time function that provides access to the component's props.
-
-```jsx
-const props = $props();
-
-export default <h1>{props.message}</h1>;
-```
-
-For Typescript, you can pass a type for the generic parameter:
-
-```tsx
-interface Props {
-  message: string;
-}
-
-const props = $props<Props>();
-
-export default <h1>{props.message}</h1>;
-```
-
-### `$view`
-
-For TypeScript to infer SFCs correctly, you can `$view` on the render part of the code.
-
-```tsx
-// Message.solid.tsx
-interface Props {
-  message: string;
-}
-
-const props = $props<Props>();
-
-export default $view<Props>(<h1>{props.message}</h1>);
-
-// App.solid.tsx
-import Message from './Message.solid';
-
-export default <Message message="Hello World" />
-```
-
-## Tooling
-
-### TypeScript
-
-```ts
-/// <reference types="babel-plugin-solid-sfc" />
-```
+`pnpm vscode` builds the packages and opens `examples/tasks` in a VS Code window that runs the extension from `packages/vscode`. Run it again after a change, or rebuild and run "Developer: Reload Window" in that window.
 
 ## License
 

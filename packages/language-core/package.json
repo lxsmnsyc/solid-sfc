@@ -1,0 +1,56 @@
+{
+  "name": "@solid-sfc/language-core",
+  "version": "0.0.0",
+  "description": "Volar language plugin for solid-sfc",
+  "keywords": [
+    "sfc",
+    "solid-js",
+    "volar"
+  ],
+  "homepage": "https://github.com/lxsmnsyc/solid-sfc/tree/main/packages/language-core",
+  "bugs": {
+    "url": "https://github.com/lxsmnsyc/solid-sfc/issues"
+  },
+  "license": "MIT",
+  "author": "Alexis Munsayac",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lxsmnsyc/solid-sfc.git",
+    "directory": "packages/language-core"
+  },
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@jridgewell/sourcemap-codec": "^1.6.0",
+    "@volar/language-core": "2.4.28",
+    "oxc-parser": "^0.154.0",
+    "solid-sfc": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "@volar/typescript": "2.4.28",
+    "tsdown": "^0.23.1",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.4"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

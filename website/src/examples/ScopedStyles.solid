@@ -1,0 +1,61 @@
+<script>
+  let hue = $signal(270);
+  let round = $signal(true);
+</script>
+
+<!-- A global block styles the whole page. -->
+<style global>
+  body {
+    font-family: system-ui, sans-serif;
+  }
+</style>
+
+<!-- Other styles only match the elements of this file. -->
+<style>
+  .card {
+    padding: 1.5rem;
+    border-radius: ${round ? '1rem' : '0'};
+    color: white;
+    /* Values from the script become CSS variables, so the rule stays the same. */
+    background: hsl(${hue} 70% 45%);
+    animation: enter 400ms ease-out;
+    transition: border-radius 200ms;
+  }
+
+  /* Keyframe names are scoped too. */
+  @keyframes enter {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+  }
+
+  /* :global() leaves part of a selector unscoped. */
+  .card :global(strong) {
+    text-decoration: underline;
+  }
+
+  label {
+    display: block;
+    margin-top: 1rem;
+  }
+</style>
+
+<div class="card">
+  The hue is <strong>{hue}</strong>.
+</div>
+
+<label>
+  Hue
+  <input
+    type="range"
+    min="0"
+    max="360"
+    value=hue
+    onInput=((event) => (hue = event.currentTarget.valueAsNumber))
+  >
+</label>
+<label>
+  <input type="checkbox" checked=round onChange=((event) => (round = event.currentTarget.checked))>
+  Round corners
+</label>

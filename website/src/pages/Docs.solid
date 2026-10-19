@@ -1,0 +1,205 @@
+<script>
+  import { order, pages } from '../docs.ts';
+  import { href, path } from '../router.ts';
+
+  const slug = $memo(path().replace(/^\/docs\/?/, ''));
+  const page = $memo(pages[slug]);
+
+  $effect(() => {
+    document.title = page ? `${page.title} | solid-sfc` : 'Not found | solid-sfc';
+  });
+</script>
+
+<style>
+  .layout {
+    display: grid;
+    grid-template-columns: 14rem minmax(0, 46rem) 14rem;
+    gap: 2.5rem;
+    justify-content: center;
+    padding: 0 1.5rem;
+  }
+
+  .sidebar,
+  .toc {
+    position: sticky;
+    top: var(--header-height);
+    align-self: start;
+    max-height: calc(100vh - var(--header-height));
+    overflow-y: auto;
+    padding: 1.5rem 0;
+  }
+
+  .sidebar a,
+  .toc a {
+    display: block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 0.375rem;
+    color: var(--muted);
+    text-decoration: none;
+  }
+
+  .sidebar a:hover,
+  .toc a:hover {
+    color: var(--text);
+  }
+
+  .sidebar .active {
+    color: var(--text);
+    font-weight: 600;
+    background: var(--surface);
+  }
+
+  .toc p {
+    margin: 0 0 0.5rem;
+    padding: 0 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+
+  .toc a {
+    font-size: 0.875rem;
+  }
+
+  article {
+    padding: 1.5rem 0 4rem;
+  }
+
+  /* The HTML of a page comes from Markdown, so it is not scoped. */
+  .prose :global(h1) {
+    margin-top: 0;
+    font-size: 2.25rem;
+    line-height: 1.2;
+  }
+
+  .prose :global(h2) {
+    margin-top: 2.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+  }
+
+  .prose :global(:not(pre) > code) {
+    padding: 0.1rem 0.3rem;
+    border-radius: 0.25rem;
+    background: var(--surface);
+  }
+
+  /* Headings such as `#if` are code, at the size of the heading. */
+  .prose :global(:is(h1, h2, h3) code) {
+    padding: 0;
+    font-size: inherit;
+    background: none;
+  }
+
+  .prose :global(table) {
+    display: block;
+    overflow-x: auto;
+    border-collapse: collapse;
+  }
+
+  .prose :global(th),
+  .prose :global(td) {
+    padding: 0.4rem 0.75rem;
+    border: 1px solid var(--border);
+    text-align: left;
+    vertical-align: top;
+  }
+
+  .prose :global(blockquote) {
+    margin: 1rem 0;
+    padding: 0 1rem;
+    border-left: 3px solid var(--border);
+    color: var(--muted);
+  }
+
+  /* GitHub alerts, such as `> [!IMPORTANT]`. */
+  .prose :global(.alert) {
+    --alert: var(--note);
+    margin: 1rem 0;
+    padding: 0.5rem 1rem;
+    border-left: 3px solid var(--alert);
+    border-radius: 0 0.375rem 0.375rem 0;
+    background: var(--surface);
+  }
+
+  .prose :global(.alert > p) {
+    margin: 0.5rem 0;
+  }
+
+  .prose :global(.alert-title) {
+    font-weight: 600;
+    color: var(--alert);
+  }
+
+  .prose :global(.alert.tip) {
+    --alert: var(--tip);
+  }
+
+  .prose :global(.alert.important) {
+    --alert: var(--important);
+  }
+
+  .prose :global(.alert.warning) {
+    --alert: var(--warning);
+  }
+
+  .prose :global(.alert.caution) {
+    --alert: var(--caution);
+  }
+
+  @media (max-width: 72rem) {
+    .layout {
+      grid-template-columns: 13rem minmax(0, 46rem);
+    }
+
+    .toc {
+      display: none;
+    }
+  }
+
+  @media (max-width: 48rem) {
+    .layout {
+      display: block;
+      padding: 0 1rem;
+    }
+
+    .sidebar {
+      position: static;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.25rem;
+      max-height: none;
+      padding: 1rem 0 0;
+    }
+  }
+</style>
+
+<div class="layout">
+  <nav class="sidebar" aria-label="Documentation">
+    #for (entry of order) {
+      <a
+        href=href(`/docs/${entry.slug}`)
+        class={ active: entry.slug === slug }
+        aria-current=(entry.slug === slug ? 'page' : undefined)
+      >
+        {entry.title}
+      </a>
+    }
+  </nav>
+  #if (page) {
+    <article class="prose" innerHTML=page.html />
+    <aside class="toc" aria-label="On this page">
+      <p>On this page</p>
+      #for (heading of page.headings.filter((item) => item.level === 2)) {
+        <a href=`#${heading.id}`>{heading.text}</a>
+      }
+    </aside>
+  } #else {
+    <article class="prose">
+      <h1>Page not found</h1>
+      <p>There is no page at this address. <a href=href('/docs')>Go to the introduction</a>.</p>
+    </article>
+  }
+</div>

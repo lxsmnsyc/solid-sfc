@@ -1,0 +1,33 @@
+{
+  "script": {
+    "prefix": "script",
+    "description": "A TypeScript script block",
+    "body": ["<script>", "\t$0", "</script>"],
+  },
+  "style": {
+    "prefix": "style",
+    "description": "A scoped style block",
+    "body": ["<style>", "\t$0", "</style>"],
+  },
+  "component": {
+    "prefix": "component",
+    "description": "A component with props, a style and markup",
+    "body": [
+      "<script>",
+      "\tinterface Props {",
+      "\t\t${1:label}: ${2:string};",
+      "\t}",
+      "",
+      "\tconst { ${1:label} } = \\$props<Props>();",
+      "</script>",
+      "",
+      "<style>",
+      "\t${3:div} {",
+      "\t}",
+      "</style>",
+      "",
+      "<${3:div}>{${1:label}}</${3:div}>",
+      "$0",
+    ],
+  },
+}

@@ -1,0 +1,77 @@
+<script>
+  import Panel from './Panel.solid';
+  import { load, save } from './storage.ts';
+
+  let notes: string[] = $signal(load('notes', ['Buy oat milk', 'Call the bank']));
+
+  $effect(() => {
+    save('notes', notes);
+  });
+
+  function update(index: number, value: string) {
+    notes = notes.with(index, value);
+  }
+
+  function remove(index: number) {
+    notes = notes.toSpliced(index, 1);
+  }
+</script>
+
+<style>
+  p {
+    margin: 0;
+    color: var(--muted);
+  }
+
+  ol {
+    display: grid;
+    gap: 0.5rem;
+    margin: 0;
+    padding-left: 1.5rem;
+  }
+
+  li {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  input {
+    flex: 1;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--muted);
+    border-radius: 0.5rem;
+    color: inherit;
+    background: none;
+  }
+
+  button {
+    padding: 0.5rem 0.75rem;
+    border: none;
+    border-radius: 0.5rem;
+    color: inherit;
+    background: var(--background);
+    cursor: pointer;
+  }
+
+  .add {
+    justify-self: start;
+    color: var(--on-accent);
+    background: var(--accent);
+  }
+</style>
+
+<Panel>
+  <p>Notes are saved in this browser.</p>
+  <ol>
+    <!-- "by index" keeps one input per position, so an input keeps its focus while you type. -->
+    #for (note, index of notes by index) {
+      <li>
+        <input value=note onInput=((event) => update(index, event.currentTarget.value))>
+        <button type="button" aria-label="Remove" onClick=(() => remove(index))>×</button>
+      </li>
+    } #else {
+      <li>No notes yet.</li>
+    }
+  </ol>
+  <button class="add" type="button" onClick=(() => (notes = [...notes, '']))>Add a note</button>
+</Panel>
