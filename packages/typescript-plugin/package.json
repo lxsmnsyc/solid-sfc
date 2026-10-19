@@ -1,6 +1,6 @@
 {
   "name": "@solid-sfc/typescript-plugin",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "description": "TypeScript server plugin for solid-sfc",
   "keywords": [
     "sfc",
