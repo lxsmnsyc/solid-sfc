@@ -19,8 +19,8 @@ pnpm --filter website dev
 
 ## Deploying
 
-[`vercel.json`](../vercel.json) at the root of the repository deploys the site to Vercel. It builds the site and the packages it uses with `pnpm --filter "website..." build`, sends the cross-origin isolation headers, and serves `index.html` for the paths of the site. In the Vercel project:
+[`vercel.json`](vercel.json) deploys the site to Vercel. It builds the packages that the site uses with `pnpm --filter "website^..." build` before the site, sends the cross-origin isolation headers, and serves `index.html` for the paths of the site. In the Vercel project:
 
-- Keep the root directory at the root of the repository.
+- Set the root directory to `website`.
 - Set `ENABLE_EXPERIMENTAL_COREPACK=1`, so Vercel installs the pnpm version in `packageManager`.
 - Use Node.js 22 or later.
