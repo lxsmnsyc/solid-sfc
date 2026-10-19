@@ -1,7 +1,7 @@
 {
   "name": "solid-sfc-vscode",
   "displayName": "Solid SFC",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "private": true,
   "description": "Language support for solid-sfc .solid files",
   "categories": [
