@@ -1,6 +1,6 @@
 {
   "name": "@solid-sfc/language-core",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "description": "Volar language plugin for solid-sfc",
   "keywords": [
     "sfc",

@@ -1,6 +1,6 @@
 {
   "name": "@solid-sfc/tsc",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "description": "Type-checks solid-sfc projects, including .solid files",
   "keywords": [
     "sfc",
