@@ -108,12 +108,16 @@ jobs:
     name: Publish the VS Code extension
     needs: select-mode
     # Changesets versions the extension, so publish it once no changesets are left.
-    if: needs.select-mode.outputs.mode != 'version'
+    # Off until the PUBLISH_EXTENSION repository variable is "true": the
+    # Marketplace does not accept trusted publishing (--oidc) yet.
+    if: vars.PUBLISH_EXTENSION == 'true' && needs.select-mode.outputs.mode != 'version'
     runs-on: ubuntu-latest
     # Add required reviewers to this environment to approve each release.
     environment: vscode
     permissions:
       contents: read
+      # Trusted publishing to the Visual Studio Marketplace.
+      id-token: write
     steps:
       - uses: actions/checkout@v7
         with:
@@ -127,11 +131,10 @@ jobs:
       - run: pnpm build
       - run: pnpm --filter solid-sfc-vscode test
       - run: pnpm --filter solid-sfc-vscode run package solid-sfc.vsix
-      # Versions that are already published are skipped.
+      # Versions that are already published are skipped. The publisher's
+      # trusted publishing policy must name this repository and workflow.
       - name: Publish to the Visual Studio Marketplace
-        run: pnpm --filter solid-sfc-vscode exec vsce publish --packagePath solid-sfc.vsix --skip-duplicate
-        env:
-          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        run: pnpm --filter solid-sfc-vscode exec vsce publish --packagePath solid-sfc.vsix --skip-duplicate --oidc
       - name: Publish to Open VSX
         run: pnpm --filter solid-sfc-vscode exec ovsx publish solid-sfc.vsix --skip-duplicate
         env:
