@@ -18,6 +18,6 @@
     "@solid-sfc/tsc": "workspace:*",
     "@solidjs/vite-plugin": "3.0.0-next.35",
     "typescript": "^7.0.2",
-    "vite": "^8.3.4"
+    "vite": "^8.3.6"
   }
 }
