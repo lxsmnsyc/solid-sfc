@@ -359,11 +359,11 @@ describe('findings', () => {
     expect(report(fc.property(header, (start) => attempt(`${start} {\n<p />\n}`).ok))).toBe('');
   });
 
-  // Finding 3. A dynamic tag that ends the file, after a `<script>` or a
-  // `<style>` with an interpolation, gets its closing `; })()}` in the
-  // script. The error points at the end of the script.
+  // Finding 3, fixed in #16. A dynamic tag that ends the file, after a
+  // `<script>` or a `<style>` with an interpolation, compiled with its
+  // closing `; })()}` in the script.
   // Shrunk: `<script></script><{t}/>`
-  it.fails('finding 3: dynamic tag at the end of a file', () => {
+  it('finding 3: dynamic tag at the end of a file', () => {
     const before = fc.constantFrom(
       '<script></script>',
       '<script>let t = 1;</script>',
