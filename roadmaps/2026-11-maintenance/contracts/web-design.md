@@ -1,6 +1,6 @@
 ---
 name: web-design
-version: 3
+version: 4
 status: frozen
 defined_by: website-redesign
 ---
@@ -68,3 +68,4 @@ Shared building blocks (web-design-system, global styles and `website/src/ui/*.s
 
 - v1: "Source and output", editorial. v2: contrast fix.
 - v3: "Unfold", dark-first, atmospheric, live. Replaces v1/v2 entirely, 2026-11-08, after user feedback.
+- v4: adds `--glass`, `--sheen`, `--sheen-strong`, `--shadow`, `--grid-line`; light alert values; dark is the default theme with a saved toggle. Values in web-design-system's outcome. From `reviews/web-design-cr-2-accepted.md`.
