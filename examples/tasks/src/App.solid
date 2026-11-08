@@ -163,7 +163,7 @@
 <main>
   <header>
     <h1>Solid SFC tasks</h1>
-    <button class="theme" type="button" onClick=(() => (theme = theme === 'light' ? 'dark' : 'light'))>
+    <button class="theme" type="button" onClick=(() => theme = theme === 'light' ? 'dark' : 'light')>
       #if (theme === 'light') {
         ☾ Dark
       } #else {
@@ -179,7 +179,7 @@
         type="button"
         class={ active: item.id === tab }
         aria-pressed=(item.id === tab ? 'true' : 'false')
-        onClick=(() => (tab = item.id))
+        onClick=(() => tab = item.id)
       >
         {item.label}
       </button>

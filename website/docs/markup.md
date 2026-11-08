@@ -1,6 +1,6 @@
 # Markup
 
-Everything in a `.solid` file outside `<script>` and `<style>` is markup. Markup is JSX, with a shorter syntax for attribute values and a few additions.
+Everything in a `.solid` file outside `<script>` and `<style>` is markup. Markup compiles to JSX, but it is not JSX: it has a shorter syntax for attribute values, shorthands and [control flow blocks](./control-flow.md). See [Writing idiomatic markup](#writing-idiomatic-markup).
 
 ## Attribute values
 
@@ -26,7 +26,7 @@ A value without parentheses reads like a value in a JavaScript object: a name, a
 A value without parentheses ends at whitespace, `/` or `>`. Operators other than the prefixes need parentheses, because they would be read as the end of the value or the end of the tag. `disabled=count>3` is a syntax error. Write `disabled=(count > 3)` instead. Arrow functions also need parentheses: `onClick=(() => select(item))`.
 
 > [!IMPORTANT]
-> Braces in an attribute value are an object literal, not an expression. `value={count}` passes the object `{ count }`, not the value of `count`. Write `value=count` or `value=(count)` for the value.
+> Braces in an attribute value are an object literal, not an expression. `value={count}` passes the object `{ count }`, not the value of `count`. Write `value=count` for the value.
 
 ## Shorthands
 
@@ -55,12 +55,46 @@ A form field shows a variable through its property, and its event handler writes
   let subscribed = $signal(false);
 </script>
 
-<input value=name onInput=((event) => (name = event.currentTarget.value))>
-<input type="number" value=age onInput=((event) => (age = event.currentTarget.valueAsNumber))>
-<input type="checkbox" checked=subscribed onChange=((event) => (subscribed = event.currentTarget.checked))>
+<input value=name onInput=((event) => name = event.currentTarget.value)>
+<input type="number" value=age onInput=((event) => age = event.currentTarget.valueAsNumber)>
+<input type="checkbox" checked=subscribed onChange=((event) => subscribed = event.currentTarget.checked)>
 ```
 
 Assigning to a `$signal` variable calls its setter, so the field and the variable stay in sync. There is no `bind:` syntax: `bind:value` is a syntax error that shows this form.
+
+## Writing idiomatic markup
+
+Markup compiles to JSX, but it has shorter forms. Use them instead of writing JSX:
+
+| Instead of                                  | Write                                      | Why                                                                   |
+| ------------------------------------------- | ------------------------------------------ | --------------------------------------------------------------------- |
+| `<a href=href>`                             | `<a {href}>`                               | The shorthand fits when the attribute and the variable share a name.  |
+| `value=(count)`                             | `value=count`                              | A name, member access or call needs no parentheses.                   |
+| `onClick=(() => (open = !open))`            | `onClick=(() => open = !open)`             | An arrow body that assigns needs no parentheses of its own.           |
+| `onClick=(() => { a = 1; b = 2; })`         | `onClick=reset`                            | Name a handler that does more than one thing in `<script>`.           |
+| `{user ? <p>{user.name}</p> : <Login />}`   | `#if (user) { … } #else { … }`             | [Control flow blocks](./control-flow.md) replace ternaries and `&&`.  |
+| `{items.map((item) => <li>{item}</li>)}`    | `#for (item of items) { <li>{item}</li> }` | `#for` replaces `.map()`.                                             |
+| `const [count, setCount] = createSignal(0)` | `let count = $signal(0)`                   | [Reactive variables](./reactivity.md) are read and assigned directly. |
+| `class=(done ? 'done' : '')`                | `class={ done }`                           | `class` takes an object of class names.                               |
+| `<input value=name />`                      | `<input value=name>`                       | Void elements need no `/>`.                                           |
+
+The parentheses around an arrow function stay, because the value would end at its first space without them.
+
+A handler that needs a value of a block, such as `reset` in `#catch`, can be declared in a [script in the block](./control-flow.md#scripts-in-blocks):
+
+```html
+#try {
+  <Chart {data} />
+} #catch (error, reset) {
+  <script>
+    function retry() {
+      failing = false;
+      reset();
+    }
+  </script>
+  <button onClick=retry>Try again</button>
+}
+```
 
 ## Attribute names
 
@@ -125,7 +159,7 @@ Text and elements are written as in JSX. `{expression}` inserts a value:
 JSX inside expressions uses the same attribute syntax:
 
 ```html
-<ul>{items.map((item) => <li key=item.id>{item.name}</li>)}</ul>
+<ul>{items.map((item) => <li class=item.kind>{item.name}</li>)}</ul>
 ```
 
 For lists and conditions, [control flow blocks](./control-flow.md) are usually shorter:

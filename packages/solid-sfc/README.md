@@ -209,7 +209,7 @@ Names, literals, member accesses and calls do not need braces:
 ```html
 <button onClick=increment disabled=!valid tabIndex=0 />
 <div id=`item-${id}` items=[1, 2] pattern=/a+/ />
-<input value=count() title=items[0]?.label />
+<input value=count() title=items[0]?.label>
 ```
 
 Expressions with operators or whitespace go in parentheses:

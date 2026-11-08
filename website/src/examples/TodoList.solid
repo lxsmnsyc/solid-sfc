@@ -48,7 +48,7 @@
   <!-- The field shows the variable, and typing writes it. -->
   <input
     value=draft
-    onInput=((event) => (draft = event.currentTarget.value))
+    onInput=((event) => draft = event.currentTarget.value)
     placeholder="What needs doing?"
     aria-label="New todo"
   >
@@ -71,5 +71,5 @@
 
 <p>{remaining} left</p>
 #if (remaining < todos.length) {
-  <button onClick=(() => (todos = todos.filter((todo) => !todo.done)))>Clear done</button>
+  <button onClick=(() => todos = todos.filter((todo) => !todo.done))>Clear done</button>
 }

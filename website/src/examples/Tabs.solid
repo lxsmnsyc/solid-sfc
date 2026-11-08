@@ -36,7 +36,7 @@
 
 <nav>
   #for (item of ['about', 'shapes', 'random'] as const) {
-    <button class={ active: tab === item } onClick=(() => (tab = item))>{item}</button>
+    <button class={ active: tab === item } onClick=(() => tab = item)>{item}</button>
   }
 </nav>
 

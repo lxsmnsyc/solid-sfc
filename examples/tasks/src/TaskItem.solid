@@ -132,7 +132,7 @@
       aria-label="Task title"
       ref=focus
       value=draft
-      onInput=((event) => (draft = event.currentTarget.value))
+      onInput=((event) => draft = event.currentTarget.value)
       {onKeyDown}
       onBlur=(() => finish(true))
     >
