@@ -3,9 +3,9 @@
 
   // Line ranges of the blocks in `hero/counter.md`.
   const BLOCKS: BlockRange[] = [
-    { block: 'script', from: 1, to: 4 },
-    { block: 'style', from: 6, to: 12 },
-    { block: 'markup', from: 14, to: 20 },
+    { block: 'script', from: 1, to: 5 },
+    { block: 'style', from: 7, to: 17 },
+    { block: 'markup', from: 19, to: 25 },
   ];
 
   const BUNDLERS = ['Vite', 'Rollup', 'Rolldown', 'webpack', 'Rspack', 'esbuild'];
@@ -25,7 +25,7 @@
       } else if (match[2]) {
         tokens.push({ text: match[0], kind: 'name' });
       } else if (match[3]) {
-        tokens.push({ text: match[0], kind: 'scope' });
+        tokens.push({ text: ' ', kind: 'text' }, { text: match[0].trim(), kind: 'scope' });
       } else if (match[4]) {
         tokens.push({ text: match[0], kind: 'value' });
       } else {
@@ -54,6 +54,7 @@
       dom = tokenize(canvas.innerHTML
           .replace(/<!--[^>]*-->/g, '')
           .replace(/(\ss-[\w-]+)=""/g, '$1')
+          .replace(/><(?!\/)/g, '>\n<')
           .trim());
     };
     read();
@@ -362,7 +363,8 @@
     margin-top: var(--space-2);
     font-size: 0.75rem;
     line-height: 1.6;
-    word-break: break-all;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
     color: var(--text);
   }
 
