@@ -25,7 +25,7 @@ depends_on:
 
 ## Goal
 
-Rebuild `website/src/pages/Docs.solid` per contract v3: left index, prose column, sticky on-this-page list, alerts as glass callouts in their hue, `CodeBlock` with copy, prev and next pager, and a `cmd-K` search dialog over all docs headings and text (index built at build time in `website/plugins/markdown.ts`, no third-party service).
+Rebuild `website/src/pages/Docs.solid` per contract v5: left index, prose column, sticky on-this-page list, alerts as flat callouts tinted in their hue, `CodeBlock` with copy, prev and next pager, and a `cmd-K` search dialog over all docs headings and text (index built at build time in `website/plugins/markdown.ts`, no third-party service).
 
 ## Acceptance
 

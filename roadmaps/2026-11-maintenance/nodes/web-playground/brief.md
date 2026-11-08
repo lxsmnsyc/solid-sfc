@@ -24,7 +24,7 @@ depends_on:
 
 ## Goal
 
-Restyle `website/src/pages/Playground.solid` and the preview frame per contract v3 as a full-height tool: glass toolbar (example picker, output tabs, share button), editor and output panes with a draggable divider, errors in a mono strip. Add share links: the source is compressed into the URL hash and restored on load.
+Restyle `website/src/pages/Playground.solid` and the preview frame per contract v5 as a full-height tool: flat toolbar (example picker, output tabs, share button), editor and output panes with a draggable divider, errors in a mono strip. Add share links: the source is compressed into the URL hash and restored on load.
 
 ## Acceptance
 

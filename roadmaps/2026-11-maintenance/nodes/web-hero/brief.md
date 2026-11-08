@@ -23,7 +23,7 @@ depends_on:
 
 ## Goal
 
-Contract v3 item 5. Replace the hero stub with the real hero: headline with gradient words, one line of copy, buttons, `CopyCommand`, and beside it an editable `.solid` snippet with a live preview. The compiler and its wasm load only on first focus of the editor or on idle; compile runs in a worker; show "compiled in N ms · N B". Before the compiler loads, show the build-time render so the hero is complete without JS.
+Contract v5 item 5. Replace the hero stub with the real hero: headline in solid text, one line of copy, buttons, `CopyCommand`, and beside it an editable `.solid` snippet with a live preview. The compiler and its wasm load only on first focus of the editor or on idle; compile runs in a worker; show "compiled in N ms · N B". Before the compiler loads, show the build-time render so the hero is complete without JS.
 
 ## Context
 

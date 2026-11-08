@@ -15,7 +15,7 @@ depends_on: []
 
 ## Goal
 
-A new design for `website/` following the frozen contract `contracts/web-design.md` v3 ("Unfold"). The first attempt (v1/v2, editorial and static) was rejected by the user as too basic compared to their other sites (solid-optimizer, atemno, compostate). Reference screenshots of those sites: `reviews/ref/`.
+A new design for `website/` following the frozen contract `contracts/web-design.md` v5 ("Unfold", with the UI style rules since v5). The first attempt (v1/v2, editorial and static) was rejected by the user as too basic compared to their other sites (solid-optimizer, atemno, compostate). Reference screenshots of those sites: `reviews/ref/`.
 
 ## Children
 

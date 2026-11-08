@@ -25,7 +25,7 @@ depends_on:
 
 ## Goal
 
-Contract v3 item 4, the signature of the site. A `.solid` file card in 3D perspective; on scroll its script, style and markup blocks lift apart into three layers, and connectors draw from each layer to what it becomes: the component function, the scoped CSS with its hashed attribute, and the DOM it renders. Outputs come from the real compiler at build time through a Vite plugin (`website/plugins/unfold.ts`, virtual module), so they never drift from the compiler.
+Contract v5 item 4, the signature of the site. A `.solid` file card in 3D perspective; on scroll its script, style and markup blocks lift apart into three layers, and connectors draw from each layer to what it becomes: the component function, the scoped CSS with its hashed attribute, and the DOM it renders. Outputs come from the real compiler at build time through a Vite plugin (`website/plugins/unfold.ts`, virtual module), so they never drift from the compiler.
 
 ## Acceptance
 

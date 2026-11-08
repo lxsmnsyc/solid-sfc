@@ -25,7 +25,7 @@ depends_on:
 
 ## Goal
 
-Contract v3 items 6 and 7. Compose `website/src/pages/Home.solid`: hero and unfold (imported from `src/home/`), then live feature demos (`$signal` counter showing the setter call, `#for` with keys, scoped style toggle showing the attribute selector, `#loading` with a fake fetch), each with its source and the compiled line highlighted, compiled at build time; a build-time numbers band (compile time and output size of the example components, measured by `website/plugins/stats.ts`); a closing call to action. Demos run as real compiled `.solid` components in the page.
+Contract v5 items 6 and 7. Compose `website/src/pages/Home.solid`: hero and unfold (imported from `src/home/`), then live feature demos (`$signal` counter showing the setter call, `#for` with keys, scoped style toggle showing the attribute selector, `#loading` with a fake fetch), each with its source and the compiled line highlighted, compiled at build time; a build-time numbers band (compile time and output size of the example components, measured by `website/plugins/stats.ts`); a closing call to action. Demos run as real compiled `.solid` components in the page.
 
 ## Acceptance
 
