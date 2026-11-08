@@ -25,7 +25,7 @@ export default function ItemList($$props: Props) {
   return (
     <>
       <For each={props.items}>
-        {(item: Item) => <li s-x onClick={() => setCount(current => ++current)} style={__styleVariables()}>{item}</li>}
+        {(item: Item) => <li s-x onClick={() => (() => { let tmp; setCount(current => (tmp = current) + 1); return tmp; })()} style={__styleVariables()}>{item}</li>}
       </For>
     </>
   );
