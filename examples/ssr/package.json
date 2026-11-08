@@ -10,13 +10,13 @@
     "typecheck": "solid-tsc --noEmit"
   },
   "dependencies": {
-    "@solidjs/web": "2.0.0-rc.15",
-    "solid-js": "2.0.0-rc.15",
+    "@solidjs/web": "2.0.0-rc.21",
+    "solid-js": "2.0.0-rc.21",
     "solid-sfc": "workspace:*"
   },
   "devDependencies": {
     "@solid-sfc/tsc": "workspace:*",
-    "@solidjs/vite-plugin": "3.0.0-next.35",
+    "@solidjs/vite-plugin": "3.0.0-next.57",
     "typescript": "^7.0.2",
     "vite": "^8.3.6"
   }
