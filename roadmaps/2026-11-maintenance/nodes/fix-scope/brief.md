@@ -9,6 +9,7 @@ size: M
 verify: pnpm --filter solid-sfc test
 owns:
   - packages/solid-sfc/src/labels/scope.ts
+  - packages/solid-sfc/src/labels/reactive.ts
   - packages/solid-sfc/src/labels/CLAUDE.md
   - packages/solid-sfc/test/labels/**
 shared:
