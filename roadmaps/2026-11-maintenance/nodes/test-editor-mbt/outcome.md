@@ -16,6 +16,14 @@ Branch `test/editor-mbt`, draft PR (see the report for the number).
   - Completions have `0 <= start <= cursor`, after each typed character and at random cursors. Code action edits are ordered and inside the text.
 - Two `it.fails` tests for the finding below.
 
+## Review fixes
+
+- Generated-text mappings (`generatedLengths`) are now checked: the generated slice is a prop word followed by `=` and preceded by whitespace. The mutation `+ PRELUDE.length` to `+ 1` (index.ts:261) now fails on the first base. All earlier mutations still fail.
+- The selector skip is narrowed to non-`SFCError` errors whose stack has `postcss-selector-parser`. A `BadSelector` command makes it fire: 61 of 1537 edits on the default seed. The test asserts the skip path is reached while the finding is open, so it needs no change when the fix lands except removing the skip.
+- `Type` does not advance when an edit is skipped.
+- New commands `TypeLine` (a whole line, a word at a time) and `Undo`/revert raise the valid share from 16% to 41% (672 of 1626 checked states, seed 20261108). The test asserts more than 30%.
+- The mutation table is in the PR body. Seeds 7, 8, 9 at 2000 runs: clean.
+
 ## Findings
 
 1. A style selector that postcss-selector-parser rejects makes `compileForEditor` throw a plain `Error` (no `SFCError`, no location). The language plugin throws on every keystroke while the selector is half typed.
