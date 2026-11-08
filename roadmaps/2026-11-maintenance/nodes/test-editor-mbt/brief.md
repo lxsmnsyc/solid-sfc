@@ -1,7 +1,7 @@
 ---
 id: test-editor-mbt
 title: Model-based test of editor recovery and virtual code mappings
-status: active
+status: done
 priority: should
 type: feature
 milestone: quality

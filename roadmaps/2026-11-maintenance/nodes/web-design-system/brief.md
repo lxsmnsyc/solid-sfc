@@ -1,7 +1,7 @@
 ---
 id: web-design-system
 title: Website design system and shell
-status: active
+status: done
 priority: should
 type: feature
 story: website-redesign
