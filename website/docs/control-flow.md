@@ -151,7 +151,7 @@ Only `#case`, `#default`, whitespace and comments are allowed directly inside `#
 
 ```html
 #try {
-  <Chart data=data />
+  <Chart {data} />
 } #catch (error, reset) {
   <p>{String(error)}</p>
   <button onClick=reset>Try again</button>

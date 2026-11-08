@@ -181,7 +181,7 @@ Read props through the object (`props.label`) to keep them reactive. To destruct
   const { label, disabled = false, ...rest } = $props<Props>();
 </script>
 
-<button {...rest} disabled=(disabled)>{label}</button>
+<button {...rest} {disabled}>{label}</button>
 ```
 
 Each destructured name becomes a reactive variable that reads the prop when it is used. `disabled` uses its default value when the prop is `undefined`. `rest` holds the remaining props, without `label` and `disabled`.

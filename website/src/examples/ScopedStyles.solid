@@ -52,10 +52,10 @@
     min="0"
     max="360"
     value=hue
-    onInput=((event) => (hue = event.currentTarget.valueAsNumber))
+    onInput=((event) => hue = event.currentTarget.valueAsNumber)
   >
 </label>
 <label>
-  <input type="checkbox" checked=round onChange=((event) => (round = event.currentTarget.checked))>
+  <input type="checkbox" checked=round onChange=((event) => round = event.currentTarget.checked)>
   Round corners
 </label>
