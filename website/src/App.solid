@@ -13,171 +13,588 @@
 </script>
 
 <style global>
+  /* Tokens of contracts/web-design.md. Pages use only these. */
   :root {
-    color-scheme: light dark;
-    --background: #ffffff;
-    --surface: #f5f7fa;
-    --border: #dde3ea;
-    --text: #1c2430;
-    --muted: #5b6676;
-    --accent: #2f5f9e;
-    --accent-text: #ffffff;
-    --code-background: #f5f7fa;
-    --note: #0969da;
-    --tip: #1a7f37;
-    --important: #8250df;
-    --warning: #9a6700;
-    --caution: #d1242f;
+    color-scheme: light;
+    --paper: #f6f4ef;
+    --surface: #efece4;
+    --ink: #14130f;
+    --muted: #6b675e;
+    --hairline: #d9d4c7;
+    --accent: #2f3fd0;
+    --accent-ink: #ffffff;
+    --script: #2f3fd0;
+    /* #c2410c in the contract is 4.39:1 on --surface; see web-design.change-request.md. */
+    --style: #bd3f0b;
+    --markup: #0f766e;
+    --note: #2f3fd0;
+    --tip: #0f766e;
+    --important: #7a3fc0;
+    --warning: #8a5a00;
+    --caution: #b42318;
+
+    --font-display: 'Instrument Serif', 'Iowan Old Style', Georgia, serif;
+    --font-body: 'Geist', system-ui, sans-serif;
+    --font-mono: 'Geist Mono', ui-monospace, Menlo, monospace;
+    --step--1: clamp(0.8rem, 0.78rem + 0.1vw, 0.875rem);
+    --step-0: clamp(1rem, 0.96rem + 0.2vw, 1.0625rem);
+    --step-1: clamp(1.25rem, 1.1rem + 0.6vw, 1.5rem);
+    --step-2: clamp(1.6rem, 1.3rem + 1.4vw, 2.25rem);
+    --step-3: clamp(2.2rem, 1.6rem + 2.8vw, 3.75rem);
+    --step-4: clamp(3rem, 2rem + 5vw, 6.5rem);
+
+    --space-1: 0.25rem;
+    --space-2: 0.5rem;
+    --space-3: 0.75rem;
+    --space-4: 1rem;
+    --space-5: 1.5rem;
+    --space-6: 2.5rem;
+    --space-7: 4rem;
+    --space-8: 7rem;
+    --grid-max: 76rem;
+    --gutter: clamp(1rem, 4vw, 3rem);
+    --measure: 66ch;
+    --radius: 2px;
     --header-height: 3.5rem;
-    --font: system-ui, -apple-system, 'Segoe UI', sans-serif;
-    --mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+
+    /* Old names, kept until every page has moved. web-og-image removes them. */
+    --background: var(--paper);
+    --border: var(--hairline);
+    --text: var(--ink);
+    --code-background: var(--surface);
+    --accent-text: var(--accent-ink);
+    --font: var(--font-body);
+    --mono: var(--font-mono);
   }
 
   @media (prefers-color-scheme: dark) {
     :root {
-      --background: #0f141b;
-      --surface: #161d27;
-      --border: #273140;
-      --text: #e3e8ef;
-      --muted: #97a3b4;
-      --accent: #7aa7e0;
-      --accent-text: #0f141b;
-      --code-background: #161d27;
-      --note: #4493f8;
-      --tip: #3fb950;
-      --important: #ab7df8;
-      --warning: #d29922;
-      --caution: #f85149;
+      color-scheme: dark;
+      --paper: #0e0e0c;
+      --surface: #171714;
+      --ink: #ece8df;
+      --muted: #9a958a;
+      --hairline: #2a2925;
+      --accent: #8b96ff;
+      --accent-ink: #0e0e0c;
+      --script: #8b96ff;
+      --style: #fb8a5c;
+      --markup: #3cc4b4;
+      --note: #8b96ff;
+      --tip: #3cc4b4;
+      --important: #c59bff;
+      --warning: #e0a63a;
+      --caution: #ff7a6b;
     }
   }
 
-  * {
+  *,
+  ::before,
+  ::after {
     box-sizing: border-box;
   }
 
   html {
-    scroll-padding-top: calc(var(--header-height) + 1rem);
+    scroll-padding-top: calc(var(--header-height) + var(--space-5));
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
   }
 
   body {
     margin: 0;
-    font-family: var(--font);
+    font-family: var(--font-body);
+    font-size: var(--step-0);
     line-height: 1.6;
-    color: var(--text);
-    background: var(--background);
+    color: var(--ink);
+    background: var(--paper);
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Light text on a dark ground looks heavier with subpixel smoothing. */
+  @media (prefers-color-scheme: dark) {
+    body {
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+  }
+
+  ::selection {
+    color: var(--accent-ink);
+    background: var(--accent);
+  }
+
+  h1,
+  h2 {
+    margin: 0;
+    font-family: var(--font-display);
+    font-weight: 400;
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+  }
+
+  h1 {
+    font-size: var(--step-3);
+    line-height: 1;
+  }
+
+  h2 {
+    font-size: var(--step-2);
+    line-height: 1.1;
+  }
+
+  h3,
+  h4 {
+    margin: 0;
+    font-weight: 600;
+    letter-spacing: -0.005em;
+    line-height: 1.3;
+    text-wrap: balance;
+  }
+
+  h3 {
+    font-size: var(--step-1);
+  }
+
+  h4 {
+    font-size: var(--step-0);
+  }
+
+  p {
+    text-wrap: pretty;
   }
 
   a {
     color: var(--accent);
+    text-decoration-line: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.2em;
+    transition:
+      color 150ms ease,
+      text-decoration-color 150ms ease,
+      background-color 150ms ease,
+      border-color 150ms ease;
+  }
+
+  a:hover {
+    color: var(--ink);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
   }
 
   code,
+  kbd,
   pre,
+  samp,
   textarea {
-    font-family: var(--mono);
-    font-size: 0.875rem;
+    font-family: var(--font-mono);
+    font-variant-ligatures: none;
   }
 
+  :not(pre) > code {
+    padding: 0.1em 0.3em;
+    border-radius: var(--radius);
+    font-size: 0.875em;
+    background: var(--surface);
+  }
+
+  hr {
+    height: 0;
+    margin: 0;
+    border: 0;
+    border-top: 1px solid var(--hairline);
+  }
+
+  /* Code block: a 3px rule on the left in the hue of its block. */
   pre.twinkleplop {
+    --block: var(--script);
     overflow-x: auto;
-    margin: 1rem 0;
-    padding: 1rem;
-    border: 1px solid var(--border);
-    border-radius: 0.5rem;
-    line-height: 1.5;
-    background: var(--code-background);
+    margin: var(--space-5) 0;
+    padding: var(--space-4) var(--space-5);
+    border-left: 3px solid var(--block);
+    border-radius: 0 var(--radius) var(--radius) 0;
+    font-size: 0.875rem;
+    line-height: 1.65;
+    tab-size: 2;
+    color: var(--ink);
+    background: var(--surface);
+    scrollbar-color: var(--hairline) transparent;
+    scrollbar-width: thin;
+  }
+
+  pre.twinkleplop[data-block='style'] {
+    --block: var(--style);
+  }
+
+  pre.twinkleplop[data-block='markup'] {
+    --block: var(--markup);
+  }
+
+  /* Margin label, such as `<script>` or `out.js`. */
+  .label {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    font-weight: 500;
+    line-height: 1.6;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-variant-numeric: tabular-nums;
+    color: var(--muted);
+  }
+
+  .label[data-block='script'] {
+    color: var(--script);
+  }
+
+  .label[data-block='style'] {
+    color: var(--style);
+  }
+
+  .label[data-block='markup'] {
+    color: var(--markup);
   }
 
   .button {
-    display: inline-block;
-    padding: 0.6rem 1.1rem;
-    border: 1px solid var(--accent);
-    border-radius: 0.5rem;
-    font-weight: 600;
+    display: inline-flex;
+    gap: var(--space-2);
+    align-items: center;
+    justify-content: center;
+    min-height: 2.75rem;
+    padding: 0 var(--space-5);
+    border: 1px solid var(--ink);
+    border-radius: var(--radius);
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    font-weight: 500;
+    line-height: 1;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
     text-decoration: none;
+    white-space: nowrap;
+    color: var(--ink);
+    background: transparent;
+    cursor: pointer;
+  }
+
+  .button:hover {
+    color: var(--paper);
+    background: var(--ink);
   }
 
   .button.primary {
-    color: var(--accent-text);
+    border-color: var(--accent);
+    color: var(--accent-ink);
     background: var(--accent);
+  }
+
+  .button.primary:hover {
+    border-color: var(--ink);
+    color: var(--paper);
+    background: var(--ink);
+  }
+
+  .rule {
+    display: block;
+    width: 100%;
+    height: 0;
+    margin: 0;
+    border: 0;
+    border-top: 1px solid var(--hairline);
+  }
+
+  /* 12 columns inside --grid-max, with --gutter on both sides. */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    column-gap: var(--space-5);
+    width: 100%;
+    max-width: calc(var(--grid-max) + 2 * var(--gutter));
+    margin-inline: auto;
+    padding-inline: var(--gutter);
+  }
+
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    ::before,
+    ::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
   }
 </style>
 
 <style>
+  .skip {
+    position: fixed;
+    top: var(--space-2);
+    left: var(--space-2);
+    z-index: 20;
+    padding: var(--space-2) var(--space-3);
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent-ink);
+    background: var(--accent);
+    transform: translateY(-200%);
+  }
+
+  .skip:focus-visible {
+    transform: none;
+  }
+
   header {
     position: sticky;
     top: 0;
     z-index: 10;
-    display: flex;
-    gap: 1.5rem;
-    align-items: center;
-    height: var(--header-height);
-    padding: 0 1.5rem;
-    border-bottom: 1px solid var(--border);
-    background: var(--background);
+    border-bottom: 1px solid var(--hairline);
+    background: var(--paper);
   }
 
-  .logo {
-    font-weight: 700;
-    font-size: 1.125rem;
-    color: var(--text);
+  .bar {
+    display: flex;
+    gap: var(--space-5);
+    align-items: stretch;
+    justify-content: space-between;
+    max-width: calc(var(--grid-max) + 2 * var(--gutter));
+    height: var(--header-height);
+    margin-inline: auto;
+    padding-inline: var(--gutter);
+  }
+
+  /* The playground fills the window, so its bar does too. */
+  .bar.wide {
+    max-width: none;
+    padding-inline: var(--space-5);
+  }
+
+  .wordmark {
+    display: flex;
+    gap: var(--space-3);
+    align-items: center;
+    font-size: 1.0625rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
     text-decoration: none;
+    color: var(--ink);
+  }
+
+  .wordmark:hover {
+    color: var(--ink);
+  }
+
+  .mark {
+    flex: none;
+    display: block;
+  }
+
+  .script {
+    fill: var(--script);
+  }
+
+  .style {
+    fill: var(--style);
+  }
+
+  .markup {
+    fill: var(--markup);
   }
 
   nav {
     display: flex;
-    gap: 1.25rem;
-    margin-left: auto;
+    gap: var(--space-5);
+  }
+
+  nav a,
+  .links a {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    text-decoration: none;
+    color: var(--muted);
   }
 
   nav a {
-    color: var(--muted);
-    text-decoration: none;
+    display: flex;
+    align-items: center;
+    /* The active mark sits on the header hairline. */
+    margin-bottom: -1px;
+    border-bottom: 1px solid transparent;
   }
 
   nav a:hover,
-  nav .active {
-    color: var(--text);
+  .links a:hover {
+    color: var(--ink);
   }
 
-  .loading {
-    padding: 2rem 1.5rem;
+  nav a[aria-current='page'] {
+    border-bottom-color: var(--ink);
+    color: var(--ink);
+  }
+
+  .external {
+    margin-left: 0.15em;
+  }
+
+  #content:focus {
+    outline: none;
+  }
+
+  footer {
+    margin-top: var(--space-8);
+    border-top: 1px solid var(--hairline);
+  }
+
+  footer .grid {
+    row-gap: var(--space-4);
+    align-items: baseline;
+    padding-block: var(--space-6) var(--space-7);
+  }
+
+  .colophon {
+    display: flex;
+    grid-column: 1 / 8;
+    gap: var(--space-3);
+    align-items: baseline;
+    margin: 0;
+    font-size: var(--step--1);
     color: var(--muted);
   }
 
-  @media (max-width: 40rem) {
-    header {
-      gap: 1rem;
-      padding: 0 1rem;
+  .colophon .mark {
+    align-self: center;
+  }
+
+  .colophon strong {
+    font-weight: 600;
+    color: var(--ink);
+  }
+
+  .links {
+    display: flex;
+    grid-column: 8 / -1;
+    gap: var(--space-5);
+    justify-content: flex-end;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .loading {
+    max-width: calc(var(--grid-max) + 2 * var(--gutter));
+    margin: 0 auto;
+    padding: var(--space-7) var(--gutter);
+  }
+
+  @media (max-width: 48rem) {
+    .colophon,
+    .links {
+      grid-column: 1 / -1;
+      justify-content: flex-start;
+    }
+  }
+
+  @media (max-width: 26rem) {
+    .bar,
+    nav {
+      gap: var(--space-4);
     }
 
-    nav {
-      gap: 0.75rem;
+    .name {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
     }
   }
 </style>
 
+<a class="skip" href="#content">Skip to content</a>
+
 <header>
-  <a class="logo" href=href('/')>solid-sfc</a>
-  <nav>
-    <a href=href('/docs') class={ active: section === 'docs' }>Docs</a>
-    <a href=href('/playground') class={ active: section === 'playground' }>Playground</a>
-    <a href="https://github.com/lxsmnsyc/solid-sfc" target="_blank" rel="noreferrer">GitHub</a>
-  </nav>
+  <div class={ bar: true, wide: section === 'playground' }>
+    <a class="wordmark" href=href('/')>
+      <svg class="mark" viewBox="0 0 16 16" width="18" height="18" aria-hidden="true">
+        <rect class="script" x="1" y="1.5" width="14" height="3.5" rx="0.5" />
+        <rect class="style" x="1" y="6.25" width="9" height="3.5" rx="0.5" />
+        <rect class="markup" x="1" y="11" width="11.5" height="3.5" rx="0.5" />
+      </svg>
+      <span class="name">solid-sfc</span>
+    </a>
+    <nav aria-label="Main">
+      <a href=href('/docs') aria-current=(section === 'docs' ? 'page' : undefined)>Docs</a>
+      <a href=href('/playground') aria-current=(section === 'playground' ? 'page' : undefined)>
+        Playground
+      </a>
+      <a href="https://github.com/lxsmnsyc/solid-sfc" target="_blank" rel="noreferrer">
+        GitHub<span class="external" aria-hidden="true">↗</span>
+      </a>
+    </nav>
+  </div>
 </header>
 
-#switch {
-  #case (section === 'docs') {
-    <Docs />
-  }
-  #case (section === 'playground') {
-    #loading {
-      <Playground />
-    } #else {
-      <p class="loading">Loading the compiler…</p>
+<div id="content" tabindex="-1">
+  #switch {
+    #case (section === 'docs') {
+      <Docs />
+    }
+    #case (section === 'playground') {
+      #loading {
+        <Playground />
+      } #else {
+        <p class="loading label">Loading the compiler…</p>
+      }
+    }
+    #default {
+      <Home />
     }
   }
-  #default {
-    <Home />
-  }
+</div>
+
+#if (section !== 'playground') {
+  <footer>
+    <div class="grid">
+      <p class="colophon">
+        <svg class="mark" viewBox="0 0 16 16" width="12" height="12" aria-hidden="true">
+          <rect class="script" x="1" y="1.5" width="14" height="3.5" rx="0.5" />
+          <rect class="style" x="1" y="6.25" width="9" height="3.5" rx="0.5" />
+          <rect class="markup" x="1" y="11" width="11.5" height="3.5" rx="0.5" />
+        </svg>
+        <span>
+          <strong>solid-sfc</strong>. Single-file components for SolidJS 2.0. MIT License.
+        </span>
+      </p>
+      <ul class="links">
+        <li><a href=href('/docs')>Docs</a></li>
+        <li>
+          <a href="https://www.npmjs.com/package/solid-sfc" target="_blank" rel="noreferrer">
+            npm<span class="external" aria-hidden="true">↗</span>
+          </a>
+        </li>
+        <li>
+          <a href="https://github.com/lxsmnsyc/solid-sfc" target="_blank" rel="noreferrer">
+            GitHub<span class="external" aria-hidden="true">↗</span>
+          </a>
+        </li>
+      </ul>
+    </div>
+  </footer>
 }
