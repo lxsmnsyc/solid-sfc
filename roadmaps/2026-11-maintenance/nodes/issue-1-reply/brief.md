@@ -1,12 +1,12 @@
 ---
 id: issue-1-reply
 title: "Answer and close issue #1 (context in a .solid file)"
-status: todo
+status: active
 priority: could
 type: docs
 milestone: 1.0.x
 size: S
-gate: true
+gate: false
 owns:
   - website/docs/components.md
 depends_on: []
@@ -21,7 +21,7 @@ Issue #1 (2022) asks how to use `createContext` in an SFC; the old compiler did 
 ## Acceptance
 
 - [ ] A compile test or the docs example shows a context exported from `<script module>`.
-- [ ] Reply text in `outcome.md`. The orchestrator posts it and closes #1 only after the user approves.
+- [ ] Reply text in `outcome.md`. The user approved posting it (2026-11-08); the orchestrator posts it and closes #1.
 
 ## Sizing
 

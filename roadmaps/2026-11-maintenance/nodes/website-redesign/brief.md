@@ -1,26 +1,31 @@
 ---
 id: website-redesign
 title: Redesign the website
-status: todo
+status: active
 priority: should
 type: story
 milestone: website
-outline: true
-size: XL
-gate: true
-depends_on:
-  - on: og-tags
-    kind: hard
-    why: same index.html head; og image is redone in the new style
+outline: false
+size: L
+gate: false
+depends_on: []
 ---
 
 # Redesign the website
 
 ## Goal
 
-New visual design for `website/` (home, docs, playground, preview frame): layout, typography, color in light and dark, navigation, code blocks, playground panes. Refine into children after the user picks a direction: likely a design-tokens and layout child, then home, docs and playground children in parallel, then the og image.
+A new visual design for `website/` following the frozen contract `contracts/web-design.md` ("Source and output"). The user asked for an award-level design and left the direction to us (2026-11-08).
 
-## Context
+## Children
 
-- Current: `website/src/pages/{Home,Docs,Playground}.solid`, `theme.css` imports GitHub highlight themes, docs from `website/docs/*.md` via markdown-it, Terracotta in the playground.
-- Open question: design direction (references, brand, must keep or drop parts).
+- web-design-system: tokens, fonts, shell (header, footer), shared classes, highlight theme, favicon.
+- web-home, web-docs, web-playground: one page each, in parallel after the design system.
+- web-og-image: the Open Graph image in the new style, and removal of the old token aliases.
+
+## Acceptance
+
+- [ ] Every page uses only contract tokens; no hard-coded colors outside `App.solid` tokens and the highlight theme.
+- [ ] Light and dark pass WCAG AA for text; keyboard focus visible everywhere; `prefers-reduced-motion` honored.
+- [ ] Lighthouse accessibility 100 and performance 95+ on the built home page.
+- [ ] `pnpm --filter website build` and `pnpm --filter website typecheck` pass.
