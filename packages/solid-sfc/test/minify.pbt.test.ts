@@ -1,6 +1,6 @@
-import fc from 'fast-check';
+import * as fc from 'fast-check';
 import { parse } from 'postcss';
-import type { Node } from 'postcss';
+import type { Container, Document } from 'postcss';
 import { describe, expect, it } from 'vitest';
 import { minifyCSS } from '../src/minify.ts';
 
@@ -157,11 +157,11 @@ function squeeze(text: string, separators: string, strings: string[]): string {
     strings.push(match);
     return '\u0000';
   });
-  const escaped = separators.replace(/[\]\\^-]/g, '\\$&');
+  const characters = separators.replace(/[\]\\^-]/g, '\\$&');
   return marked
     .replace(/\s+/g, ' ')
     .trim()
-    .replace(new RegExp(`\\s*([${escaped}])\\s*`, 'g'), '$1')
+    .replace(new RegExp(`\\s*([${characters}])\\s*`, 'g'), '$1')
     .replace(/\(\s+/g, '(')
     .replace(/\s+\)/g, ')');
 }
@@ -170,13 +170,15 @@ function squeeze(text: string, separators: string, strings: string[]): string {
 function normalize(css: string): Normalized {
   const strings: string[] = [];
   const lines: string[] = [];
-  parse(css).walk((node: Node) => {
+  parse(css).walk((node) => {
     if (node.type === 'comment') {
       return;
     }
     let depth = 0;
-    for (let parent = node.parent; parent?.parent; parent = parent.parent) {
+    let parent: Container | Document | undefined = node.parent;
+    while (parent && parent.type !== 'root') {
       depth++;
+      parent = parent.parent;
     }
     const prefix = `${depth}:${node.type}:`;
     if (node.type === 'rule') {

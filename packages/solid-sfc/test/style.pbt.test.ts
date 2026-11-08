@@ -1,4 +1,4 @@
-import fc from 'fast-check';
+import * as fc from 'fast-check';
 import { parse } from 'postcss';
 import { describe, expect, it } from 'vitest';
 import { compile } from '../src/index.ts';
@@ -188,9 +188,9 @@ describe(':global(...)', () => {
             input += `${separator}:global(${entry.value})`;
             expected += separator + entry.value;
           } else {
-            const { head, pseudoElement } = entry.value;
-            input += separator + head + pseudoElement;
-            expected += separator + head + (index === last ? ATTRIBUTE : '') + pseudoElement;
+            const { head, pseudoElement: element } = entry.value;
+            input += separator + head + element;
+            expected += separator + head + (index === last ? ATTRIBUTE : '') + element;
           }
         }
         expect(scope(wrap(at, `${input} { color: red }`))).toBe(

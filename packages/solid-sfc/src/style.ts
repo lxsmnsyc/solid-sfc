@@ -173,11 +173,9 @@ function scopeSelector(
   const pseudoElement = compound.find(isPseudoElement);
   // The whitespace in front of a selector of a list, as in `a, ::before`,
   // stays in front of the attribute. Otherwise it splits the compound.
-  const insertBefore = (node: SelectorNode): void => {
-    scope.spaces.before = node.spaces?.before ?? '';
-    if (node.spaces) {
-      node.spaces.before = '';
-    }
+  const insertBefore = (node: Selector['nodes'][number]): void => {
+    scope.spaces.before = node.spaces.before;
+    node.spaces.before = '';
     selector.insertBefore(node, scope);
   };
   if (atStart && (first.type === 'tag' || first.type === 'universal')) {
