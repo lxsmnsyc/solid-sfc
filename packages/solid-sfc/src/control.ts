@@ -87,7 +87,6 @@ interface Keyword {
   end: number;
 }
 
-/** Splits `text` at `separator` characters outside brackets and strings. */
 /** Text, or a range of the source that is copied. */
 type Piece = string | Range;
 
@@ -103,6 +102,7 @@ function joinPieces(lists: Piece[][], separator: Piece[], first: Piece[] = []): 
   return joined;
 }
 
+/** Splits `text` at `separator` characters outside brackets and strings. */
 function splitTopLevel(text: string, separator: string): string[] {
   const parts: string[] = [];
   let depth = 0;
@@ -588,6 +588,17 @@ export class ControlFlowParser {
     return { start, end };
   }
 
+  /** Splits `start` to `end` of the source at top-level commas, trimmed. */
+  private splitParams(start: number, end: number): Range[] {
+    const ranges: Range[] = [];
+    let offset = start;
+    for (const part of splitTopLevel(this.host.source.slice(start, end), ',')) {
+      ranges.push(this.trim(offset, offset + part.length));
+      offset += part.length + 1;
+    }
+    return ranges;
+  }
+
   /**
    * `#for (item, index of list) { A } #else { B }` becomes
    * `<For each={list} fallback={<>B</>}>{(item, index) => <>A</>}</For>`.
@@ -642,12 +653,7 @@ export class ControlFlowParser {
     }[mode];
     // The offsets of the parameters, so the callback copies them from the
     // source and the source map points to them.
-    const ranges: Range[] = [];
-    let cursor = header.start;
-    for (const part of of === -1 ? [] : splitTopLevel(text.slice(0, of), ',')) {
-      ranges.push(this.trim(cursor, cursor + part.length));
-      cursor += part.length + 1;
-    }
+    const ranges = of === -1 ? [] : this.splitParams(header.start, header.start + of);
     const names: Piece[][] = [];
     const derefs: Piece[][] = [];
     params.forEach((param, position) => {
@@ -803,12 +809,7 @@ export class ControlFlowParser {
     let next = branch.end;
     if (fallbackKeyword === 'catch' && source[this.host.scanner.skipWhitespace(next)] === '(') {
       const header = this.parseHeader(next, 'catch');
-      const ranges: Range[] = [];
-      let offset = header.start;
-      for (const part of splitTopLevel(source.slice(header.start, header.end), ',')) {
-        ranges.push(this.trim(offset, offset + part.length));
-        offset += part.length + 1;
-      }
+      const ranges = this.splitParams(header.start, header.end);
       const [error, reset, ...rest] = ranges.map((range) => source.slice(range.start, range.end));
       if (!error || rest.length > 0 || !IDENTIFIER.test(error)) {
         fail('Expected "(error)" or "(error, reset)" after #catch', header.start);
