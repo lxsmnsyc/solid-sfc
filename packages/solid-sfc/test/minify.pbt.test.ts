@@ -6,7 +6,11 @@ import { minifyCSS } from '../src/minify.ts';
 
 // A fixed seed makes a failure reproducible. fast-check prints the seed, the
 // path and the shrunk input when a property fails.
-const parameters: fc.Parameters<unknown> = { seed: 20261108, numRuns: 400 };
+// FC_SEED and FC_RUNS explore other inputs.
+const parameters: fc.Parameters<unknown> = {
+  seed: Number(process.env.FC_SEED ?? 20261108),
+  numRuns: Number(process.env.FC_RUNS ?? 400),
+};
 
 const space = fc.constantFrom('', ' ', '  ', '\n', '\t', ' \n ');
 const gap = fc.constantFrom(' ', '  ', '\n', '\t', ' \n ');
@@ -192,7 +196,7 @@ describe('escapes outside strings', () => {
   it.each([
     ['.a\\ ,.b{c:d}', '.a\\ ,.b{c:d}'],
     ['a{c:x\\,  d}', 'a{c:x\\, d}'],
-    ['a{c:b\\"  d  "e  f"}', 'a{c:b\\"  d  "e  f"}'],
+    ['a{c:b\\"  d  "e  f"}', 'a{c:b\\" d "e  f"}'],
     ['a{c:d\\ ;}', 'a{c:d\\ }'],
     ['a{c:d\\ !important}', 'a{c:d\\ !important}'],
   ])('keeps the tokens of %s', (input, output) => {
