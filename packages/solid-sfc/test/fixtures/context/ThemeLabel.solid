@@ -1,0 +1,8 @@
+<script>
+  import { useContext } from 'solid-js';
+  import { ThemeContext } from './ThemeProvider.solid';
+
+  const theme = useContext(ThemeContext);
+</script>
+
+<p>{theme}</p>
