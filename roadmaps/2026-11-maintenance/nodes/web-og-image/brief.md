@@ -1,6 +1,6 @@
 ---
 id: web-og-image
-title: Open Graph image in the new design, drop old token aliases
+title: Commit the Open Graph image source, drop old token aliases
 status: todo
 priority: should
 type: feature
@@ -9,6 +9,7 @@ size: S
 verify: pnpm --filter website build
 owns:
   - website/public/og.png
+  - website/og/**
   - website/src/App.solid
 depends_on:
   - on: og-tags
@@ -29,7 +30,7 @@ depends_on:
 
 ## Goal
 
-Make `website/public/og.png` (1200x630) in the new design: paper background, the display serif wordmark, the three-band block mark, one line of tagline. Render it from an SVG or HTML source with a script kept in `website/scripts/` if that is simpler, and commit the PNG. Then remove the old token aliases from `App.solid` and fix any remaining use.
+The new-design `og.png` already shipped in PR #8 (2026-11-08, at the user's request). Its HTML source is `nodes/web-og-image/og-source.html` in this roadmap, with absolute `file://` font paths. Commit it as `website/og/og.html` with font URLs relative to `website/public/fonts/`, and add `website/og/render.sh` that renders it with headless Chrome (`--window-size=1200,630 --force-device-scale-factor=1 --screenshot`). Re-render only if the page tokens changed since. Then remove the old token aliases from `App.solid` and fix any remaining use.
 
 ## Acceptance
 

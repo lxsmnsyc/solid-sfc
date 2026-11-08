@@ -1,0 +1,38 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><style>
+@font-face{font-family:'Instrument Serif';src:url('file:///Users/alexis/Documents/GitHub/solid-sfc/.claude/worktrees/agent-a40d05373e4e9748e/website/public/fonts/instrument-serif-latin-400-normal.woff2')}
+@font-face{font-family:'Instrument Serif';font-style:italic;src:url('file:///Users/alexis/Documents/GitHub/solid-sfc/.claude/worktrees/agent-a40d05373e4e9748e/website/public/fonts/instrument-serif-latin-400-italic.woff2')}
+@font-face{font-family:'Geist';font-weight:500;src:url('file:///Users/alexis/Documents/GitHub/solid-sfc/.claude/worktrees/agent-a40d05373e4e9748e/website/public/fonts/geist-latin-500-normal.woff2')}
+@font-face{font-family:'Geist';font-weight:400;src:url('file:///Users/alexis/Documents/GitHub/solid-sfc/.claude/worktrees/agent-a40d05373e4e9748e/website/public/fonts/geist-latin-400-normal.woff2')}
+@font-face{font-family:'Geist Mono';src:url('file:///Users/alexis/Documents/GitHub/solid-sfc/.claude/worktrees/agent-a40d05373e4e9748e/website/public/fonts/geist-mono-latin-400-normal.woff2')}
+@font-face{font-family:'Geist Mono';font-weight:500;src:url('file:///Users/alexis/Documents/GitHub/solid-sfc/.claude/worktrees/agent-a40d05373e4e9748e/website/public/fonts/geist-mono-latin-500-normal.woff2')}
+*{box-sizing:border-box;margin:0}
+html,body{width:1200px;height:630px;overflow:hidden}
+body{background:#f6f4ef;color:#14130f;font-family:'Geist';position:relative}
+.frame{position:absolute;inset:0;padding:56px 72px;display:grid;grid-template-columns:1fr 400px;grid-template-rows:auto 1fr auto;column-gap:64px}
+.brand{grid-column:1/3;display:flex;align-items:center;gap:14px;font-weight:500;font-size:26px;letter-spacing:-0.01em;padding-bottom:28px;border-bottom:1px solid #d9d4c7}
+.mark{display:grid;gap:4px}.mark i{display:block;height:7px;border-radius:1px}
+.mark i:nth-child(1){width:28px;background:#2f3fd0}.mark i:nth-child(2){width:18px;background:#bd3f0b}.mark i:nth-child(3){width:23px;background:#0f766e}
+.brand .meta{margin-left:auto;font-family:'Geist Mono';font-size:15px;letter-spacing:0.08em;text-transform:uppercase;color:#6b675e;font-weight:400}
+h1{align-self:center;font-family:'Instrument Serif';font-weight:400;font-size:100px;line-height:0.98;letter-spacing:-0.015em}
+h1 em{font-style:italic;color:#2f3fd0}
+.file{align-self:center;border-left:1px solid #d9d4c7}
+.block{padding:16px 0 16px 22px;position:relative;border-bottom:1px solid #d9d4c7}
+.block:last-child{border-bottom:0}
+.block::before{content:'';position:absolute;left:-1px;top:16px;bottom:16px;width:3px}
+.label{font-family:'Geist Mono';font-weight:500;font-size:14px;letter-spacing:0.02em;margin-bottom:8px}
+code{font-family:'Geist Mono';font-size:17px;color:#14130f;white-space:pre}
+.s .label{color:#2f3fd0}.s::before{background:#2f3fd0}
+.y .label{color:#bd3f0b}.y::before{background:#bd3f0b}
+.m .label{color:#0f766e}.m::before{background:#0f766e}
+.foot{grid-column:1/3;display:flex;justify-content:space-between;padding-top:22px;border-top:1px solid #d9d4c7;font-family:'Geist Mono';font-size:15px;letter-spacing:0.08em;text-transform:uppercase;color:#6b675e}
+</style></head><body><div class="frame">
+<div class="brand"><span class="mark"><i></i><i></i><i></i></span>solid-sfc<span class="meta">Single-file components</span></div>
+<h1>One file.<br>Three parts.<br><em>Solid 2.0.</em></h1>
+<div class="file">
+<div class="block s"><div class="label">&lt;script&gt;</div><code>let count = $signal(0);</code></div>
+<div class="block y"><div class="label">&lt;style&gt;</div><code>button { color: tomato; }</code></div>
+<div class="block m"><div class="label">markup</div><code>&lt;button onClick=…&gt;{count}&lt;/button&gt;</code></div>
+</div>
+<div class="foot"><span>solid-sfc.vercel.app</span><span style="text-transform:none;letter-spacing:0.02em">npm i solid-sfc</span></div>
+</div></body></html>
