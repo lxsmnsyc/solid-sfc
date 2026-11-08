@@ -1,3 +1,4 @@
+import { TraceMap, originalPositionFor } from '@jridgewell/trace-mapping';
 import { parseSync } from 'oxc-parser';
 import { describe, expect, it } from 'vitest';
 import { compile } from '../src/index.ts';
@@ -8,6 +9,25 @@ function markup(template: string): string {
   const end = code.lastIndexOf('</>');
   // The markup is indented in the `return`.
   return code.slice(start, end).replace(/^ {6}/gm, '').trim();
+}
+
+/**
+ * The source offset that the source map gives for the `name` in `snippet`
+ * of the output.
+ */
+function traceName(source: string, snippet: string, name: string): number | undefined {
+  const { code, map } = compile(source, { filename: 'Test.solid' });
+  expect(code).toContain(snippet);
+  const before = code.slice(0, code.indexOf(snippet) + snippet.indexOf(name)).split('\n');
+  const position = originalPositionFor(new TraceMap(map as never), {
+    line: before.length,
+    column: before.at(-1)!.length,
+  });
+  if (position.line === null) {
+    return undefined;
+  }
+  const lines = source.split('\n').slice(0, position.line - 1);
+  return lines.reduce((total, line) => total + line.length + 1, 0) + position.column;
 }
 
 function expectValidTSX(code: string): void {
@@ -330,6 +350,24 @@ describe('component', () => {
     });
     expect(map.sources).toEqual(['Map.solid']);
     expect(map.mappings.length).toBeGreaterThan(0);
+  });
+
+  it('maps the body of an effect that moves to module level', () => {
+    const source =
+      '<script>\n  let a = $signal(1);\n  $effect(() => {\n    log(a);\n  });\n</script>';
+    expect(traceName(source, 'log(a)', 'log')).toBe(source.indexOf('log'));
+  });
+
+  // The parameters are copied from the header, so they map to it.
+  it.each([
+    ['#for (item of list) { <p>{item}</p> }', '{(item) =>', 'item'],
+    ['#for (item, index of list) { <p>{index}</p> }', 'const index', 'index'],
+    ['#for (item of list by item.id) { <p>{item}</p> }', 'const item', 'item'],
+    ['#repeat (step of 3) { <p>{step}</p> }', '{(step) =>', 'step'],
+    ['#try { <p /> } #catch (failure) { <p>{failure}</p> }', 'const failure', 'failure'],
+    ['#try { <p /> } #catch (error, retry) { <p onClick=retry /> }', ', retry)', 'retry'],
+  ])('maps the parameters of %s', (source, snippet, name) => {
+    expect(traceName(source, snippet, name)).toBe(source.indexOf(name));
   });
 });
 

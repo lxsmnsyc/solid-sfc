@@ -38,7 +38,6 @@ export interface PendingHoist {
   concise: boolean;
   /** Expression used as a statement: emit without `return`. */
   statement?: boolean;
-  text?: string;
 }
 
 /**

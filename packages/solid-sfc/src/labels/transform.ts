@@ -216,28 +216,28 @@ export default function transformProgram(ctx: Ctx): void {
 }
 
 /**
- * Moves hoistable effect callbacks to module level. Bodies are extracted
- * innermost-first so nested effect callbacks land as sibling functions.
+ * Moves hoistable effect callbacks to module level. Nested effect callbacks
+ * land as sibling functions.
  */
 function extractHoistedCallbacks(ctx: Ctx): void {
   if (ctx.pendingHoists.length === 0) {
     return;
   }
-  const byDepth = [...ctx.pendingHoists].sort((a, b) => b.body.start - a.body.start);
-  for (const pending of byDepth) {
-    // `slice` and `overwrite` keep the magic-string 1.2 semantics: the
-    // inserts at both ends of the body move with it.
-    pending.text = ctx.s.slice(pending.body.start, pending.body.end);
-    ctx.s.overwrite(pending.body.start, pending.body.end, '');
-  }
-  let trailer = '';
+  // `move` keeps the mappings of the body, so the source map points into the
+  // callback. Like `slice` and `overwrite`, it takes the inserts at both ends
+  // of the body along. Each body moves to the end in order. A nested body
+  // moves with its parent first, then out of it.
+  const end = ctx.code.length;
   for (const pending of ctx.pendingHoists) {
-    const header = `function ${pending.name}([${pending.params.join(', ')}]) `;
-    let body = pending.text;
+    const { start, end: bodyEnd } = pending.body;
+    let header = `\nfunction ${pending.name}([${pending.params.join(', ')}]) `;
+    let footer = '\n';
     if (pending.concise) {
-      body = pending.statement ? `{\n  ${pending.text};\n}` : `{\n  return ${pending.text};\n}`;
+      header += pending.statement ? '{\n  ' : '{\n  return ';
+      footer = ';\n}\n';
     }
-    trailer += `\n${header}${body}\n`;
+    ctx.s.prependRight(start, header);
+    ctx.s.appendLeft(bodyEnd, footer);
+    ctx.s.move(start, bodyEnd, end);
   }
-  ctx.s.append(trailer);
 }
