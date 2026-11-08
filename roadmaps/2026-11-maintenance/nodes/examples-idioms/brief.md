@@ -1,7 +1,7 @@
 ---
 id: examples-idioms
 title: Rewrite example code in idiomatic .solid syntax
-status: active
+status: done
 priority: should
 type: docs
 milestone: website

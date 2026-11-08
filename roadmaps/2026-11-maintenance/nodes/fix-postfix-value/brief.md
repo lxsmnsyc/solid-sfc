@@ -1,7 +1,7 @@
 ---
 id: fix-postfix-value
 title: Postfix update on a $signal returns the old value
-status: active
+status: done
 priority: must
 type: fix
 milestone: 1.0.x

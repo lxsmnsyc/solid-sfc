@@ -1,7 +1,7 @@
 ---
 id: deps-solid-rc
 title: Bump Solid 2.0 to the latest release candidate
-status: active
+status: done
 priority: must
 type: chore
 milestone: 1.0.x

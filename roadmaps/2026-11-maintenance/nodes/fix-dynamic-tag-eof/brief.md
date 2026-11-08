@@ -1,7 +1,7 @@
 ---
 id: fix-dynamic-tag-eof
 title: Dynamic tag closing at end of file compiles to broken TSX
-status: active
+status: done
 priority: must
 type: fix
 milestone: 1.0.x
