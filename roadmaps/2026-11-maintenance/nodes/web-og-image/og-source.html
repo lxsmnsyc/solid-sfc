@@ -1,0 +1,59 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+@font-face{font-family:'Geist';font-weight:400;src:url('file:///Users/alexis/Documents/GitHub/solid-sfc/.claude/worktrees/agent-a40d05373e4e9748e/website/public/fonts/geist-latin-400-normal.woff2')}
+@font-face{font-family:'Geist';font-weight:500;src:url('file:///Users/alexis/Documents/GitHub/solid-sfc/.claude/worktrees/agent-a40d05373e4e9748e/website/public/fonts/geist-latin-500-normal.woff2')}
+@font-face{font-family:'Geist';font-weight:800;src:url('file:///Users/alexis/Documents/GitHub/solid-sfc/.claude/worktrees/agent-a40d05373e4e9748e/website/public/fonts/geist-latin-800-normal.woff2')}
+@font-face{font-family:'Geist Mono';font-weight:400;src:url('file:///Users/alexis/Documents/GitHub/solid-sfc/.claude/worktrees/agent-a40d05373e4e9748e/website/public/fonts/geist-mono-latin-400-normal.woff2')}
+@font-face{font-family:'Geist Mono';font-weight:500;src:url('file:///Users/alexis/Documents/GitHub/solid-sfc/.claude/worktrees/agent-a40d05373e4e9748e/website/public/fonts/geist-mono-latin-500-normal.woff2')}
+:root{--bg:#070a12;--text:#e8edf6;--muted:#8a95a8;--script:#7ea6ff;--style:#ff8f6b;--markup:#4fe0b8;--border:rgb(255 255 255/.08)}
+*{box-sizing:border-box;margin:0}
+html,body{width:1200px;height:630px;overflow:hidden;background:var(--bg);color:var(--text);font-family:'Geist'}
+.atmo{position:absolute;inset:0;
+ background:
+  radial-gradient(600px 380px at 30% 30%, rgb(68 107 158/.55), transparent 70%),
+  radial-gradient(420px 300px at 85% 85%, rgb(79 224 184/.10), transparent 70%),
+  radial-gradient(380px 260px at 8% 95%, rgb(255 143 107/.10), transparent 70%)}
+.grid{position:absolute;inset:0;background-image:linear-gradient(rgb(255 255 255/.045) 1px,transparent 1px),linear-gradient(90deg,rgb(255 255 255/.045) 1px,transparent 1px);background-size:40px 40px;
+ -webkit-mask-image:radial-gradient(ellipse 75% 70% at 40% 40%,#000 30%,transparent 80%)}
+.wrap{position:absolute;inset:0;padding:60px 68px;display:flex;flex-direction:column}
+.brand{display:flex;align-items:center;gap:14px;font-weight:500;font-size:28px;letter-spacing:-.02em}
+.mark{display:grid;gap:4px}.mark i{display:block;height:6px;border-radius:3px}
+.mark i:nth-child(1){width:26px;background:var(--script)}.mark i:nth-child(2){width:17px;background:var(--style)}.mark i:nth-child(3){width:22px;background:var(--markup)}
+.pill{margin-left:auto;font-family:'Geist Mono';font-size:17px;color:var(--muted);padding:8px 16px;border:1px solid var(--border);border-radius:999px;background:rgb(255 255 255/.03);display:flex;gap:10px;align-items:center}
+.pill b{width:9px;height:9px;border-radius:50%;background:var(--markup);box-shadow:0 0 12px var(--markup)}
+.pill span{color:var(--text)}
+h1{margin-top:58px;font-weight:800;font-size:112px;line-height:.95;letter-spacing:-.05em}
+.g{display:inline-block;padding-bottom:.08em;color:transparent;background:linear-gradient(100deg in oklch,var(--markup) 5%,var(--script) 50%,var(--style) 95%);-webkit-background-clip:text;background-clip:text;filter:drop-shadow(0 10px 40px rgb(126 166 255/.35))}
+p{margin-top:26px;font-size:27px;color:var(--muted);letter-spacing:-.01em}
+p code{font-family:'Geist Mono';color:var(--text);font-size:25px}
+.win{position:absolute;right:-40px;top:150px;width:470px;border:1px solid rgb(255 255 255/.12);border-radius:16px;background:rgb(12 17 28/.78);
+ box-shadow:0 40px 80px rgb(0 0 0/.55),inset 0 1px 0 rgb(255 255 255/.06);transform:perspective(1400px) rotateY(-16deg) rotateX(6deg);transform-origin:left center;overflow:hidden}
+.bar{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--border);font-family:'Geist Mono';font-size:15px;color:var(--text)}
+.band{position:relative;padding:14px 22px 14px 26px;font-family:'Geist Mono';font-size:16px;line-height:1.6;color:#c9d2e2;white-space:pre}
+.band::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px}
+.s{background:rgb(126 166 255/.07)}.s::before{background:var(--script)}
+.y{background:rgb(255 143 107/.07)}.y::before{background:var(--style)}
+.m{background:rgb(79 224 184/.07)}.m::before{background:var(--markup)}
+.k{color:var(--script)}.t{color:var(--markup)}.o{color:var(--style)}.d{color:var(--muted)}
+.foot{margin-top:auto;display:flex;gap:28px;font-family:'Geist Mono';font-size:18px;color:var(--muted)}
+.foot span:first-child{color:var(--text)}
+</style></head><body><div class="atmo"></div><div class="grid"></div>
+<div class="win">
+<div class="bar"><span class="mark" style="transform:scale(.7)"><i></i><i></i><i></i></span>Counter.solid</div>
+<div class="band s"><span class="d">&lt;script&gt;</span>
+  <span class="k">let</span> count = <span class="k">$signal</span>(0);
+  <span class="k">const</span> hot = <span class="k">$memo</span>(count &gt; 4);
+<span class="d">&lt;/script&gt;</span></div>
+<div class="band y"><span class="d">&lt;style&gt;</span>
+  <span class="o">.hot</span> { background: crimson; }
+<span class="d">&lt;/style&gt;</span></div>
+<div class="band m"><span class="d">&lt;</span><span class="t">button</span> <span class="o">class</span>={ hot } <span class="o">onClick</span>=(() =&gt; count++)<span class="d">&gt;</span>
+  Count is {count}
+<span class="d">&lt;/</span><span class="t">button</span><span class="d">&gt;</span></div>
+</div>
+<div class="wrap">
+<div class="brand"><span class="mark"><i></i><i></i><i></i></span>solid-sfc<span class="pill"><b></b><span>1.0</span> · SolidJS 2.0</span></div>
+<h1>One file.<br><span class="g">Three blocks.</span></h1>
+<p>Single-file components for Solid, compiled.</p>
+<div class="foot"><span>npm i solid-sfc</span><span>solid-sfc.vercel.app</span></div>
+</div>
+</body></html>

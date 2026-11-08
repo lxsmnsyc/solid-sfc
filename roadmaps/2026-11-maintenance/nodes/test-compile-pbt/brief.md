@@ -1,7 +1,7 @@
 ---
 id: test-compile-pbt
 title: Property tests for the compiler and the block scanner
-status: todo
+status: active
 priority: should
 type: feature
 milestone: quality

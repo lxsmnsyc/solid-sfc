@@ -1,7 +1,7 @@
 ---
 id: og-tags
 title: Add Open Graph and Twitter card tags to the website
-status: active
+status: done
 priority: should
 type: feature
 milestone: website

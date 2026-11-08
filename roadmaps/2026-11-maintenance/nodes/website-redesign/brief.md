@@ -15,17 +15,20 @@ depends_on: []
 
 ## Goal
 
-A new visual design for `website/` following the frozen contract `contracts/web-design.md` ("Source and output"). The user asked for an award-level design and left the direction to us (2026-11-08).
+A new design for `website/` following the frozen contract `contracts/web-design.md` v3 ("Unfold"). The first attempt (v1/v2, editorial and static) was rejected by the user as too basic compared to their other sites (solid-optimizer, atemno, compostate). Reference screenshots of those sites: `reviews/ref/`.
 
 ## Children
 
-- web-design-system: tokens, fonts, shell (header, footer), shared classes, highlight theme, favicon.
-- web-home, web-docs, web-playground: one page each, in parallel after the design system.
-- web-og-image: the Open Graph image in the new style, and removal of the old token aliases.
+- web-design-system (rework, PR #11): v3 tokens, atmosphere, shell, shared UI components. Gate: user reviews the shell and a hero prototype before the rest starts.
+- web-hero: live hero editor with lazy compiler and preview.
+- web-unfold: the scroll-driven unfolding file scene with build-time outputs.
+- web-home: home composition, live feature demos, build-time numbers band.
+- web-docs: docs layout and cmd-K search. web-playground: playground restyle and share links.
+- web-og-image: Open Graph image in v3, alias cleanup.
 
 ## Acceptance
 
-- [ ] Every page uses only contract tokens; no hard-coded colors outside `App.solid` tokens and the highlight theme.
-- [ ] Light and dark pass WCAG AA for text; keyboard focus visible everywhere; `prefers-reduced-motion` honored.
-- [ ] Lighthouse accessibility 100 and performance 95+ on the built home page.
-- [ ] `pnpm --filter website build` and `pnpm --filter website typecheck` pass.
+- [ ] The user approves the result against their other sites.
+- [ ] Light and dark pass WCAG AA; focus visible; reduced motion honored.
+- [ ] Lighthouse accessibility 100 and performance 95+ on home.
+- [ ] `pnpm --filter website build` and `typecheck` pass.
