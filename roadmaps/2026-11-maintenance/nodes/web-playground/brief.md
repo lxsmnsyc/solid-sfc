@@ -12,6 +12,9 @@ owns:
   - website/src/preview/**
   - website/src/examples.ts
 depends_on:
+  - on: web-prerender
+    kind: hard
+    why: pages are built SSR-safe on top of the start-mode shell and routes
   - on: web-design-system
     kind: hard
     why: builds on the v3 shell and shared UI after the user approves them (gate)
@@ -24,6 +27,8 @@ depends_on:
 Restyle `website/src/pages/Playground.solid` and the preview frame per contract v3 as a full-height tool: glass toolbar (example picker, output tabs, share button), editor and output panes with a draggable divider, errors in a mono strip. Add share links: the source is compressed into the URL hash and restored on load.
 
 ## Acceptance
+
+- [ ] The page server-renders and prerenders (start mode, see web-prerender's outcome): no browser globals at module top level, no hydration mismatch.
 
 - [ ] Every `.solid` sample on the page follows `contracts/solid-idioms.md` (shorthands, bare values, no needless parentheses, control flow blocks).
 

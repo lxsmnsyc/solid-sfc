@@ -13,6 +13,9 @@ owns:
   - website/src/docs/**
   - website/plugins/markdown.ts
 depends_on:
+  - on: web-prerender
+    kind: hard
+    why: pages are built SSR-safe on top of the start-mode shell and routes
   - on: web-design-system
     kind: hard
     why: builds on the v3 shell and shared UI after the user approves them (gate)
@@ -25,6 +28,8 @@ depends_on:
 Rebuild `website/src/pages/Docs.solid` per contract v3: left index, prose column, sticky on-this-page list, alerts as glass callouts in their hue, `CodeBlock` with copy, prev and next pager, and a `cmd-K` search dialog over all docs headings and text (index built at build time in `website/plugins/markdown.ts`, no third-party service).
 
 ## Acceptance
+
+- [ ] The page server-renders and prerenders (start mode, see web-prerender's outcome): no browser globals at module top level, no hydration mismatch.
 
 - [ ] Every `.solid` sample on the page follows `contracts/solid-idioms.md` (shorthands, bare values, no needless parentheses, control flow blocks).
 

@@ -1,7 +1,7 @@
 ---
 id: test-css-pbt
 title: Property tests for CSS scoping and minification
-status: todo
+status: active
 priority: should
 type: feature
 milestone: quality

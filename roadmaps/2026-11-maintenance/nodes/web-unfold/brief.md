@@ -13,6 +13,9 @@ owns:
   - website/plugins/unfold.ts
   - website/vite.config.ts
 depends_on:
+  - on: web-prerender
+    kind: hard
+    why: pages are built SSR-safe on top of the start-mode shell and routes
   - on: web-design-system
     kind: hard
     why: builds on the v3 shell and shared UI after the user approves them (gate)
@@ -25,6 +28,8 @@ depends_on:
 Contract v3 item 4, the signature of the site. A `.solid` file card in 3D perspective; on scroll its script, style and markup blocks lift apart into three layers, and connectors draw from each layer to what it becomes: the component function, the scoped CSS with its hashed attribute, and the DOM it renders. Outputs come from the real compiler at build time through a Vite plugin (`website/plugins/unfold.ts`, virtual module), so they never drift from the compiler.
 
 ## Acceptance
+
+- [ ] The page server-renders and prerenders (start mode, see web-prerender's outcome): no browser globals at module top level, no hydration mismatch.
 
 - [ ] Every `.solid` sample on the page follows `contracts/solid-idioms.md` (shorthands, bare values, no needless parentheses, control flow blocks).
 

@@ -11,6 +11,9 @@ owns:
   - website/src/home/Hero.solid
   - website/src/home/hero/**
 depends_on:
+  - on: web-prerender
+    kind: hard
+    why: pages are built SSR-safe on top of the start-mode shell and routes
   - on: web-design-system
     kind: hard
     why: builds on the v3 shell and shared UI after the user approves them (gate)
@@ -28,6 +31,8 @@ Contract v3 item 5. Replace the hero stub with the real hero: headline with grad
 - Read web-design-system's outcome for the shared UI.
 
 ## Acceptance
+
+- [ ] The page server-renders and prerenders (start mode, see web-prerender's outcome): no browser globals at module top level, no hydration mismatch.
 
 - [ ] Every `.solid` sample on the page follows `contracts/solid-idioms.md` (shorthands, bare values, no needless parentheses, control flow blocks).
 
