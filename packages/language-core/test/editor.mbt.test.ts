@@ -6,7 +6,7 @@
 import type { CodeMapping, VirtualCode } from '@volar/language-core';
 import * as fc from 'fast-check';
 import { parseSync } from 'oxc-parser';
-import { compile } from 'solid-sfc';
+import { SFCError, compile } from 'solid-sfc';
 import { describe, expect, it } from 'vitest';
 import {
   compileForEditor,
@@ -80,8 +80,32 @@ const SNIPPETS = [
   '\t',
 ];
 
+/** Whole lines of markup that a user can finish typing. */
+const LINES = [
+  '<b>x</b>\n',
+  '<hr />\n',
+  '{count}\n',
+  '<!-- note -->\n',
+  '<p class="a">hi</p>\n',
+  '#if (a) {\n  <i />\n}\n',
+  '#for (item of items) {\n  <li>{item}</li>\n}\n',
+  '<div>\n  <span />\n</div>\n',
+];
+
+/** Style blocks with a selector that postcss-selector-parser rejects. */
+const BAD_SELECTORS = [
+  '<style>] {}</style>\n',
+  '<style>a) {}</style>\n',
+  '<style>.a:: {}</style>\n',
+  '<style>.a].b {}</style>\n',
+];
+
 interface Model {
   text: string;
+  /** The texts before each applied edit, for undo. */
+  history: string[];
+  /** The file the sequence started from. */
+  base: string;
 }
 
 interface Real {
@@ -141,6 +165,15 @@ function checkMapping(
       data.verification === true &&
       data.completion === true &&
       data.structure === true;
+    // The compiler writes some props itself, such as `each` for the list of
+    // `#for`. The mapping points at that prop name, which is a word that the
+    // generated code spells as `name=`.
+    if (copies && mapping.generatedLengths !== undefined) {
+      const word = generated.slice(generatedStart, generatedStart + generatedLength);
+      expect(word, `${label}: generated word`).toMatch(/^[A-Za-z][\w-]*$/);
+      expect(generated[generatedStart + generatedLength], `${label}: after word`).toBe('=');
+      expect(generated[generatedStart - 1] ?? ' ', `${label}: before word`).toMatch(/\s/);
+    }
     if (isCopy) {
       expect(generated.slice(generatedStart, generatedStart + length), `${label}: text`).toBe(
         source.slice(sourceStart, sourceStart + length),
@@ -182,6 +215,9 @@ function describeCode(root: VirtualCode): unknown {
   }));
 }
 
+/** Counters of one run, to see that the checks and the skip path are reached. */
+const stats = { states: 0, valid: 0, edits: 0, skipped: 0 };
+
 function isValid(text: string): boolean {
   try {
     compile(text, { filename: FILE_NAME });
@@ -207,7 +243,9 @@ function checkText(real: Real, text: string): void {
 
   // `compileStructure` leaves the markup expressions to TypeScript, so only a
   // text that `compile` accepts is valid.
+  stats.states++;
   if (isValid(text)) {
+    stats.valid++;
     // A valid text has no error and a result, and its TSX has no syntax error.
     expect(compiled.error?.message).toBeUndefined();
     expect(compiled.result).toBeDefined();
@@ -227,18 +265,26 @@ function hitsRawSelectorError(text: string): boolean {
     compileForEditor(text, FILE_NAME);
     return false;
   } catch (error) {
-    if (error instanceof Error && 'postcssNode' in error) {
+    if (
+      error instanceof Error &&
+      !(error instanceof SFCError) &&
+      error.stack?.includes('postcss-selector-parser')
+    ) {
       return true;
     }
     throw error;
   }
 }
 
-function applyEdit(model: Model, real: Real, start: number, end: number, insert: string): void {
+/** Returns false when the edit was skipped. */
+function applyEdit(model: Model, real: Real, start: number, end: number, insert: string): boolean {
   const next = model.text.slice(0, start) + insert + model.text.slice(end);
+  stats.edits++;
   if (hitsRawSelectorError(next)) {
-    return;
+    stats.skipped++;
+    return false;
   }
+  model.history.push(model.text);
   model.text = next;
   real.code = real.plugin.updateVirtualCode!(
     FILE_NAME,
@@ -247,6 +293,7 @@ function applyEdit(model: Model, real: Real, start: number, end: number, insert:
     undefined as never,
   ) as VirtualCode;
   checkText(real, model.text);
+  return true;
 }
 
 /** Completions at `cursor` start at or before it. */
@@ -278,8 +325,9 @@ class Insert implements Command {
   }
   run(model: Model, real: Real): void {
     const at = clamp(this.where, model.text.length);
-    applyEdit(model, real, at, at, this.piece);
-    checkCompletions(model.text, at + this.piece.length);
+    if (applyEdit(model, real, at, at, this.piece)) {
+      checkCompletions(model.text, at + this.piece.length);
+    }
   }
   toString(): string {
     return `Insert(${this.where.toFixed(3)}, ${JSON.stringify(this.piece)})`;
@@ -315,7 +363,10 @@ class Type implements Command {
   run(model: Model, real: Real): void {
     let at = clamp(this.where, model.text.length);
     for (const char of this.word) {
-      applyEdit(model, real, at, at, char);
+      if (!applyEdit(model, real, at, at, char)) {
+        // The edit was skipped, so the cursor stays.
+        continue;
+      }
       at += char.length;
       // The editor asks for completions after each typed character.
       checkCompletions(model.text, at);
@@ -323,6 +374,69 @@ class Type implements Command {
   }
   toString(): string {
     return `Type(${this.where.toFixed(3)}, ${JSON.stringify(this.word)})`;
+  }
+}
+
+/** Types a whole line at the start of a line, so the text is often valid again. */
+class TypeLine implements Command {
+  constructor(
+    readonly where: number,
+    readonly line: string,
+  ) {}
+  check(): boolean {
+    return true;
+  }
+  run(model: Model, real: Real): void {
+    const cursor = clamp(this.where, model.text.length);
+    let at = model.text.lastIndexOf('\n', cursor - 1) + 1;
+    // A word at a time, so that the line is whole after a few steps.
+    for (const chunk of this.line.split(/(?<=[ \n])/)) {
+      if (applyEdit(model, real, at, at, chunk)) {
+        at += chunk.length;
+        checkCompletions(model.text, at);
+      }
+    }
+  }
+  toString(): string {
+    return `TypeLine(${this.where.toFixed(3)}, ${JSON.stringify(this.line)})`;
+  }
+}
+
+/** Goes back a number of edits, like undo in the editor. */
+class Undo implements Command {
+  constructor(readonly steps: number) {}
+  check(): boolean {
+    return true;
+  }
+  run(model: Model, real: Real): void {
+    // The last step goes back to the start of the sequence.
+    const target =
+      this.steps >= 6 ? model.base : model.history[Math.max(0, model.history.length - this.steps)];
+    if (target !== undefined) {
+      applyEdit(model, real, 0, model.text.length, target);
+    }
+  }
+  toString(): string {
+    return `Undo(${this.steps})`;
+  }
+}
+
+/** Adds a style block whose selector is half typed, on a line of its own. */
+class BadSelector implements Command {
+  constructor(
+    readonly where: number,
+    readonly block: string,
+  ) {}
+  check(): boolean {
+    return true;
+  }
+  run(model: Model, real: Real): void {
+    const cursor = clamp(this.where, model.text.length);
+    const at = model.text.lastIndexOf('\n', cursor - 1) + 1;
+    applyEdit(model, real, at, at, this.block);
+  }
+  toString(): string {
+    return `BadSelector(${this.where.toFixed(3)}, ${JSON.stringify(this.block)})`;
   }
 }
 
@@ -371,6 +485,14 @@ const commands = fc.commands(
       .tuple(fraction, fc.constantFrom('#if', '<div>', '<solid:', '#for (', '{a}', '<p></p>'))
       .map(([where, word]) => new Type(where, word)),
     fc.tuple(fraction, fc.integer({ min: 0, max: 40 })).map(([where, n]) => new Ask(where, n)),
+    fc.tuple(fraction, fc.constantFrom(...LINES)).map(([where, line]) => new TypeLine(where, line)),
+    fc.integer({ min: 1, max: 6 }).map((steps) => new Undo(steps)),
+    fc.constant(new Undo(6)),
+    fc.constant(new Undo(6)),
+    fc.tuple(fraction, fc.constantFrom(...LINES)).map(([where, line]) => new TypeLine(where, line)),
+    fc
+      .tuple(fraction, fc.constantFrom(...BAD_SELECTORS))
+      .map(([where, block]) => new BadSelector(where, block)),
   ],
   { size: 'small', maxCommands: 25 },
 );
@@ -382,7 +504,7 @@ function runSequence(base: string, list: Iterable<Command>): void {
     plugin,
     code: createSolidVirtualCode(FILE_NAME, snapshotOf(base)),
   };
-  const model: Model = { text: base };
+  const model: Model = { text: base, history: [], base };
   checkText(real, base);
   fc.modelRun(() => ({ model, real }), list);
 }
@@ -392,6 +514,7 @@ function property(): fc.IPropertyWithHooks<[string, Iterable<Command>]> {
 }
 
 function assertProperty(): void {
+  Object.assign(stats, { states: 0, valid: 0, edits: 0, skipped: 0 });
   try {
     fc.assert(property(), { seed: SEED, numRuns: RUNS, endOnFailure: false });
   } catch (error) {
@@ -403,6 +526,21 @@ function assertProperty(): void {
 describe('editor model', () => {
   it('keeps the virtual code consistent through random edits', () => {
     expect(() => assertProperty()).not.toThrow();
+    if (process.env.FC_STATS) {
+      process.stderr.write(`${JSON.stringify(stats)}\n`);
+    }
+    // The checks must run on valid texts, and the skip path must be reached
+    // while the selector finding is open.
+    const few = RUNS < 100;
+    const share = stats.valid / stats.states;
+    expect(few || share > 0.3, `share of valid states ${share}`).toBe(true);
+    let open = false;
+    try {
+      compileForEditor('<style>] {}</style><p />', FILE_NAME);
+    } catch {
+      open = true;
+    }
+    expect(few || !open || stats.skipped > 0, 'skip path reached').toBe(true);
   });
 });
 
