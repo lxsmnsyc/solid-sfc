@@ -508,6 +508,21 @@ export class TemplateParser {
   }
 
   /**
+   * Writes text after the character before `index`. Text appended at the end
+   * of the source stays when the range is cut out by `snip`, so it would
+   * show up in the first range that is assembled. The last character carries
+   * the text instead.
+   */
+  private appendAfter(index: number, text: string): void {
+    const { source, output } = this;
+    if (index < source.length) {
+      output.appendLeft(index, text);
+      return;
+    }
+    output.update(index - 1, index, source[index - 1]! + text);
+  }
+
+  /**
    * `<{tag} a=b>children</>` becomes
    * `(() => { const __Tag = __dynamic(() => tag); return <__Tag a={b}>children</__Tag>; })()`,
    * so each element gets its own component. The tag can be any expression.
@@ -560,14 +575,14 @@ export class TemplateParser {
     }
     const after = `; })()${end}`;
     if (selfClosing) {
-      output.appendLeft(tagEnd, after);
+      this.appendAfter(tagEnd, after);
       return tagEnd;
     }
     const opener = { start: offset, end: tagEnd };
     const closing = this.parseChildren(tagEnd, 'element', undefined, opener);
     output.appendLeft(closing + 2, DYNAMIC_TAG);
     const elementEnd = this.parseClosingTag(closing, '', opener);
-    output.appendLeft(elementEnd, after);
+    this.appendAfter(elementEnd, after);
     return elementEnd;
   }
 
