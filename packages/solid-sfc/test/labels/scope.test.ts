@@ -64,3 +64,29 @@ describe('scope: names and defaults (solid-labels #47, #49)', () => {
     expect(transform(code)).toBe(code);
   });
 });
+
+describe('scope: decorators and TypeScript positions (solid-labels #48)', () => {
+  it('records a reference in a class decorator', () => {
+    expect(collect('const d = 1; @d class C {}')).toEqual([
+      { name: 'd', mode: 'read', bound: true },
+    ]);
+  });
+  it('records a write in a namespace body', () => {
+    expect(collect('let a = 1; namespace N { a = 2 }')).toEqual([
+      { name: 'a', mode: 'write', bound: true },
+    ]);
+  });
+  it('records a reference in an enum initializer', () => {
+    expect(collect('enum E { A = 2, B = A }')).toEqual([{ name: 'A', mode: 'read', bound: true }]);
+  });
+  it('declares a parameter property', () => {
+    expect(collect('class C { constructor(private p) { p } }')).toEqual([
+      { name: 'p', mode: 'read', bound: true },
+    ]);
+  });
+  it('declares an import equals binding', () => {
+    expect(collect('import fs = require("fs"); fs.x')).toEqual([
+      { name: 'fs', mode: 'read', bound: true },
+    ]);
+  });
+});
