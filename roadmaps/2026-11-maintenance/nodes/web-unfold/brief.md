@@ -26,6 +26,8 @@ Contract v3 item 4, the signature of the site. A `.solid` file card in 3D perspe
 
 ## Acceptance
 
+- [ ] Every `.solid` sample on the page follows `contracts/solid-idioms.md` (shorthands, bare values, no needless parentheses, control flow blocks).
+
 - [ ] CSS scroll-driven animation where supported, IntersectionObserver fallback elsewhere; 60 fps on a mid laptop (no layout thrash: transforms and opacity only).
 - [ ] Reduced motion: static final state. Screen readers get the three outputs as labeled code.
 - [ ] Mobile: layers stack vertically, still animated.

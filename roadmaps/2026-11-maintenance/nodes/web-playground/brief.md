@@ -25,6 +25,8 @@ Restyle `website/src/pages/Playground.solid` and the preview frame per contract 
 
 ## Acceptance
 
+- [ ] Every `.solid` sample on the page follows `contracts/solid-idioms.md` (shorthands, bare values, no needless parentheses, control flow blocks).
+
 - [ ] Every example compiles and previews as before; a shared link restores the source.
 - [ ] Panes stack on narrow screens with a tab switcher.
 - [ ] Build and typecheck pass.

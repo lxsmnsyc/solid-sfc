@@ -29,6 +29,8 @@ Contract v3 item 5. Replace the hero stub with the real hero: headline with grad
 
 ## Acceptance
 
+- [ ] Every `.solid` sample on the page follows `contracts/solid-idioms.md` (shorthands, bare values, no needless parentheses, control flow blocks).
+
 - [ ] Home initial chunk has no compiler or wasm (check build output); hero works with keyboard; edits update the preview within 300 ms after load.
 - [ ] Compile errors show inline, mono, with the location, without breaking the preview.
 - [ ] Build and typecheck pass.

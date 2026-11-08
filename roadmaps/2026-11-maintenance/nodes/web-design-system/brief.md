@@ -35,6 +35,8 @@ Rework PR #11 to contract v3 ("Unfold"): v3 tokens for dark and light, the atmos
 
 ## Acceptance
 
+- [ ] Every `.solid` sample on the page follows `contracts/solid-idioms.md` (shorthands, bare values, no needless parentheses, control flow blocks).
+
 - [ ] Screenshots, light and dark, 1440 and 390 wide, of home with the hero prototype in place, docs and playground, saved to the scratchpad and listed in the outcome.
 - [ ] AA contrast for every text pair; focus ring visible; reduced motion honored.
 - [ ] `pnpm --filter website build`, `typecheck`, `oxfmt --check` pass.

@@ -40,6 +40,8 @@ PR #8 shipped an image in the rejected v1 design. Redraw `website/public/og.png`
 
 ## Acceptance
 
+- [ ] Every `.solid` sample on the page follows `contracts/solid-idioms.md` (shorthands, bare values, no needless parentheses, control flow blocks).
+
 - [ ] `og.png` 1200x630, under 200 KB.
 - [ ] `grep -rn -- '--background\|--code-background\|--text)' website/src` finds nothing.
 - [ ] Build and typecheck pass.

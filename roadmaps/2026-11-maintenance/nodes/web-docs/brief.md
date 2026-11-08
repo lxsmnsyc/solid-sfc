@@ -26,6 +26,8 @@ Rebuild `website/src/pages/Docs.solid` per contract v3: left index, prose column
 
 ## Acceptance
 
+- [ ] Every `.solid` sample on the page follows `contracts/solid-idioms.md` (shorthands, bare values, no needless parentheses, control flow blocks).
+
 - [ ] Search opens with cmd-K and ctrl-K, is keyboard only usable, focus trapped and restored.
 - [ ] Mobile index as a disclosure; no horizontal scroll at 320px outside code.
 - [ ] Build and typecheck pass.

@@ -26,6 +26,8 @@ Contract v3 items 6 and 7. Compose `website/src/pages/Home.solid`: hero and unfo
 
 ## Acceptance
 
+- [ ] Every `.solid` sample on the page follows `contracts/solid-idioms.md` (shorthands, bare values, no needless parentheses, control flow blocks).
+
 - [ ] Every demo works with keyboard and has a static fallback.
 - [ ] No compiler or wasm in the home chunk.
 - [ ] Build and typecheck pass.
