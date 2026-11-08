@@ -19,10 +19,12 @@
   let theme = $signal(document.documentElement.dataset.theme === 'light' ? 'light' : 'dark');
 
   function toggleTheme(): void {
-    theme = theme === 'dark' ? 'light' : 'dark';
-    document.documentElement.dataset.theme = theme;
+    // Writes to `theme` are batched, so reading it back here gives the old value.
+    const next = theme === 'dark' ? 'light' : 'dark';
+    theme = next;
+    document.documentElement.dataset.theme = next;
     try {
-      localStorage.setItem('theme', theme);
+      localStorage.setItem('theme', next);
     } catch {
       // Storage can be off; the choice then lasts for this page only.
     }
@@ -31,7 +33,7 @@
 
 <style global>
   /*
-   * Tokens of contracts/web-design.md v3. Each color holds its light and dark
+   * Tokens of contracts/web-design.md v4. Each color holds its light and dark
    * value; `color-scheme` on the root picks one. Dark is the default.
    */
   :root {
@@ -50,7 +52,8 @@
     --accent-ink: light-dark(#ffffff, #050810);
     --glow: light-dark(rgb(47 95 208 / 0.18), rgb(68 107 158 / 0.45));
     --script: light-dark(#2f5fd0, #7ea6ff);
-    --style: light-dark(#c2410c, #ff8f6b);
+    /* #bd3f0b, not #c2410c: it stays at 4.5:1 or more on glass panels. */
+    --style: light-dark(#bd3f0b, #ff8f6b);
     --markup: light-dark(#0f766e, #4fe0b8);
     --note: light-dark(#2f5fd0, #7ea6ff);
     --tip: light-dark(#0f766e, #4fe0b8);

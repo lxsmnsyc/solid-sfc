@@ -240,12 +240,10 @@
 
   @keyframes settle {
     from {
-      opacity: 0.85;
       transform: rotateX(16deg) scale(0.94);
     }
 
     to {
-      opacity: 1;
       transform: none;
     }
   }
@@ -357,6 +355,9 @@
 
   .dom code {
     display: block;
+    padding: 0;
+    border: 0;
+    background: none;
     padding: 0;
     border: 0;
     background: none;
@@ -505,7 +506,7 @@
           </div>
           <div class="dom">
             <span class="label">DOM</span>
-            <code>
+            <code aria-hidden="true">
               #for (token of dom) {
                 <span class=token.kind>{token.text}</span>
               }

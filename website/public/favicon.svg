@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
   <style>
     .script { fill: #2f5fd0; }
-    .style { fill: #c2410c; }
+    .style { fill: #bd3f0b; }
     .markup { fill: #0f766e; }
     @media (prefers-color-scheme: dark) {
       .script { fill: #7ea6ff; }
