@@ -1,0 +1,9 @@
+<script>
+  import ThemeLabel from './ThemeLabel.solid';
+  import ThemeProvider from './ThemeProvider.solid';
+</script>
+
+<ThemeLabel />
+<ThemeProvider theme="dark">
+  <ThemeLabel />
+</ThemeProvider>

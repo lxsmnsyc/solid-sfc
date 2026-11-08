@@ -133,6 +133,41 @@ The script cannot export values, because it runs once for each instance. Put sha
 
 The script also cannot have `export default` or `export *`.
 
+### Context
+
+Create a context in `<script module>`, so it is created once and other files can import it. In Solid 2.0 the context is also its provider component:
+
+```html
+<!-- ThemeProvider.solid -->
+<script module>
+  import { createContext } from 'solid-js';
+
+  export const ThemeContext = createContext<'light' | 'dark'>('light');
+</script>
+
+<script>
+  import type { Element } from 'solid-js';
+
+  const props = $props<{ theme: 'light' | 'dark'; children: Element }>();
+</script>
+
+<ThemeContext value=props.theme>{props.children}</ThemeContext>
+```
+
+Another file imports the context by name and reads it with `useContext`:
+
+```html
+<!-- ThemeLabel.solid -->
+<script>
+  import { useContext } from 'solid-js';
+  import { ThemeContext } from './ThemeProvider.solid';
+
+  const theme = useContext(ThemeContext);
+</script>
+
+<p>{theme}</p>
+```
+
 ### Markup in the script
 
 Elements in a script use the same syntax as the markup, not plain JSX. They are scoped by the `<style>` blocks of the file, like any other element:
@@ -181,7 +216,7 @@ Read props through the object (`props.label`) to keep them reactive. To destruct
   const { label, disabled = false, ...rest } = $props<Props>();
 </script>
 
-<button {...rest} disabled=(disabled)>{label}</button>
+<button {...rest} {disabled}>{label}</button>
 ```
 
 Each destructured name becomes a reactive variable that reads the prop when it is used. `disabled` uses its default value when the prop is `undefined`. `rest` holds the remaining props, without `label` and `disabled`.

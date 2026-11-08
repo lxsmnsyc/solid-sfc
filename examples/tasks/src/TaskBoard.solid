@@ -183,7 +183,7 @@
       id=inputId
       ref=input
       value=draft
-      onInput=((event) => (draft = event.currentTarget.value))
+      onInput=((event) => draft = event.currentTarget.value)
       placeholder="What needs doing?"
     >
     <button type="submit" disabled=!draft.trim()>Add</button>
@@ -202,7 +202,7 @@
           type="radio"
           name="filter"
           checked=selected
-          onChange=(() => (filter = option))
+          onChange=(() => filter = option)
         >
         {option}
         <span class="count">{counts[option]}</span>

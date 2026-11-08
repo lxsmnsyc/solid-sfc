@@ -73,5 +73,5 @@
       <li>No notes yet.</li>
     }
   </ol>
-  <button class="add" type="button" onClick=(() => (notes = [...notes, '']))>Add a note</button>
+  <button class="add" type="button" onClick=(() => notes = [...notes, ''])>Add a note</button>
 </Panel>

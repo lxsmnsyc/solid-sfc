@@ -1,0 +1,13 @@
+<script module>
+  import { createContext } from 'solid-js';
+
+  export const ThemeContext = createContext<'light' | 'dark'>('light');
+</script>
+
+<script>
+  import type { Element } from 'solid-js';
+
+  const props = $props<{ theme: 'light' | 'dark'; children: Element }>();
+</script>
+
+<ThemeContext value=props.theme>{props.children}</ThemeContext>

@@ -11,7 +11,7 @@
   <legend>Heading level</legend>
   #for (option of [1, 2, 3] as const) {
     <label>
-      <input type="radio" name="level" checked=(option === level) onChange=(() => (level = option))>
+      <input type="radio" name="level" checked=(option === level) onChange=(() => level = option)>
       h{option}
     </label>
   }
@@ -32,6 +32,6 @@
   <script>
     const id = term.toLowerCase();
   </script>
-  <dt id=id><strong>{term}</strong></dt>
+  <dt {id}><strong>{term}</strong></dt>
   <dd>{description}</dd>
 }

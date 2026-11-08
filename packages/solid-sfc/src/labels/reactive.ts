@@ -205,6 +205,13 @@ function outerRange(
   return { start, end };
 }
 
+const TS_WRAPPERS = new Set([
+  'TSAsExpression',
+  'TSSatisfiesExpression',
+  'TSNonNullExpression',
+  'TSTypeAssertion',
+]);
+
 /**
  * Rewrites a write to a signal binding into a setter call:
  * `count++` compiles to `setCount(current => ++current)`, compound
@@ -219,7 +226,12 @@ function rewriteWrite(ctx: Ctx, binding: Binding, info: ReactiveInfo, ref: Ref):
   }
   const set = info.set;
   const { s, code } = ctx;
-  const parent = ref.parents[ref.parents.length - 1];
+  // `x!++` and `(x as T)++` update the signal like `x++`: skip the TS wrappers.
+  let top = ref.parents.length - 1;
+  while (top >= 0 && TS_WRAPPERS.has(ref.parents[top]?.type ?? '')) {
+    top--;
+  }
+  const parent = ref.parents[top];
   if (parent?.type === 'UpdateExpression') {
     const current = ctx.parameter('current');
     const op = parent.operator === '++' ? `++${current}` : `--${current}`;

@@ -35,7 +35,7 @@
 
 <!-- Each field shows a variable, and its event handler writes the variable. -->
 <form onSubmit=((event) => event.preventDefault())>
-  <label>Name <input value=name onInput=((event) => (name = event.currentTarget.value))></label>
+  <label>Name <input value=name onInput=((event) => name = event.currentTarget.value)></label>
   <!-- valueAsNumber reads a number. -->
   <label>
     Age
@@ -43,7 +43,7 @@
       type="number"
       min="0"
       value=age
-      onInput=((event) => (age = event.currentTarget.valueAsNumber))
+      onInput=((event) => age = event.currentTarget.valueAsNumber)
     >
   </label>
 
@@ -51,7 +51,7 @@
     <legend>Size</legend>
     #for (option of ['s', 'm', 'l']) {
       <label>
-        <input type="radio" name="size" checked=(size === option) onChange=(() => (size = option))>
+        <input type="radio" name="size" checked=(size === option) onChange=(() => size = option)>
         {option.toUpperCase()}
       </label>
     }
@@ -75,21 +75,27 @@
     <input
       type="checkbox"
       checked=delivery
-      onChange=((event) => (delivery = event.currentTarget.checked))
+      onChange=((event) => delivery = event.currentTarget.checked)
     >
     Deliver it
   </label>
   <textarea
     value=notes
-    onInput=((event) => (notes = event.currentTarget.value))
+    onInput=((event) => notes = event.currentTarget.value)
     placeholder="Notes for the kitchen"
   />
 
   <output>
-    <!-- Text and expressions on different lines join without a space, as in JSX. -->
-    {`${name}, ${age}, orders a size ${size.toUpperCase()} pizza`}
-    {toppings.length > 0 ? ` with ${toppings.join(', ')}` : ''}
-    {delivery ? ', delivered.' : ', to pick up.'}
+    {name}, {age}, orders a size {size.toUpperCase()} pizza.
+    #if (toppings.length > 0) {
+      <br>Toppings: {toppings.join(', ')}
+    }
+    <br>
+    #if (delivery) {
+      Delivered
+    } #else {
+      To pick up
+    }
     #if (notes) {
       <br>Notes: {notes}
     }
