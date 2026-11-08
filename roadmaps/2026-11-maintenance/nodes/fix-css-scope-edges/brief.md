@@ -12,6 +12,7 @@ owns:
   - packages/solid-sfc/src/style.ts
   - packages/solid-sfc/test/style.test.ts
   - packages/solid-sfc/test/compile.pbt.test.ts
+  - packages/language-core/test/editor.mbt.test.ts
 shared:
   - .changeset/*.md
 depends_on:
@@ -21,6 +22,9 @@ depends_on:
   - on: test-compile-pbt
     kind: hard
     why: its it.fails case for the selector error becomes the acceptance test
+  - on: test-editor-mbt
+    kind: hard
+    why: its it.fails cases for the selector error become acceptance tests
   - on: fix-header-comments
     kind: hard
     why: both flip it.fails cases in compile.pbt.test.ts
@@ -34,7 +38,7 @@ Findings from test-css-pbt (PR #20) and test-compile-pbt (PR #21), left unfixed 
 
 1. `.a:global(.b)` is left unscoped. Decide from `website/docs/styles.md` what it should compile to (most likely `.a[s-x].b`: the local part scoped, the global part kept). If the docs do not say, ask the orchestrator before changing behavior.
 2. In an `animation` value, `url(k)` is renamed when a keyframe named `k` exists. Names inside `url()` and strings must not be renamed.
-3. An unbalanced selector (`<style>] {}</style><p />`, also `a)`, `a::`, `a]`) throws a raw `Error` from postcss-selector-parser instead of an `SFCError` with the location. Wrap it. The `it.fails` case in `compile.pbt.test.ts` becomes `it`.
+3. An unbalanced selector (`<style>] {}</style><p />`, also `a)`, `a::`, `a]`) throws a raw `Error` from postcss-selector-parser instead of an `SFCError` with the location. Wrap it. The `it.fails` case in `compile.pbt.test.ts` becomes `it`, and so do the two in `packages/language-core/test/editor.mbt.test.ts` (PR #23), whose model then stops skipping those edits. The language plugin throws while a selector is half typed today.
 
 ## Acceptance
 
