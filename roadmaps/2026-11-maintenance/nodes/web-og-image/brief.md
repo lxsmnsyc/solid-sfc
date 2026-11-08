@@ -1,6 +1,6 @@
 ---
 id: web-og-image
-title: Open Graph image in the v3 design, drop old token aliases
+title: Commit the Open Graph image source, drop old token aliases
 status: todo
 priority: should
 type: feature
@@ -36,13 +36,13 @@ depends_on:
 
 ## Goal
 
-PR #8 shipped an image in the rejected v1 design. Redraw `website/public/og.png` in contract v3 (dark, glow, heavy display type, block hues; use the hero's look) from an HTML source committed at `website/og/og.html` with `website/og/render.sh` (headless Chrome, `--window-size=1200,630 --force-device-scale-factor=1 --screenshot`). The v1 source in `nodes/web-og-image/og-source.html` shows the rendering setup. Then remove the old token aliases from `App.solid` and fix remaining uses.
+The v3 `og.png` shipped in PR #8 (2026-11-08). Its HTML source is `nodes/web-og-image/og-source.html` in this roadmap, with absolute `file://` font paths. Commit it as `website/og/og.html` with font URLs relative to `website/public/fonts/`, and add `website/og/render.sh` that renders it with headless Chrome (`--window-size=1200,630 --force-device-scale-factor=1 --screenshot`). Re-render only if the hero changed in a way the image should follow (headline, sample code). Then remove the old token aliases from `App.solid` and fix remaining uses.
 
 ## Acceptance
 
 - [ ] Every `.solid` sample on the page follows `contracts/solid-idioms.md` (shorthands, bare values, no needless parentheses, control flow blocks).
 
-- [ ] `og.png` 1200x630, under 200 KB.
+- [ ] `og.png` 1200x630; `website/og/render.sh` reproduces it.
 - [ ] `grep -rn -- '--background\|--code-background\|--text)' website/src` finds nothing.
 - [ ] Build and typecheck pass.
 
