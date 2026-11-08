@@ -1,7 +1,7 @@
 ---
 id: deps-minor
 title: Bump dependencies within their ranges and add fast-check
-status: done
+status: active
 priority: must
 type: chore
 milestone: 1.0.x
