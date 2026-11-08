@@ -6,6 +6,8 @@
   import { Tab as OutputTab, TabGroup, TabList, TabPanel } from 'terracotta/tabs';
   import { examples } from '../examples.ts';
   import { highlight } from '../highlight/index.ts';
+  import CopyButton from '../ui/CopyButton.solid';
+  import Icon from '../ui/Icon.solid';
 
   type Tab = 'preview' | 'tsx' | 'css' | 'warnings';
   type Output =
@@ -41,7 +43,6 @@
 
   let source = $signal(decode(location.hash.slice(1)) ?? examples[0]!.source);
   let tab = $signal<Tab>('preview');
-  let copied = $signal(false);
   const output = $memo(run(source));
 
   const highlighted = $memo(
@@ -116,12 +117,47 @@
   // The example that the editor holds, until the source is edited.
   const selected = $memo(examples.find((item) => item.source === source)?.name);
 
+  // Loading an example replaces edited code, so it can be undone: with the
+  // toast, or with Back, since each load is a new history entry.
+  let undo = $signal<{ name: string; source: string } | undefined>(undefined);
+  let undoTimer: ReturnType<typeof setTimeout> | undefined;
+
   function load(name?: string) {
     const example = examples.find((item) => item.name === name);
-    if (example) {
-      source = example.source;
+    if (!example || example.source === source) {
+      return;
+    }
+    const before = source;
+    const edited = !examples.some((item) => item.source === before);
+    history.pushState(null, '', `#${encode(example.source)}`);
+    source = example.source;
+    clearTimeout(undoTimer);
+    if (edited) {
+      undo = { name: example.name, source: before };
+      undoTimer = setTimeout(() => (undo = undefined), 6000);
+    } else {
+      undo = undefined;
     }
   }
+
+  function restore() {
+    if (undo) {
+      history.back();
+      undo = undefined;
+    }
+  }
+
+  function onPopState() {
+    const restored = decode(location.hash.slice(1));
+    if (restored !== undefined) {
+      source = restored;
+    }
+  }
+  addEventListener('popstate', onPopState);
+  onCleanup(() => {
+    removeEventListener('popstate', onPopState);
+    clearTimeout(undoTimer);
+  });
 
   const tabs: { value: Tab; label: string }[] = [
     { value: 'preview', label: 'Preview' },
@@ -130,15 +166,17 @@
     { value: 'warnings', label: 'Warnings' },
   ];
 
-  async function share() {
-    await navigator.clipboard.writeText(location.href);
-    copied = true;
-    setTimeout(() => (copied = false), 1500);
-  }
+  // Tab inserts two spaces instead of leaving the editor. After Esc, the
+  // next Tab leaves it, so the keyboard is never trapped.
+  let released = false;
 
-  // Tab inserts two spaces instead of leaving the editor.
   function indent(event: KeyboardEvent & { currentTarget: HTMLTextAreaElement }) {
-    if (event.key !== 'Tab' || event.shiftKey) {
+    if (event.key === 'Escape') {
+      released = true;
+      return;
+    }
+    if (event.key !== 'Tab' || event.shiftKey || released) {
+      released = false;
       return;
     }
     event.preventDefault();
@@ -159,9 +197,9 @@
   .toolbar {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.75rem;
+    gap: var(--space-3);
     align-items: center;
-    padding: 0.6rem 1.5rem;
+    padding: var(--space-2) var(--space-5);
     border-bottom: 1px solid var(--border);
   }
 
@@ -170,23 +208,31 @@
     position: relative;
   }
 
-  .toolbar :global(.picker-button),
-  .action {
+  .toolbar :global(.picker-button) {
     display: inline-flex;
-    gap: 0.5rem;
+    gap: var(--space-2);
     align-items: center;
-    padding: 0.35rem 0.6rem;
+    justify-content: space-between;
+    min-width: 12rem;
+    height: 2rem;
+    padding: 0 var(--space-3);
     border: 1px solid var(--border);
-    border-radius: 0.375rem;
+    border-radius: var(--radius-xs);
     font: inherit;
+    font-size: var(--step--1);
     color: inherit;
-    background: var(--surface);
+    background: var(--panel);
     cursor: pointer;
   }
 
-  .toolbar :global(.picker-button) {
-    min-width: 12rem;
-    justify-content: space-between;
+  .toolbar :global(.picker-button:hover) {
+    border-color: var(--border-strong);
+  }
+
+  @media (pointer: coarse) {
+    .toolbar :global(.picker-button) {
+      height: 2.75rem;
+    }
   }
 
   .toolbar :global(.picker-options) {
@@ -198,23 +244,24 @@
     max-height: 20rem;
     overflow-y: auto;
     margin: 0;
-    padding: 0.25rem;
+    padding: var(--space-1);
     border: 1px solid var(--border);
-    border-radius: 0.375rem;
+    border-radius: var(--radius-sm);
     list-style: none;
-    background: var(--background);
-    box-shadow: 0 8px 24px rgb(0 0 0 / 0.15);
+    background: var(--bg-raised);
+    box-shadow: 0 8px 24px var(--shadow);
   }
 
+  /* 8px menu, 4px padding, so 4px options. */
   .toolbar :global(.picker-option) {
-    padding: 0.35rem 0.6rem;
-    border-radius: 0.25rem;
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-xs);
     white-space: nowrap;
     cursor: pointer;
   }
 
   .toolbar :global(.picker-option[tc-active]) {
-    background: var(--surface);
+    background: var(--border);
   }
 
   .toolbar :global(.picker-option[tc-selected]) {
@@ -238,16 +285,46 @@
     position: relative;
     min-height: 0;
     border-right: 1px solid var(--border);
-    background: var(--background);
+    background: var(--bg);
+  }
+
+  /* The textarea is transparent over the highlighted copy, so the pane
+     shows the focus ring for it. */
+  .editor:has(textarea:focus-visible) {
+    outline: 2px solid var(--accent-strong);
+    outline-offset: -2px;
+  }
+
+  .keys {
+    position: absolute;
+    right: var(--space-3);
+    bottom: var(--space-3);
+    z-index: 1;
+    display: flex;
+    gap: var(--space-1);
+    align-items: center;
+    padding: var(--space-1) var(--space-2);
+    border-radius: var(--radius-xs);
+    font-size: 0.75rem;
+    color: var(--muted);
+    background: var(--bg-raised);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--exit) var(--ease-in);
+  }
+
+  .editor:has(textarea:focus-visible) .keys {
+    opacity: 1;
+    transition: opacity var(--enter) var(--ease-out);
   }
 
   /* The textarea and the highlighted copy under it share their layout. */
   textarea,
   .backdrop :global(pre) {
     margin: 0;
-    padding: 1rem 1.5rem;
+    padding: var(--space-4) var(--space-5);
     border: none;
-    font-family: var(--mono);
+    font-family: var(--font-mono);
     font-size: 0.875rem;
     line-height: 1.5;
     white-space: pre;
@@ -280,6 +357,7 @@
     caret-color: var(--text);
     background: none;
     resize: none;
+    /* The editor pane draws the ring; see .editor:has(). */
     outline: none;
   }
 
@@ -287,18 +365,21 @@
     display: grid;
     grid-template-rows: auto minmax(0, 1fr);
     min-height: 0;
-    background: var(--surface);
+    background: var(--bg-raised);
   }
 
   .panes :global(.tabs) {
     display: flex;
-    gap: 0.25rem;
-    padding: 0.5rem 1rem 0;
+    gap: var(--space-1);
+    padding: var(--space-2) var(--space-4) 0;
     border-bottom: 1px solid var(--border);
   }
 
   .panes :global(.tab) {
-    padding: 0.4rem 0.75rem;
+    display: inline-flex;
+    gap: var(--space-1);
+    align-items: center;
+    padding: var(--space-2) var(--space-3);
     border: none;
     border-bottom: 2px solid transparent;
     font: inherit;
@@ -307,9 +388,23 @@
     cursor: pointer;
   }
 
+  .panes :global(.tab:hover) {
+    color: var(--text);
+  }
+
   .panes :global(.tab[tc-selected]) {
     border-bottom-color: var(--accent);
     color: var(--text);
+  }
+
+  .panes :global(.tab:focus-visible) {
+    outline-offset: -2px;
+  }
+
+  @media (pointer: coarse) {
+    .panes :global(.tab) {
+      min-height: 2.75rem;
+    }
   }
 
   /* An error replaces the panels until the code compiles. */
@@ -320,7 +415,7 @@
   pre {
     overflow: auto;
     margin: 0;
-    padding: 1rem 1.5rem;
+    padding: var(--space-4) var(--space-5);
     line-height: 1.5;
   }
 
@@ -332,7 +427,7 @@
   .code :global(pre.twinkleplop) {
     min-height: 100%;
     margin: 0;
-    padding: 1rem 1.5rem;
+    padding: var(--space-4) var(--space-5);
     border: none;
     border-radius: 0;
     overflow: visible;
@@ -350,11 +445,22 @@
   }
 
   .panes :global(.preview) {
+    position: relative;
     display: flex;
     flex-direction: column;
   }
 
-  /* The frame takes the space under the status line, if there is one. */
+  /* The status and errors cover the top of the frame, so it never moves. */
+  .overlay {
+    position: absolute;
+    inset: 0 0 auto;
+    z-index: 1;
+    max-height: 100%;
+    overflow: auto;
+    background: var(--bg-raised);
+    border-bottom: 1px solid var(--border);
+  }
+
   iframe {
     flex: 1;
     width: 100%;
@@ -364,18 +470,18 @@
 
   .status {
     margin: 0;
-    padding: 0.5rem 1.5rem;
+    padding: var(--space-2) var(--space-5);
     color: var(--muted);
   }
 
   .error {
-    color: #d33f49;
+    color: var(--caution);
     white-space: pre-wrap;
   }
 
   .warnings {
     margin: 0;
-    padding: 1rem 1.5rem 1rem 2.5rem;
+    padding: var(--space-4) var(--space-5) var(--space-4) var(--space-7);
   }
 
   .warnings code {
@@ -383,12 +489,58 @@
   }
 
   .count {
-    margin-left: 0.25rem;
-    padding: 0 0.4rem;
+    padding: 0 var(--space-2);
     border-radius: 999px;
     font-size: 0.75rem;
+    font-variant-numeric: tabular-nums;
     color: var(--accent-text);
     background: var(--accent);
+  }
+
+  /* The toast slides up from the bottom and back down; it can turn mid-way. */
+  .toast {
+    position: fixed;
+    bottom: var(--space-5);
+    left: 50%;
+    z-index: 30;
+    display: flex;
+    gap: var(--space-3);
+    align-items: center;
+    padding: var(--space-1) var(--space-1) var(--space-1) var(--space-4);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    font-size: var(--step--1);
+    background: var(--bg-raised);
+    box-shadow: 0 12px 32px -8px var(--shadow);
+    opacity: 0;
+    transform: translate(-50%, 0.75rem);
+    pointer-events: none;
+    transition:
+      opacity var(--exit) var(--ease-in),
+      transform var(--exit) var(--ease-in);
+  }
+
+  .toast.open {
+    opacity: 1;
+    transform: translate(-50%, 0);
+    pointer-events: auto;
+    transition:
+      opacity var(--enter) var(--ease-out),
+      transform var(--enter) var(--ease-out);
+  }
+
+  /* 8px toast, 4px padding, so 4px corners on the button. */
+  .toast .button {
+    min-height: 2rem;
+    padding: 0 var(--space-3);
+    border-radius: var(--radius-xs);
+    font-size: var(--step--1);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .toast {
+      transform: translate(-50%, 0);
+    }
   }
 
   @media (max-width: 48rem) {
@@ -417,9 +569,7 @@
     <Listbox class="picker" value=selected onSelectChange=load defaultOpen=false>
       <ListboxButton class="picker-button" aria-label="Example">
         <span>{selected ?? 'Edited example'}</span>
-        <svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true">
-          <path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.5" />
-        </svg>
+        <Icon name="chevron-down" />
       </ListboxButton>
       <ListboxOptions class="picker-options">
         #for (example of examples) {
@@ -427,13 +577,7 @@
         }
       </ListboxOptions>
     </Listbox>
-    <button type="button" class="action" onClick=share>
-      #if (copied) {
-        Link copied
-      } #else {
-        Copy link
-      }
-    </button>
+    <CopyButton text=(() => location.href) label="Copy link to this code" caption="Copy link" />
     <span class="hint">The compiler runs in your browser.</span>
   </div>
 
@@ -448,6 +592,9 @@
         onKeyDown=indent
         onScroll=syncScroll
       />
+      <span class="keys" aria-hidden="true">
+        <kbd class="kbd">Esc</kbd> then <kbd class="kbd">Tab</kbd> to leave
+      </span>
     </div>
     <TabGroup
       class={ output: true, failed: !output.ok }
@@ -476,9 +623,9 @@
       <!-- The preview stays mounted, so its frame does not load again. -->
       <TabPanel class="panel preview" value="preview" unmount=false>
         #if (previewError) {
-          <pre class="error">{previewError}</pre>
+          <div class="overlay"><pre class="error">{previewError}</pre></div>
         } #else if (!builder) {
-          <p class="status">Loading Solid's compiler…</p>
+          <div class="overlay"><p class="status">Loading Solid's compiler…</p></div>
         }
         <!-- A new frame tells the playground when it is ready. -->
         <iframe
@@ -514,5 +661,13 @@
         </ul>
       </TabPanel>
     </TabGroup>
+  </div>
+
+  <div class={ toast: true, open: !!undo } role="status" inert=!undo>
+    <span>Loaded {undo?.name ?? ''}. Your edits were replaced.</span>
+    <button type="button" class="button" onClick=restore>
+      <Icon name="undo" />
+      Undo
+    </button>
   </div>
 </main>

@@ -83,6 +83,13 @@
     opacity: 1;
   }
 
+  /* Without hover, as on touch, the button is always shown. */
+  @media (hover: none) {
+    .float {
+      opacity: 1;
+    }
+  }
+
   .body {
     position: relative;
     font-size: var(--code-size);

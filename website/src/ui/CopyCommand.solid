@@ -95,7 +95,6 @@
     color: var(--muted);
     background: none;
     cursor: pointer;
-    transition: color 200ms var(--ease);
   }
 
   .tab:hover {
@@ -113,11 +112,16 @@
     height: 2px;
     border-radius: 2px;
     background: var(--accent);
-    box-shadow: 0 0 12px var(--accent);
   }
 
   .tab:focus-visible {
     outline-offset: -2px;
+  }
+
+  @media (pointer: coarse) {
+    .tab {
+      min-height: 2.75rem;
+    }
   }
 
   .line {
@@ -144,7 +148,7 @@
   }
 </style>
 
-<div class="install glass">
+<div class="install raised">
   <div class="tabs" role="tablist" aria-label="Package manager">
     #for (name, index of MANAGERS) {
       <button
