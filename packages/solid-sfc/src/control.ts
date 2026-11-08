@@ -8,6 +8,7 @@ import type { BlockImport } from './imports.ts';
 import type { Scanner } from './scanner.ts';
 import { isIdentifierPart, isWhitespace } from './scanner.ts';
 import { analyzeBlockScript, maskMarkup } from './script.ts';
+import type { Range } from './template.ts';
 
 /** Helper from `solid-sfc/runtime` used by `#key`. */
 export const KEY_IDENTIFIER = '__key';
@@ -87,6 +88,21 @@ interface Keyword {
 }
 
 /** Splits `text` at `separator` characters outside brackets and strings. */
+/** Text, or a range of the source that is copied. */
+type Piece = string | Range;
+
+/**
+ * Joins lists of pieces with `separator`. Each list after the first is
+ * preceded by it, and the first by `first`.
+ */
+function joinPieces(lists: Piece[][], separator: Piece[], first: Piece[] = []): Piece[] {
+  const joined: Piece[] = [];
+  for (let index = 0; index < lists.length; index++) {
+    joined.push(...(index === 0 ? first : separator), ...lists[index]!);
+  }
+  return joined;
+}
+
 function splitTopLevel(text: string, separator: string): string[] {
   const parts: string[] = [];
   let depth = 0;
@@ -419,6 +435,32 @@ export class ControlFlowParser {
   }
 
   /**
+   * Moves the source ranges in `pieces` in front of `target`, with the text
+   * around them, so they keep their place in the source map. Returns the
+   * text when `pieces` has no range, for the caller to write.
+   */
+  private movePieces(pieces: Piece[], target: number): string {
+    const { output } = this.host;
+    let text = '';
+    let previous: Range | undefined;
+    for (const piece of pieces) {
+      if (typeof piece === 'string') {
+        text += piece;
+        continue;
+      }
+      output.prependRight(piece.start, text);
+      output.move(piece.start, piece.end, target);
+      text = '';
+      previous = piece;
+    }
+    if (!previous) {
+      return text;
+    }
+    output.appendLeft(previous.end, text);
+    return '';
+  }
+
+  /**
    * Moves a branch body in front of `target`, wrapped in `before` and `after`.
    * Used for fallbacks, which are written after the body but are props.
    */
@@ -598,31 +640,47 @@ export class ControlFlowParser {
       position: [true, false],
       key: [true, true],
     }[mode];
-    const names: string[] = [];
-    const derefs: string[] = [];
+    // The offsets of the parameters, so the callback copies them from the
+    // source and the source map points to them.
+    const ranges: Range[] = [];
+    let cursor = header.start;
+    for (const part of of === -1 ? [] : splitTopLevel(text.slice(0, of), ',')) {
+      ranges.push(this.trim(cursor, cursor + part.length));
+      cursor += part.length + 1;
+    }
+    const names: Piece[][] = [];
+    const derefs: Piece[][] = [];
     params.forEach((param, position) => {
+      const range = ranges[position]!;
       if (!accessors[position]) {
-        names.push(param);
+        names.push([range]);
         return;
       }
       if (IDENTIFIER.test(param)) {
-        names.push(`__${param}`);
-        derefs.push(`const ${param} = $derefMemo(__${param});`);
+        names.push([`__${param}`]);
+        derefs.push(['const ', range, ` = $derefMemo(__${param});`]);
         return;
       }
       if (position === 1) {
         fail(`The index of #for must be an identifier`, header.start);
       }
       // A destructured item reads its properties when they are used.
-      names.push('__item');
-      derefs.push(
-        `const __itemValue = $derefMemo(__item); const ${param} = $destructure(__itemValue);`,
-      );
+      names.push(['__item']);
+      derefs.push([
+        'const __itemValue = $derefMemo(__item); const ',
+        range,
+        ' = $destructure(__itemValue);',
+      ]);
     });
     const tag = repeat ? 'Repeat' : 'For';
     const prop = repeat ? 'count' : 'each';
 
-    this.update(keyword.start, list.start, `<${tag} ${prop}={`);
+    // The text around the parameters is removed, and the parameters move
+    // into the callback.
+    this.update(keyword.start, ranges[0]?.start ?? list.start, `<${tag} ${prop}={`);
+    for (let index = 0; index < ranges.length; index++) {
+      this.update(ranges[index]!.end, ranges[index + 1]?.start ?? list.start, '');
+    }
     this.props.push({ name: prop, start: list.start, end: list.end });
     if (mode === 'key') {
       this.update(list.end, key!.start, `} keyed={(${params[0]}) => (`);
@@ -632,13 +690,19 @@ export class ControlFlowParser {
     }
     const body = this.parseBody(header.end + 1, keyword.name, true);
     // Declarations in the body go in the callback, after the parameters.
-    const callback = body.declarations
-      ? `{(${names.join(', ')}) => {${derefs.map((deref) => ` ${deref}`).join('')}`
+    const parameters = joinPieces(names, [', ']);
+    const callback: Piece[] = body.declarations
+      ? ['>{(', ...parameters, ') => {', ...joinPieces(derefs, [' '], [' '])]
       : derefs.length
-        ? `{(${names.join(', ')}) => { ${derefs.join(' ')} return <>`
-        : `{(${names.join(', ')}) => <>`;
+        ? ['>{(', ...parameters, ') => { ', ...joinPieces(derefs, [' ']), ' return <>']
+        : ['>{(', ...parameters, ') => <>'];
     const close = `</>${body.declarations || derefs.length ? '; }' : ''}}</${tag}>`;
-    this.update(header.end + 1, body.start, `>${callback}`);
+    // `update` runs first, because it would clear the ranges moved into its span.
+    const moves = callback.some((piece) => typeof piece !== 'string');
+    this.update(header.end + 1, body.start, moves ? '' : callback.join(''));
+    if (moves) {
+      this.movePieces(callback, body.start);
+    }
 
     const branch = this.nextBranch(body.end + 1, ['else']);
     if (!branch) {
@@ -733,27 +797,52 @@ export class ControlFlowParser {
       this.update(body.end, body.end + 1, `</${tag}>`);
       return body.end + 1;
     }
-    let before = ' fallback={<>';
+    let before: Piece[] = [' fallback={<>'];
     let after = '</>}';
+    let catchParams: Range[] = [];
     let next = branch.end;
     if (fallbackKeyword === 'catch' && source[this.host.scanner.skipWhitespace(next)] === '(') {
       const header = this.parseHeader(next, 'catch');
-      const [error, reset, ...rest] = splitTopLevel(
-        source.slice(header.start, header.end),
-        ',',
-      ).map((param) => param.trim());
+      const ranges: Range[] = [];
+      let offset = header.start;
+      for (const part of splitTopLevel(source.slice(header.start, header.end), ',')) {
+        ranges.push(this.trim(offset, offset + part.length));
+        offset += part.length + 1;
+      }
+      const [error, reset, ...rest] = ranges.map((range) => source.slice(range.start, range.end));
       if (!error || rest.length > 0 || !IDENTIFIER.test(error)) {
         fail('Expected "(error)" or "(error, reset)" after #catch', header.start);
       }
+      catchParams = ranges;
       // The error is an accessor, so it becomes a reactive variable.
-      before = ` fallback={(__${error}${reset ? `, ${reset}` : ''}) => { const ${error} = $derefMemo(__${error}); return <>`;
+      before = [
+        ` fallback={(__${error}`,
+        ...(reset ? [', ', ranges[1]!] : []),
+        ') => { const ',
+        ranges[0]!,
+        ` = $derefMemo(__${error}); return <>`,
+      ];
       after = '</>; }}';
       next = header.end + 1;
     }
     const fallback = this.parseBody(next, fallbackKeyword);
-    this.update(body.end, fallback.start, `</${tag}>`);
+    // The parameters of `#catch` move into the fallback, so the text around
+    // them is removed.
+    let cursor = body.end;
+    let closing = `</${tag}>`;
+    for (const range of catchParams) {
+      this.update(cursor, range.start, closing);
+      closing = '';
+      cursor = range.end;
+    }
+    this.update(cursor, fallback.start, closing);
     this.update(fallback.end, fallback.end + 1, '');
-    this.moveBody(fallback, body.open, before, after);
+    if (fallback.start === fallback.end) {
+      before.push(after);
+      after = '';
+    }
+    const text = this.movePieces(before, body.open);
+    this.moveBody(fallback, body.open, text, after);
     return fallback.end + 1;
   }
 

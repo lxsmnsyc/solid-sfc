@@ -1,7 +1,8 @@
 // Vendored from solid-labels 1.0 (https://github.com/lxsmnsyc/solid-labels/pull/30), MIT license.
 // Local changes:
 // - Removing and extracting text uses `overwrite` and `slice`, which behave
-//   the same in magic-string 1.2 and 1.4.
+//   the same in magic-string 1.2 and 1.4. Hoisted effect callbacks use
+//   `move`, so the source map keeps pointing into them.
 // - Arrow functions around object literals get parentheses.
 // - Relative imports use `.ts` extensions.
 import MagicString from 'magic-string';
