@@ -1,6 +1,6 @@
 ---
 id: issue-1-reply
-title: Answer and close issue #1 (context in a .solid file)
+title: "Answer and close issue #1 (context in a .solid file)"
 status: todo
 priority: could
 type: docs

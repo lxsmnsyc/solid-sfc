@@ -1,6 +1,6 @@
 ---
 id: fix-scope
-title: Port solid-labels scope fixes for #46, #47 and #49
+title: "Port solid-labels scope fixes for #46, #47 and #49"
 status: todo
 priority: must
 type: fix
