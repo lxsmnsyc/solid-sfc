@@ -40,6 +40,7 @@
   import { href } from '../router.ts';
   import CodeBlock from './CodeBlock.solid';
   import CopyCommand from './CopyCommand.solid';
+  import Icon from './Icon.solid';
   import Logo from './Logo.solid';
   import counter from './hero/counter.md';
   import Counter from './hero/Counter.solid';
@@ -86,13 +87,7 @@
     font: 500 0.8125rem / 1.2 var(--font-mono);
     text-decoration: none;
     color: var(--muted);
-    background: var(--glass);
-    box-shadow: inset 0 1px 0 var(--sheen);
-    -webkit-backdrop-filter: blur(12px);
-    backdrop-filter: blur(12px);
-    transition:
-      color 200ms var(--ease),
-      border-color 200ms var(--ease);
+    background: var(--bg-raised);
   }
 
   .pill:hover {
@@ -106,38 +101,20 @@
   }
 
   .dot {
-    position: relative;
     width: 0.5rem;
     height: 0.5rem;
     border-radius: 50%;
     background: var(--markup);
-    box-shadow: 0 0 10px var(--markup);
   }
 
-  .dot::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: 50%;
-    background: var(--markup);
-    animation: ping 2.4s var(--ease) infinite;
+  .pill .arrow {
+    color: var(--muted);
+    transition: transform var(--exit) var(--ease-in);
   }
 
-  @keyframes ping {
-    70%,
-    100% {
-      opacity: 0;
-      transform: scale(2.6);
-    }
-  }
-
-  .pill svg {
-    color: var(--faint);
-    transition: transform 200ms var(--ease);
-  }
-
-  .pill:hover svg {
+  .pill:hover .arrow {
     transform: translateX(2px);
+    transition: transform var(--enter) var(--ease-out);
   }
 
   h1 {
@@ -149,23 +126,6 @@
     display: block;
   }
 
-  h1 .gradient-text {
-    filter: drop-shadow(0 10px 48px color-mix(in srgb, var(--script) 35%, transparent));
-  }
-
-  /* The intro rises in, one part after another. */
-  .rise {
-    animation: rise 700ms var(--ease) both;
-    animation-delay: calc(var(--order) * 70ms);
-  }
-
-  @keyframes rise {
-    from {
-      opacity: 0;
-      transform: translateY(14px);
-      filter: blur(6px);
-    }
-  }
 
   .lede {
     max-width: 38rem;
@@ -224,9 +184,11 @@
     filter: blur(40px);
   }
 
+  /* The one floating object on the page, so the one shadow. */
   .window {
     overflow: hidden;
     text-align: left;
+    box-shadow: 0 24px 64px -24px var(--shadow);
     transform-origin: 50% 0;
   }
 
@@ -294,9 +256,6 @@
     border-radius: 50%;
     color: var(--accent-strong);
     background: var(--bg-raised);
-    box-shadow:
-      0 0 0 6px color-mix(in srgb, var(--bg-raised) 60%, transparent),
-      0 0 24px color-mix(in srgb, var(--accent) 50%, transparent);
     transform: translate(-50%, -50%);
   }
 
@@ -332,12 +291,7 @@
     font: 600 1rem / 1 var(--font-body);
     letter-spacing: -0.01em;
     cursor: pointer;
-    box-shadow:
-      inset 0 1px 0 var(--sheen-strong),
-      0 12px 32px -8px var(--shadow);
-    transition:
-      background-color 300ms var(--ease),
-      scale 300ms var(--ease);
+    transition: scale var(--enter) var(--ease-out);
   }
 
   .canvas :global(p) {
@@ -355,9 +309,6 @@
 
   .dom code {
     display: block;
-    padding: 0;
-    border: 0;
-    background: none;
     padding: 0;
     border: 0;
     background: none;
@@ -410,9 +361,7 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .rise,
-    .window,
-    .dot::after {
+    .window {
       animation: none;
     }
   }
@@ -444,47 +393,39 @@
 </style>
 
 <section class="hero" aria-labelledby="hero-title">
-  <a class="pill rise" style={ '--order': '0' } href=href('/docs/migration')>
+  <a class="pill" href=href('/docs/migration')>
     <span class="dot" aria-hidden="true" />
     <span><strong>1.0</strong> · rebuilt for SolidJS 2.0</span>
-    <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
-      <path d="M6 3.5 10.5 8 6 12.5" stroke-linecap="round" stroke-linejoin="round" />
-    </svg>
+    <span class="arrow"><Icon name="chevron-right" /></span>
   </a>
 
   <h1 id="hero-title">
-    <span class="rise" style={ '--order': '1' }>One file.</span>
-    <span class="rise" style={ '--order': '2' }>
-      <span class="gradient-text">Three blocks.</span>
-    </span>
+    <span>One file.</span>
+    <span>Three blocks.</span>
   </h1>
 
-  <p class="lede rise" style={ '--order': '3' }>
+  <p class="lede">
     Write the script, the scoped styles and the markup of a Solid 2.0 component in one
     <code>.solid</code> file. The compiler turns it into a plain Solid component.
   </p>
 
-  <div class="cta rise" style={ '--order': '4' }>
+  <div class="cta">
     <a class="button primary" href=href('/docs/getting-started')>
       Get started
-      <svg class="arrow" viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
-        <path d="M3 8h10M9 4l4 4-4 4" stroke-linecap="round" stroke-linejoin="round" />
-      </svg>
+      <span class="arrow"><Icon name="arrow-right" /></span>
     </a>
     <a class="button" href=href('/playground')>
-      <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" aria-hidden="true">
-        <path d="M4.5 2.8v10.4a.6.6 0 0 0 .9.5l8.2-5.2a.6.6 0 0 0 0-1L5.4 2.3a.6.6 0 0 0-.9.5Z" />
-      </svg>
+      <Icon name="play" />
       Open the playground
     </a>
   </div>
 
-  <div class="install rise" style={ '--order': '5' }>
+  <div class="install">
     <CopyCommand packages="solid-sfc" />
   </div>
 
   <div class="stage">
-    <div class="window glass">
+    <div class="window raised">
       <div class="chrome">
         <span class="file"><Logo size=14 />Counter.solid</span>
       </div>
@@ -493,9 +434,7 @@
           <CodeBlock html=counter.html blocks=BLOCKS copy=false />
         </div>
         <span class="seam" aria-hidden="true">
-          <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.75">
-            <path d="M3 8h10M9 4l4 4-4 4" stroke-linecap="round" stroke-linejoin="round" />
-          </svg>
+          <Icon name="arrow-right" />
         </span>
         <div class="preview">
           <div class="pane-head">

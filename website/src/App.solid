@@ -4,6 +4,7 @@
   import { href, path } from './router.ts';
   import Docs from './pages/Docs.solid';
   import Home from './pages/Home.solid';
+  import Icon from './ui/Icon.solid';
   import Logo from './ui/Logo.solid';
 
   // The playground loads the compiler, so it is a separate chunk.
@@ -17,6 +18,8 @@
 
   // main.ts sets the saved theme before the first render. Dark is the default.
   let theme = $signal(document.documentElement.dataset.theme === 'light' ? 'light' : 'dark');
+
+  const themeLabel = $memo(theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme');
 
   function toggleTheme(): void {
     // Writes to `theme` are batched, so reading it back here gives the old value.
@@ -52,7 +55,7 @@
     --accent-ink: light-dark(#ffffff, #050810);
     --glow: light-dark(rgb(47 95 208 / 0.18), rgb(68 107 158 / 0.45));
     --script: light-dark(#2f5fd0, #7ea6ff);
-    /* #bd3f0b, not #c2410c: it stays at 4.5:1 or more on glass panels. */
+    /* #bd3f0b, not #c2410c: it stays at 4.5:1 or more on raised panels. */
     --style: light-dark(#bd3f0b, #ff8f6b);
     --markup: light-dark(#0f766e, #4fe0b8);
     --note: light-dark(#2f5fd0, #7ea6ff);
@@ -61,10 +64,7 @@
     --warning: light-dark(#8a5a00, #f2c14e);
     --caution: light-dark(#b42318, #ff7a7a);
 
-    /* Surfaces of glass panels and the atmosphere (change request). */
-    --glass: light-dark(rgb(255 255 255 / 0.7), rgb(12 17 28 / 0.6));
-    --sheen: light-dark(rgb(255 255 255 / 0.9), rgb(255 255 255 / 0.06));
-    --sheen-strong: rgb(255 255 255 / 0.25);
+    /* The one floating object (the hero window) and the atmosphere. */
     --shadow: light-dark(rgb(16 24 40 / 0.12), rgb(0 0 0 / 0.55));
     --grid-line: light-dark(rgb(10 20 40 / 0.055), rgb(255 255 255 / 0.04));
 
@@ -93,11 +93,18 @@
 
     --radius: 12px;
     --radius-sm: 8px;
+    /* For elements inside a --radius-sm or --radius box, so corners nest. */
+    --radius-xs: 4px;
     --grid-max: 80rem;
     --gutter: clamp(1rem, 4vw, 2.5rem);
     --measure: 68ch;
     --header-height: 3.75rem;
-    --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+    /* Entrances ease out over 200ms; exits ease in over 150ms. */
+    --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+    --ease-in: cubic-bezier(0.4, 0, 1, 1);
+    --enter: 200ms;
+    --exit: 150ms;
+    --ease: var(--ease-out);
 
     /* Old names, kept until every page has moved. web-og-image removes them. */
     --background: var(--bg);
@@ -199,9 +206,6 @@
     text-decoration-color: color-mix(in srgb, currentColor 40%, transparent);
     text-decoration-thickness: 1px;
     text-underline-offset: 0.2em;
-    transition:
-      color 200ms var(--ease),
-      text-decoration-color 200ms var(--ease);
   }
 
   a:hover {
@@ -225,7 +229,7 @@
   :not(pre) > code {
     padding: 0.125em 0.375em;
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: var(--radius-xs);
     font-size: 0.875em;
     background: var(--panel);
   }
@@ -244,16 +248,11 @@
     scrollbar-width: thin;
   }
 
-  /* Glass panel: translucent, blurred, with a 1px border and a top sheen. */
-  .glass {
+  /* A raised panel: one border on the raised background, nothing more. */
+  .raised {
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    background: var(--glass);
-    box-shadow:
-      inset 0 1px 0 var(--sheen),
-      0 24px 64px -24px var(--shadow);
-    -webkit-backdrop-filter: blur(16px) saturate(150%);
-    backdrop-filter: blur(16px) saturate(150%);
+    background: var(--bg-raised);
   }
 
   .button {
@@ -272,11 +271,7 @@
     color: var(--text);
     background: var(--panel);
     cursor: pointer;
-    transition:
-      background-color 200ms var(--ease),
-      border-color 200ms var(--ease),
-      box-shadow 200ms var(--ease),
-      transform 200ms var(--ease);
+    transition: transform var(--exit) var(--ease-in);
   }
 
   .button:hover {
@@ -284,33 +279,35 @@
     background: var(--border);
   }
 
-  .button:active {
-    transform: translateY(1px);
+  /* Press feedback for every control: a quick scale down. */
+  :is(.button, button):active:not(:disabled) {
+    transform: scale(0.97);
+    transition: transform 100ms var(--ease-out);
   }
 
   .button.primary {
     border-color: transparent;
     color: var(--accent-ink);
     background: var(--accent);
-    box-shadow:
-      inset 0 1px 0 var(--sheen-strong),
-      0 8px 28px -6px color-mix(in srgb, var(--accent) 70%, transparent);
   }
 
   .button.primary:hover {
     background: var(--accent-strong);
-    box-shadow:
-      inset 0 1px 0 var(--sheen-strong),
-      0 10px 36px -4px color-mix(in srgb, var(--accent) 85%, transparent);
   }
 
-  .button svg {
-    flex: none;
-    transition: transform 200ms var(--ease);
+  .button .arrow {
+    display: inline-flex;
+    transition: transform var(--exit) var(--ease-in);
   }
 
   .button:hover .arrow {
     transform: translateX(3px);
+    transition: transform var(--enter) var(--ease-out);
+  }
+
+  :is(.button, button):disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
 
   .kbd {
@@ -321,7 +318,7 @@
     padding: 0 0.375em;
     border: 1px solid var(--border-strong);
     border-bottom-width: 2px;
-    border-radius: 5px;
+    border-radius: var(--radius-xs);
     font: 500 0.75rem / 1 var(--font-mono);
     color: var(--muted);
     background: var(--panel);
@@ -358,20 +355,6 @@
     border-radius: 2px;
     background: currentColor;
     box-shadow: 0 0 10px currentColor;
-  }
-
-  /* Display words in a gradient of the three block hues. */
-  .gradient-text {
-    padding-bottom: 0.08em;
-    color: transparent;
-    background: linear-gradient(
-      100deg in oklch,
-      var(--markup) 5%,
-      var(--script) 50%,
-      var(--style) 95%
-    );
-    -webkit-background-clip: text;
-    background-clip: text;
   }
 
   /* 12 columns inside --grid-max, with --gutter on both sides. */
@@ -425,7 +408,7 @@
     transform: none;
   }
 
-  /* Atmosphere: a glow, a fading 32px grid and a little noise behind the page. */
+  /* Atmosphere: a glow and a fading 32px grid behind the page. */
   .atmosphere {
     position: absolute;
     inset: 0 0 auto;
@@ -469,18 +452,6 @@
     mask-image: radial-gradient(70rem 44rem at 50% 0, #000 20%, transparent 75%);
   }
 
-  .noise {
-    position: absolute;
-    inset: 0;
-    opacity: 0.06;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.5 0 0 0 0 0.5 0 0 0 0 0.5 0 0 0 1 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-    -webkit-mask-image: linear-gradient(#000, transparent);
-    mask-image: linear-gradient(#000, transparent);
-  }
-
-  :global([data-theme='light']) .noise {
-    opacity: 0.04;
-  }
 
   header {
     position: sticky;
@@ -549,9 +520,6 @@
     font-weight: 500;
     text-decoration: none;
     color: var(--muted);
-    transition:
-      color 200ms var(--ease),
-      background-color 200ms var(--ease);
   }
 
   .main-nav a:hover {
@@ -561,8 +529,7 @@
 
   .main-nav a[aria-current='page'] {
     color: var(--text);
-    background: var(--panel);
-    box-shadow: inset 0 0 0 1px var(--border);
+    background: var(--border);
   }
 
   .actions {
@@ -582,14 +549,25 @@
     color: var(--muted);
     background: none;
     cursor: pointer;
-    transition:
-      color 200ms var(--ease),
-      background-color 200ms var(--ease);
   }
 
   .icon-button:hover {
     color: var(--text);
     background: var(--panel);
+  }
+
+  /* Touch needs 44px targets, even where the visible part is smaller. */
+  @media (pointer: coarse) {
+    .icon-button {
+      width: 2.75rem;
+      height: 2.75rem;
+    }
+
+    .main-nav a {
+      display: inline-flex;
+      align-items: center;
+      min-height: 2.75rem;
+    }
   }
 
   #content {
@@ -717,7 +695,6 @@
   <div class={ atmosphere: true, docs: section === 'docs' } aria-hidden="true">
     <div class="glow" />
     <div class="lines" />
-    <div class="noise" />
   </div>
 }
 
@@ -737,45 +714,27 @@
       </a>
     </nav>
     <div class="actions">
-      <a class="icon-button" href=REPOSITORY target="_blank" rel="noreferrer" aria-label="GitHub">
-        <svg viewBox="0 0 16 16" width="18" height="18" fill="currentColor" aria-hidden="true">
-          <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
-        </svg>
+      <a
+        class="icon-button"
+        href=REPOSITORY
+        target="_blank"
+        rel="noreferrer"
+        aria-label="GitHub"
+        title="GitHub"
+      >
+        <Icon name="github" size=20 />
       </a>
       <button
         type="button"
         class="icon-button"
         onClick=toggleTheme
-        aria-label=(theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme')
+        aria-label=themeLabel
+        title=themeLabel
       >
         #if (theme === 'dark') {
-          <svg
-            viewBox="0 0 24 24"
-            width="18"
-            height="18"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.75"
-            stroke-linecap="round"
-            aria-hidden="true"
-          >
-            <circle cx="12" cy="12" r="4" />
-            <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
-          </svg>
+          <Icon name="sun" size=20 />
         } #else {
-          <svg
-            viewBox="0 0 24 24"
-            width="18"
-            height="18"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.75"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            aria-hidden="true"
-          >
-            <path d="M20.5 14.5A8.5 8.5 0 0 1 9.5 3.5a8.5 8.5 0 1 0 11 11Z" />
-          </svg>
+          <Icon name="moon" size=20 />
         }
       </button>
     </div>

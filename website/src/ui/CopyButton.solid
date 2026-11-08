@@ -1,25 +1,31 @@
 <script>
+  import Icon from './Icon.solid';
+
   interface Props {
     /** Reads the text to copy when the button is pressed. */
     text: () => string;
     /** Accessible name, which must start with "Copy". */
     label?: string;
+    /** Visible text before the copy. Defaults to "Copy". */
+    caption?: string;
   }
 
   const props = $props<Props>();
-  let copied = $signal(false);
+  let status = $signal<'idle' | 'copied' | 'failed'>('idle');
   let timer: ReturnType<typeof setTimeout> | undefined;
 
   async function copy(): Promise<void> {
+    clearTimeout(timer);
+    // Writes are batched, so the outcome is kept in a local, not read back.
+    let next: 'copied' | 'failed' = 'copied';
     try {
       await navigator.clipboard.writeText(props.text());
     } catch {
       // The clipboard needs a secure context and permission.
-      return;
+      next = 'failed';
     }
-    copied = true;
-    clearTimeout(timer);
-    timer = setTimeout(() => (copied = false), 1600);
+    status = next;
+    timer = setTimeout(() => (status = 'idle'), next === 'failed' ? 2400 : 1600);
   }
 
   $cleanup(() => clearTimeout(timer));
@@ -31,18 +37,15 @@
     flex: none;
     gap: 0.375rem;
     align-items: center;
-    height: 1.875rem;
-    padding: 0 0.625rem;
+    justify-content: center;
+    height: 2rem;
+    padding: 0 var(--space-3);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: var(--radius-xs);
     font: 500 0.75rem / 1 var(--font-body);
     color: var(--muted);
     background: var(--panel);
     cursor: pointer;
-    transition:
-      color 200ms var(--ease),
-      border-color 200ms var(--ease),
-      background-color 200ms var(--ease);
   }
 
   button:hover {
@@ -50,41 +53,61 @@
     color: var(--text);
   }
 
-  .done {
+  /* Every label sits in one cell, so the widest sets the width and the
+     button never changes size. */
+  .labels {
+    display: grid;
+  }
+
+  .labels > span {
+    display: inline-flex;
+    grid-area: 1 / 1;
+    gap: 0.375rem;
+    align-items: center;
+    justify-content: center;
+    visibility: hidden;
+  }
+
+  .labels > .on {
+    visibility: visible;
+  }
+
+  .copied {
     color: var(--markup);
+  }
+
+  .failed {
+    color: var(--caution);
+  }
+
+  @media (pointer: coarse) {
+    button {
+      height: 2.75rem;
+    }
   }
 </style>
 
-<button type="button" class={ done: copied } onClick=copy aria-label=props.label>
-  #if (copied) {
-    <svg
-      viewBox="0 0 16 16"
-      width="13"
-      height="13"
-      fill="none"
-      stroke="currentColor"
-      stroke-width="1.75"
-      stroke-linecap="round"
-      stroke-linejoin="round"
-      aria-hidden="true"
-    >
-      <path d="m3 8.5 3 3 7-7" />
-    </svg>
-    Copied
-  } #else {
-    <svg
-      viewBox="0 0 16 16"
-      width="13"
-      height="13"
-      fill="none"
-      stroke="currentColor"
-      stroke-width="1.5"
-      aria-hidden="true"
-    >
-      <rect x="5" y="5" width="8.5" height="8.5" rx="2" />
-      <path d="M10.5 5V3.5a1.5 1.5 0 0 0-1.5-1.5H3.5A1.5 1.5 0 0 0 2 3.5V9a1.5 1.5 0 0 0 1.5 1.5H5" />
-    </svg>
-    Copy
-  }
+<button
+  type="button"
+  class={ copied: status === 'copied', failed: status === 'failed' }
+  onClick=copy
+  aria-label=props.label
+>
+  <span class="labels">
+    <span class={ on: status === 'idle' }>
+      <Icon name="copy" />
+      {props.caption ?? 'Copy'}
+    </span>
+    <span class={ on: status === 'copied' }>
+      <Icon name="check" />
+      Copied
+    </span>
+    <span class={ on: status === 'failed' }>
+      <Icon name="alert" />
+      Failed
+    </span>
+  </span>
 </button>
-<span class="visually-hidden" aria-live="polite">{copied ? 'Copied' : ''}</span>
+<span class="visually-hidden" aria-live="polite">
+  {status === 'copied' ? 'Copied' : status === 'failed' ? "Couldn't copy" : ''}
+</span>

@@ -1,0 +1,79 @@
+<script module>
+  export type IconName =
+    | 'arrow-right'
+    | 'chevron-down'
+    | 'chevron-right'
+    | 'play'
+    | 'copy'
+    | 'check'
+    | 'alert'
+    | 'undo'
+    | 'sun'
+    | 'moon'
+    | 'github';
+
+  interface Shape {
+    paths: string[];
+    /** Filled shapes have no stroke. */
+    filled?: boolean;
+  }
+
+  // Every icon is drawn on a 24 grid with a 1.5 stroke.
+  const SHAPES: Record<IconName, Shape> = {
+    'arrow-right': { paths: ['M5 12h14', 'm13 6 6 6-6 6'] },
+    'chevron-down': { paths: ['m6 9 6 6 6-6'] },
+    'chevron-right': { paths: ['m9 6 6 6-6 6'] },
+    play: { paths: ['M7 4.8v14.4a.8.8 0 0 0 1.2.7l11.5-7.2a.8.8 0 0 0 0-1.4L8.2 4.1A.8.8 0 0 0 7 4.8Z'] },
+    copy: {
+      paths: [
+        'M9 9h9.5a1.5 1.5 0 0 1 1.5 1.5V20a1.5 1.5 0 0 1-1.5 1.5H9A1.5 1.5 0 0 1 7.5 20v-9.5A1.5 1.5 0 0 1 9 9Z',
+        'M15 9V5a1.5 1.5 0 0 0-1.5-1.5H5A1.5 1.5 0 0 0 3.5 5v8.5A1.5 1.5 0 0 0 5 15h2.5',
+      ],
+    },
+    check: { paths: ['m5 12.5 4.5 4.5L19 7.5'] },
+    alert: { paths: ['M12 3.5 2.5 20h19L12 3.5Z', 'M12 10v4', 'M12 17v.01'] },
+    undo: { paths: ['M9 14 4 9l5-5', 'M4 9h10.5a5.5 5.5 0 0 1 0 11H11'] },
+    sun: {
+      paths: [
+        'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z',
+        'M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41',
+      ],
+    },
+    moon: { paths: ['M20.5 14.5A8.5 8.5 0 0 1 9.5 3.5a8.5 8.5 0 1 0 11 11Z'] },
+    github: {
+      filled: true,
+      paths: [
+        'M12 1.5C6.2 1.5 1.5 6.2 1.5 12c0 4.64 3 8.57 7.18 9.96.53.1.72-.23.72-.5v-1.96c-2.92.63-3.54-1.24-3.54-1.24-.48-1.21-1.17-1.54-1.17-1.54-.95-.65.08-.64.08-.64 1.05.08 1.6 1.08 1.6 1.08.94 1.6 2.46 1.14 3.06.87.1-.68.37-1.14.66-1.4-2.33-.27-4.78-1.17-4.78-5.18 0-1.15.41-2.08 1.08-2.82-.11-.26-.47-1.33.1-2.78 0 0 .88-.28 2.89 1.08a10 10 0 0 1 5.25 0c2-1.36 2.88-1.08 2.88-1.08.58 1.45.22 2.52.1 2.78.68.74 1.08 1.67 1.08 2.82 0 4.02-2.45 4.9-4.79 5.16.38.33.71.97.71 1.95v2.9c0 .28.19.6.73.5A10.5 10.5 0 0 0 22.5 12c0-5.8-4.7-10.5-10.5-10.5Z',
+      ],
+    },
+  };
+</script>
+
+<script>
+  // One set, one stroke, two sizes: 16 inside text, 20 on its own.
+  const { name, size = 16 } = $props<{ name: IconName; size?: 16 | 20 }>();
+  const shape = SHAPES[name];
+</script>
+
+<style>
+  svg {
+    display: block;
+    flex: none;
+  }
+</style>
+
+<svg
+  viewBox="0 0 24 24"
+  width=size
+  height=size
+  fill=(shape.filled ? 'currentColor' : 'none')
+  stroke=(shape.filled ? 'none' : 'currentColor')
+  stroke-width="1.5"
+  stroke-linecap="round"
+  stroke-linejoin="round"
+  aria-hidden="true"
+>
+  #for (d of shape.paths) {
+    <path d=d />
+  }
+</svg>
