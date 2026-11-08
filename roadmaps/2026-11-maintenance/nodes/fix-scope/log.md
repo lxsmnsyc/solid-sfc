@@ -8,3 +8,5 @@
 - Fast check passed (373 + 50 + 21 tests), oxlint clean, oxfmt clean.
 - PR #60 also changes reactive.ts (TS wrappers on update targets, "Unsupported write" for for-of heads). Not owned by this node, not ported.
 - Draft PR: https://github.com/lxsmnsyc/solid-sfc/pull/9
+- Follow-up (reactive.ts now owned): wrote test/labels/signal-writes.test.ts. Base (origin/main scope.ts and reactive.ts), `pnpm --filter solid-sfc exec vitest run test/labels/signal-writes.test.ts`: 2 failed (`x!++` output had 1 oxc parse error; for-of did not throw). Branch: 2 passed.
+- The PR #60 reactive.ts patch applied only in part (our copy has no `unused` logic); the TS_WRAPPERS skip was applied by hand. Fast check 375+50+21 passed, oxlint and oxfmt clean. Commit 9b17dcd pushed, PR body updated.

@@ -4,7 +4,8 @@
 
 - `packages/solid-sfc/src/labels/scope.ts`: ported solid-labels b538dbc (name scopes for named function and class expressions, separate body var scope when parameters have defaults) and the scope.ts part of PR #60 (for-in/for-of heads and update targets via `visitAssignTarget`). The 3 `JSXName.binding` lines are kept.
 - `packages/solid-sfc/src/labels/CLAUDE.md`: names the upstream path and the synced commit.
-- `packages/solid-sfc/test/labels/scope.test.ts`: 9 tests.
+- `packages/solid-sfc/src/labels/reactive.ts`: PR #60 TS wrapper skip in `rewriteWrite` (`x!++`, `(x as T)++`); for-of/for-in heads now reach the existing "Unsupported write" error.
+- `packages/solid-sfc/test/labels/scope.test.ts`: 9 tests. `signal-writes.test.ts`: 2 tests (compiled output parsed with oxc-parser).
 - `.changeset/quiet-scopes-fix.md`: patch for `solid-sfc`.
 - Draft PR: https://github.com/lxsmnsyc/solid-sfc/pull/9
 
@@ -12,10 +13,11 @@
 
 - base: 1ca2128, `pnpm exec vitest run test/labels/scope.test.ts` (in packages/solid-sfc): 7 failed, 2 passed.
 - branch: same command: 9 passed.
+- base: signal-writes.test.ts at origin/main sources: 2 failed (1 oxc parse error on `x!++` output; for-of did not throw). branch: 2 passed.
 
 ## Deviations
 
-- The reactive.ts half of PR #60 is not ported (not an owned path). Compiled `.solid` output for `$signal` writes through `x!++` or a for-of head is therefore not covered by a validity test; that acceptance item is not met. Needs a decision.
+- The `unused` handling in upstream `rewriteWrite` does not exist in our copy, so only the TS wrapper skip was ported by hand.
 - PR #60 was still open (head 9ad98b3) at port time, so the sync note says so.
 - The function-expression-name case already passed on main; kept as a regression test.
 
@@ -25,7 +27,6 @@
 
 ## Gotchas
 
-- reactive.ts here has no TS wrapper handling in `rewriteWrite`; `x!++` on a `$signal` likely still emits `x()!++`.
 - Update the commit in `src/labels/CLAUDE.md` when PR #60 merges upstream.
 
 ## Proposed learnings
@@ -38,4 +39,4 @@
 
 ## Size
 
-- Estimated M, actual S. Both patches applied cleanly.
+- Estimated M, actual S.
