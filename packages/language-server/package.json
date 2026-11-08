@@ -43,8 +43,8 @@
   },
   "dependencies": {
     "@solid-sfc/language-core": "workspace:*",
-    "@volar/language-server": "2.4.28",
-    "@volar/language-service": "2.4.28",
+    "@volar/language-server": "2.4.31",
+    "@volar/language-service": "2.4.31",
     "solid-sfc": "workspace:*",
     "typescript-api": "npm:typescript@6.0.3",
     "volar-service-css": "0.0.71",
@@ -53,7 +53,7 @@
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
-    "tsdown": "^0.23.1",
+    "tsdown": "^0.23.7",
     "typescript": "^7.0.2"
   },
   "engines": {
