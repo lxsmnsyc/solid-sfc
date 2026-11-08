@@ -38,6 +38,39 @@ const SERVER_FUNCTION_SUFFIX = '.tsx';
 // Where `@solidjs/vite-plugin` writes the server function modules of a client build.
 const PERSISTED_MANIFEST = '.vite/solid-server-functions.json';
 
+export type PersistedManifest = string[] | ({ modules: string[] } & Record<string, unknown>);
+
+/**
+ * The style modules of a component have ids such as `App.solid?solid-sfc&type=style`.
+ * The default filter of `@solidjs/vite-plugin` matches `.solid` followed by a query,
+ * so it would compile the CSS as JavaScript. This adds them to `exclude`.
+ */
+export function withStyleExclude(
+  options: Partial<SolidPluginOptions>,
+): Partial<SolidPluginOptions> {
+  const exclude = options.exclude;
+  const own = /\?solid-sfc&type=style/;
+  if (exclude == null) {
+    return { ...options, exclude: [own] };
+  }
+  return { ...options, exclude: Array.isArray(exclude) ? [...exclude, own] : [exclude, own] };
+}
+
+export function renameManifestModules(manifest: PersistedManifest): PersistedManifest {
+  // Older plugins write an array of modules, newer ones an object with the modules inside.
+  const modules = Array.isArray(manifest) ? manifest : manifest.modules;
+  const names: string[] = [];
+  for (const entry of modules) {
+    names.push(
+      entry.endsWith(`${EXTENSION}${SERVER_FUNCTION_SUFFIX}`)
+        ? entry.slice(0, -SERVER_FUNCTION_SUFFIX.length)
+        : entry,
+    );
+  }
+  // Keep the other keys as they are
+  return Array.isArray(manifest) ? names : { ...manifest, modules: names };
+}
+
 /**
  * The server function transform of `@solidjs/vite-plugin` passes the module
  * id to Solid's compiler, which only reads JavaScript and TypeScript names.
@@ -47,7 +80,7 @@ const PERSISTED_MANIFEST = '.vite/solid-server-functions.json';
  * writes for the server build only keeps files that exist, so it gets the
  * `.solid` names.
  */
-function withServerFunctionNames(plugins: Plugin[]): Plugin[] {
+export function withServerFunctionNames(plugins: Plugin[]): Plugin[] {
   for (const plugin of plugins) {
     if (
       plugin.name === 'solid:server-functions/setup' &&
@@ -58,13 +91,8 @@ function withServerFunctionNames(plugins: Plugin[]): Plugin[] {
         await writeBundle.call(this, options, bundle);
         const file = path.join(options.dir ?? '', PERSISTED_MANIFEST);
         if (options.dir && existsSync(file)) {
-          const entries = JSON.parse(await readFile(file, 'utf8')) as string[];
-          const names = entries.map((entry) =>
-            entry.endsWith(`${EXTENSION}${SERVER_FUNCTION_SUFFIX}`)
-              ? entry.slice(0, -SERVER_FUNCTION_SUFFIX.length)
-              : entry,
-          );
-          await writeFile(file, JSON.stringify(names, null, 2));
+          const manifest = renameManifestModules(JSON.parse(await readFile(file, 'utf8')));
+          await writeFile(file, JSON.stringify(manifest, null, 2));
         }
       };
     }
@@ -94,7 +122,7 @@ const sfcPlugin = createVitePlugin(factory);
  */
 export default function solidSFC(options: SolidSFCOptions = {}): Plugin[] {
   const { solid = {}, ...rest } = options;
-  const solidOptions = withSolidEntries(solid);
+  const solidOptions = withStyleExclude(withSolidEntries(solid));
   return [
     sfcPlugin({ ...rest, jsx: false }) as Plugin,
     ...withServerFunctionNames(
