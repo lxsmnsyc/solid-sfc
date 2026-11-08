@@ -1,7 +1,7 @@
 ---
 id: fix-scope-48
 title: Record references in decorators, namespaces, enums and TS parameter properties
-status: todo
+status: active
 priority: should
 type: fix
 milestone: 1.0.x
