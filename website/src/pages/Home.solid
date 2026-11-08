@@ -1,6 +1,6 @@
 <script>
-  import example from '../content/example.md';
-  import { href } from '../router.ts';
+  import Hero from '../home/Hero.solid';
+  import Unfold from '../home/Unfold.solid';
 
   const FEATURES = [
     {
@@ -41,41 +41,10 @@
     padding: 4rem 1.5rem;
   }
 
-  .hero {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
-    gap: 3rem;
-    align-items: center;
-  }
-
-  h1 {
-    margin: 0;
-    font-size: clamp(2.25rem, 5vw, 3.25rem);
-    line-height: 1.1;
-  }
-
-  .tagline {
-    margin: 1.25rem 0 2rem;
-    font-size: 1.2rem;
-    color: var(--muted);
-  }
-
-  .actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.75rem;
-  }
-
-  .install {
-    margin-top: 1.5rem;
-    color: var(--muted);
-  }
-
   .features {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
     gap: 1.5rem;
-    margin-top: 5rem;
   }
 
   .feature {
@@ -99,30 +68,13 @@
     main {
       padding: 2.5rem 1rem;
     }
-
-    .hero {
-      grid-template-columns: minmax(0, 1fr);
-    }
   }
 </style>
 
-<main>
-  <section class="hero">
-    <div>
-      <h1>Single-file components for SolidJS</h1>
-      <p class="tagline">
-        Write a Solid 2.0 component as one <code>.solid</code> file, with reactive variables,
-        control flow blocks and scoped styles.
-      </p>
-      <div class="actions">
-        <a class="button primary" href=href('/docs/getting-started')>Get started</a>
-        <a class="button" href=href('/playground')>Try the playground</a>
-      </div>
-      <p class="install"><code>npm install solid-sfc</code></p>
-    </div>
-    <div innerHTML=example.html />
-  </section>
+<Hero />
+<Unfold />
 
+<main>
   <section class="features">
     #for (feature of FEATURES) {
       <div class="feature">

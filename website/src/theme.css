@@ -1,3 +1,209 @@
-/* The colors of highlighted code, light or dark like the rest of the site. */
-@import '@twinkleplop/theme-github/light';
-@import '@twinkleplop/theme-github/dark' (prefers-color-scheme: dark);
+/*
+ * Self-hosted fonts (latin subsets, OFL licenses next to the files) and the
+ * colors of highlighted code. The code colors come from the tokens in the
+ * global style of App.solid, so they follow light and dark with the page.
+ */
+
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/geist-latin-400-normal.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/geist-latin-500-normal.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/fonts/geist-latin-600-normal.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/geist-latin-700-normal.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url('/fonts/geist-latin-800-normal.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Geist Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/geist-mono-latin-400-normal.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Geist Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/geist-mono-latin-500-normal.woff2') format('woff2');
+}
+
+/* Plain text and names. */
+.twinkleplop {
+  color: var(--text);
+}
+
+/* Keywords, directives and control flow blocks. */
+.twinkleplop
+  :is(
+    .keyword,
+    .directive,
+    .tag,
+    .expression,
+    .svelte_block,
+    .attr_sigil,
+    .lifetime,
+    .format,
+    .prompt_prefix,
+    .heading,
+    .heading_marker,
+    .link_text,
+    .link_text_open,
+    .link_text_close
+  ) {
+  color: var(--script);
+}
+
+/* Calls, builtins and decorators, such as `$signal`. */
+.twinkleplop :is(.function, .builtin, .decorator) {
+  color: var(--important);
+}
+
+/* Values: numbers, constants, CSS selectors and attribute names. */
+.twinkleplop
+  :is(
+    .number,
+    .boolean,
+    .constant,
+    .null,
+    .bit,
+    .datetime,
+    .unit,
+    .variant,
+    .css_variable,
+    .selector,
+    .selector_class,
+    .selector_id,
+    .selector_pseudo,
+    .attr_name,
+    .attribute,
+    .entity,
+    .changed,
+    .changed_marker,
+    .list_marker,
+    .array_table_header
+  ) {
+  color: var(--style);
+}
+
+/* Types and class names. */
+.twinkleplop :is(.type, .class_name, .namespace) {
+  color: var(--warning);
+}
+
+/* Strings and tag names. */
+.twinkleplop
+  :is(
+    .string,
+    .template,
+    .regex,
+    .string_escape,
+    .escape,
+    .tag_name,
+    .svelte_directive,
+    .code,
+    .code_open,
+    .code_close,
+    .code_block,
+    .code_language,
+    .inserted,
+    .inserted_marker,
+    .task_marker,
+    .output,
+    .url,
+    .url_link,
+    .url_title,
+    .autolink,
+    .autolink_open,
+    .autolink_close
+  ) {
+  color: var(--markup);
+}
+
+/* Comments, punctuation and markers recede. */
+.twinkleplop
+  :is(
+    .comment,
+    .punctuation,
+    .operator,
+    .doctype,
+    .hash,
+    .label,
+    .code_fence,
+    .blockquote_marker,
+    .front_matter_marker,
+    .hr,
+    .hard_break,
+    .block_scalar_header,
+    .doc_marker
+  ) {
+  color: var(--muted);
+}
+
+.twinkleplop :is(.deleted, .deleted_marker) {
+  color: var(--caution);
+}
+
+.twinkleplop :is(.heading, .bold) {
+  font-weight: 600;
+}
+
+.twinkleplop .italic {
+  font-style: italic;
+}
+
+.twinkleplop .strike {
+  text-decoration: line-through;
+}
+
+.twinkleplop :is(.autolink, .url_link) {
+  text-decoration: underline;
+}
+
+.twinkleplop :is(.space, .tab, .newline) {
+  white-space: pre;
+}
+
+/* `.label` is also a class of the site; code spans keep code type. */
+.twinkleplop .label {
+  display: inline;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: none;
+}
+
+.twinkleplop .label::before {
+  content: none;
+}
