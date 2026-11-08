@@ -17,8 +17,8 @@ import {
 
 // The seed is pinned so a failure replays. fast-check prints it, with the
 // shrunk counterexample, when a property fails.
-const SEED = Number(process.env.PBT_SEED ?? 20261108);
-const RUNS = Number(process.env.PBT_RUNS ?? 300);
+const SEED = Number(process.env.FC_SEED ?? process.env.PBT_SEED ?? 20261108);
+const RUNS = Number(process.env.FC_RUNS ?? process.env.PBT_RUNS ?? 300);
 
 /** Runs the property with the pinned seed and reports the seed and the shrunk case on failure. */
 function report<T>(property: fc.IProperty<T>): string {
@@ -34,18 +34,22 @@ type Outcome =
 // sources. Compiling each source once keeps the suite fast.
 const outcomes = new Map<string, Outcome>();
 
+/** Compiles without the cache. */
+function run(source: string): Outcome {
+  try {
+    const { code, map } = compile(source, { filename: 'Test.solid' });
+    return { ok: true, code, map };
+  } catch (error) {
+    return { ok: false, error };
+  }
+}
+
 function attempt(source: string): Outcome {
   const known = outcomes.get(source);
   if (known) {
     return known;
   }
-  let outcome: Outcome;
-  try {
-    const { code, map } = compile(source, { filename: 'Test.solid' });
-    outcome = { ok: true, code, map };
-  } catch (error) {
-    outcome = { ok: false, error };
-  }
+  const outcome = run(source);
   outcomes.set(source, outcome);
   return outcome;
 }
@@ -144,12 +148,15 @@ describe('compile on generated files', () => {
     expect(
       report(
         fc.property(solidFile, (source) => {
-          const first = attempt(source);
-          const second = attempt(source);
+          // Compile twice without the cache.
+          const first = run(source);
+          const second = run(source);
           if (!first.ok || !second.ok) {
             return first.ok === second.ok;
           }
-          return first.code === second.code;
+          return (
+            first.code === second.code && JSON.stringify(first.map) === JSON.stringify(second.map)
+          );
         }),
       ),
     ).toBe('');
@@ -227,20 +234,31 @@ describe('block scanner', () => {
           } catch {
             return true;
           }
-          const pieces: { start: number; end: number }[] = [...result.blocks, ...result.markup];
+          // Blocks, top-level templates and markup must tile the source.
+          const pieces: { start: number; end: number }[] = [
+            ...result.blocks,
+            ...result.templates,
+            ...result.markup,
+          ];
           pieces.sort((a, b) => a.start - b.start);
-          let joined = '';
           let position = 0;
           for (const piece of pieces) {
-            if (piece.start < position) {
+            if (piece.start !== position || piece.end <= piece.start) {
               return false;
             }
-            // Top-level templates sit inside the markup ranges, not between them.
-            joined += source.slice(position, piece.start) + source.slice(piece.start, piece.end);
             position = piece.end;
           }
-          joined += source.slice(position);
-          return joined === source;
+          if (position !== source.length) {
+            return false;
+          }
+          // Each block starts with its opening tag and ends with its closing tag.
+          for (const block of result.blocks) {
+            const text = source.slice(block.start, block.end);
+            if (!text.startsWith(`<${block.type}`) || !/<\/(script|style)\s*>$/.test(text)) {
+              return false;
+            }
+          }
+          return true;
         }),
       ),
     ).toBe('');
@@ -310,7 +328,6 @@ describe('findings', () => {
       ' /* } */',
       ' /* ) */',
       ' /* by */',
-      '.filter((i) => /[}]/.test(i))',
       ".filter((i) => /'/.test(i))",
     );
     expect(

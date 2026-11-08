@@ -186,13 +186,13 @@ function node(depth: number): fc.Arbitrary<string> {
     .map(([tag, attrs, children]) => `<{${tag}}${attrs}>${children.join('\n')}</>`);
   return fc.oneof(
     { depthSize: 'small' },
-    leaf,
-    voidElement,
-    selfClosing,
-    nativeElement,
-    fragment,
-    dynamic,
-    controlBlock(depth - 1),
+    { weight: 2, arbitrary: leaf },
+    { weight: 1, arbitrary: voidElement },
+    { weight: 1, arbitrary: selfClosing },
+    { weight: 2, arbitrary: nativeElement },
+    { weight: 1, arbitrary: fragment },
+    { weight: 1, arbitrary: dynamic },
+    { weight: 6, arbitrary: controlBlock(depth - 1) },
   );
 }
 
@@ -277,16 +277,16 @@ function controlBlock(depth: number): fc.Arbitrary<string> {
     .map(([head, inner]) => `${head}${inner}`);
   const key = fc.tuple(expression, content).map(([test, inner]) => `#key (${test})${inner}`);
   return fc.oneof(
-    ifBlock,
-    forBlock,
-    repeat,
-    switchBlock,
-    tryBlock,
-    loading,
-    reveal,
-    portal,
-    hydration,
-    key,
+    { weight: 4, arbitrary: ifBlock },
+    { weight: 4, arbitrary: forBlock },
+    { weight: 1, arbitrary: repeat },
+    { weight: 3, arbitrary: switchBlock },
+    { weight: 3, arbitrary: tryBlock },
+    { weight: 3, arbitrary: loading },
+    { weight: 1, arbitrary: reveal },
+    { weight: 1, arbitrary: portal },
+    { weight: 1, arbitrary: hydration },
+    { weight: 1, arbitrary: key },
   );
 }
 
