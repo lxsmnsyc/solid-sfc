@@ -20,6 +20,8 @@ export interface Binding {
   node: Node;
   scope: Scope;
   refs: Ref[];
+  /** Set for `export` declarations directly inside a namespace body. */
+  exported?: boolean;
 }
 
 export type ScopeKind = 'module' | 'function' | 'block';
@@ -29,6 +31,11 @@ export interface Scope {
   node: Node;
   parent: Scope | null;
   bindings: Map<string, Binding>;
+  /**
+   * Scopes of other declarations of the same enum or namespace in the same
+   * scope. Their enum members and exported namespace members are visible here.
+   */
+  merged?: Scope[];
 }
 
 export interface JSXName {
@@ -64,6 +71,8 @@ const SCOPE_NODES = new Set([
   'ForOfStatement',
   'CatchClause',
   'SwitchStatement',
+  'TSModuleBlock',
+  'TSEnumDeclaration',
 ]);
 
 const FUNCTION_SCOPES = new Set([
@@ -71,14 +80,15 @@ const FUNCTION_SCOPES = new Set([
   'FunctionExpression',
   'ArrowFunctionExpression',
   'StaticBlock',
+  'TSModuleBlock',
 ]);
+
+const IDENTIFIER_NAME = /^[\p{ID_Start}$_][\p{ID_Continue}$\u200c\u200d]*$/u;
 
 const SKIP_TS_STATEMENTS = new Set([
   'TSInterfaceDeclaration',
   'TSTypeAliasDeclaration',
-  'TSModuleDeclaration',
   'TSDeclareFunction',
-  'TSImportEqualsDeclaration',
 ]);
 
 /**
@@ -111,16 +121,52 @@ export function analyze(program: Node): Analysis {
     bindingByNode: new Map(),
   };
 
+  /** Namespace scope whose `export` declaration is being declared, if any. */
+  let exportScope: Scope | null = null;
+
   /** Declares a binding in `scope`; first declaration of a name wins. */
-  function declare(id: Node, kind: string, scope: Scope): void {
-    analysis.names.add(id.name);
-    if (scope.bindings.has(id.name)) {
+  function declare(id: Node, kind: string, scope: Scope, name: string = id.name): void {
+    analysis.names.add(name);
+    if (scope.bindings.has(name)) {
       return;
     }
-    const binding: Binding = { name: id.name, kind, node: id, scope, refs: [] };
-    scope.bindings.set(id.name, binding);
+    const binding: Binding = { name, kind, node: id, scope, refs: [] };
+    if (scope === exportScope) {
+      binding.exported = true;
+    }
+    scope.bindings.set(name, binding);
     analysis.bindings.push(binding);
     analysis.bindingByNode.set(id, binding);
+  }
+
+  /** Earlier and sibling scopes of one enum or namespace, by containing scope and name. */
+  const mergeGroups = new Map<Scope, Map<string, Scope[]>>();
+
+  /** Group of scopes that declare the same enum or namespace within `scope`. */
+  function mergeGroup(scope: Scope, key: string): Scope[] {
+    let groups = mergeGroups.get(scope);
+    if (!groups) {
+      groups = new Map();
+      mergeGroups.set(scope, groups);
+    }
+    let group = groups.get(key);
+    if (!group) {
+      group = [];
+      groups.set(key, group);
+    }
+    return group;
+  }
+
+  /** Dotted name of a namespace id (`A.B`), or null for `declare module "x"`. */
+  function namespaceKey(id: Node): string | null {
+    if (id.type === 'Identifier') {
+      return id.name;
+    }
+    if (id.type === 'TSQualifiedName') {
+      const left = namespaceKey(id.left);
+      return left == null ? null : `${left}.${id.right.name}`;
+    }
+    return null;
   }
 
   /** Function bodies that get their own var scope (the function has parameter expressions). */
@@ -133,6 +179,8 @@ export function analyze(program: Node): Analysis {
     switch (pattern.type) {
       case 'AssignmentPattern':
         return true;
+      case 'TSParameterProperty':
+        return hasParameterExpression(pattern.parameter);
       case 'RestElement':
         return hasParameterExpression(pattern.argument);
       case 'ArrayPattern':
@@ -202,6 +250,12 @@ export function analyze(program: Node): Analysis {
    * further declarations, e.g. function expressions).
    */
   function declarePattern(pattern: Node, kind: string, scope: Scope, walkScope: Scope): void {
+    // Decorators on a parameter hold expressions of their own.
+    if (pattern.decorators) {
+      for (const decorator of pattern.decorators) {
+        declareWalk(decorator, walkScope);
+      }
+    }
     switch (pattern.type) {
       case 'Identifier':
         declare(pattern, kind, scope);
@@ -232,6 +286,9 @@ export function analyze(program: Node): Analysis {
       }
       case 'RestElement':
         declarePattern(pattern.argument, kind, scope, walkScope);
+        break;
+      case 'TSParameterProperty':
+        declarePattern(pattern.parameter, kind, scope, walkScope);
         break;
       default:
         break;
@@ -316,9 +373,70 @@ export function analyze(program: Node): Analysis {
         break;
       }
       case 'TSEnumDeclaration': {
-        if (node.id) {
-          declare(node.id, 'enum', currentScope);
+        // The name lives in the outer scope; the members live in the enum's own scope.
+        declare(node.id, 'enum', scope);
+        // Members of earlier `enum E {}` blocks in the same scope are visible here.
+        const enumGroup = mergeGroup(scope, `enum ${node.id.name}`);
+        currentScope.merged = [...enumGroup];
+        enumGroup.push(currentScope);
+        for (const member of node.body.members) {
+          if (member.id.type === 'Identifier') {
+            declare(member.id, 'enum-member', currentScope);
+          } else if (
+            member.id.type === 'Literal' &&
+            typeof member.id.value === 'string' &&
+            IDENTIFIER_NAME.test(member.id.value)
+          ) {
+            // `"a" = 1` can be referenced as `a`.
+            declare(member.id, 'enum-member', currentScope, member.id.value);
+          } else if (member.computed) {
+            declareWalk(member.id, currentScope);
+          }
         }
+        for (const member of node.body.members) {
+          if (member.initializer) {
+            declareWalk(member.initializer, currentScope);
+          }
+        }
+        break;
+      }
+      case 'TSModuleDeclaration': {
+        // `namespace A.B {}` declares `A`. `declare module "x"` and `declare global` declare nothing.
+        let root = node.id;
+        while (root.type === 'TSQualifiedName') {
+          root = root.left;
+        }
+        if (root.type === 'Identifier' && node.kind !== 'global') {
+          declare(root, 'namespace', scope);
+        }
+        if (node.body) {
+          declareWalk(node.body, currentScope);
+          // Exported members of every block of the same namespace see each other.
+          const key = node.kind === 'global' ? null : namespaceKey(node.id);
+          const body = scopeMap.get(node.body);
+          if (key != null && body) {
+            const group = mergeGroup(scope, `namespace ${key}`);
+            for (const other of group) {
+              (other.merged ??= []).push(body);
+              (body.merged ??= []).push(other);
+            }
+            group.push(body);
+          }
+        }
+        break;
+      }
+      case 'ExportNamedDeclaration': {
+        // Only declarations directly in a namespace body become namespace members.
+        const previous = exportScope;
+        exportScope = scope.node.type === 'TSModuleBlock' ? scope : null;
+        eachChild(node, (child) => {
+          declareWalk(child, currentScope);
+        });
+        exportScope = previous;
+        break;
+      }
+      case 'TSImportEqualsDeclaration': {
+        declare(node.id, 'import', currentScope);
         break;
       }
       default:
@@ -344,6 +462,16 @@ export function analyze(program: Node): Analysis {
       const binding = scopeStack[i].bindings.get(name);
       if (binding) {
         return binding;
+      }
+      // Enum members and exported namespace members of merged declarations.
+      const merged = scopeStack[i].merged;
+      if (merged) {
+        for (const other of merged) {
+          const shared = other.bindings.get(name);
+          if (shared && (shared.exported || shared.kind === 'enum-member')) {
+            return shared;
+          }
+        }
       }
     }
     return null;
@@ -375,6 +503,33 @@ export function analyze(program: Node): Analysis {
       binding.refs.push(ref);
     } else {
       analysis.unresolved.push(ref);
+    }
+  }
+
+  /**
+   * Resolves decorators with the scopes above `depth` removed. A decorator is
+   * evaluated outside the function or class it is written on, so it cannot
+   * see that node's parameters or class name.
+   */
+  function resolveDecorators(decorators: Node[], depth: number): void {
+    const inner = scopeStack.splice(depth);
+    for (const decorator of decorators) {
+      resolve(decorator);
+    }
+    scopeStack.push(...inner);
+  }
+
+  /** Resolves the decorators written on a parameter pattern, outside the function scope. */
+  function resolveParameterDecorators(pattern: Node, depth: number): void {
+    if (pattern.decorators) {
+      resolveDecorators(pattern.decorators, depth);
+    }
+    if (pattern.type === 'TSParameterProperty') {
+      resolveParameterDecorators(pattern.parameter, depth);
+    } else if (pattern.type === 'AssignmentPattern') {
+      resolveParameterDecorators(pattern.left, depth);
+    } else if (pattern.type === 'RestElement') {
+      resolveParameterDecorators(pattern.argument, depth);
     }
   }
 
@@ -412,6 +567,9 @@ export function analyze(program: Node): Analysis {
       }
       case 'RestElement':
         visitPatternDecl(pattern.argument);
+        break;
+      case 'TSParameterProperty':
+        visitPatternDecl(pattern.parameter);
         break;
       default:
         break;
@@ -516,9 +674,10 @@ export function analyze(program: Node): Analysis {
 
   /** Pass B walker: resolves references, maintaining scope and ancestor stacks. */
   function resolve(node: Node): void {
-    if (SKIP_TS_STATEMENTS.has(node.type) || node.type === 'TSEnumDeclaration') {
+    if (SKIP_TS_STATEMENTS.has(node.type)) {
       return;
     }
+    const outerDepth = scopeStack.length;
     const named = nameScopeMap.get(node);
     if (named) {
       scopeStack.push(named);
@@ -561,6 +720,7 @@ export function analyze(program: Node): Analysis {
       case 'FunctionExpression':
       case 'ArrowFunctionExpression': {
         for (const param of node.params) {
+          resolveParameterDecorators(param, outerDepth);
           visitPatternDecl(param);
         }
         if (node.body) {
@@ -627,6 +787,7 @@ export function analyze(program: Node): Analysis {
       }
       case 'ClassDeclaration':
       case 'ClassExpression': {
+        resolveDecorators(node.decorators, outerDepth);
         if (node.superClass) {
           resolve(node.superClass);
         }
@@ -636,11 +797,42 @@ export function analyze(program: Node): Analysis {
       case 'PropertyDefinition':
       case 'MethodDefinition':
       case 'AccessorProperty': {
+        for (const decorator of node.decorators) {
+          resolve(decorator);
+        }
         if (node.computed) {
           resolve(node.key);
         }
         if (node.value) {
           resolve(node.value);
+        }
+        break;
+      }
+      case 'TSEnumDeclaration': {
+        for (const member of node.body.members) {
+          if (member.computed) {
+            resolve(member.id);
+          }
+          if (member.initializer) {
+            resolve(member.initializer);
+          }
+        }
+        break;
+      }
+      case 'TSModuleDeclaration': {
+        if (node.body) {
+          resolve(node.body);
+        }
+        break;
+      }
+      case 'TSImportEqualsDeclaration': {
+        // `import x = A.B` references `A`. `require("m")` references nothing.
+        let root = node.moduleReference;
+        while (root.type === 'TSQualifiedName') {
+          root = root.left;
+        }
+        if (root.type === 'Identifier') {
+          reference(root, 'read');
         }
         break;
       }
