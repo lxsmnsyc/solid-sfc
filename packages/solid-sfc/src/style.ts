@@ -171,12 +171,19 @@ function scopeSelector(
   });
   const first = compound[0]!;
   const pseudoElement = compound.find(isPseudoElement);
+  // The whitespace in front of a selector of a list, as in `a, ::before`,
+  // stays in front of the attribute. Otherwise it splits the compound.
+  const insertBefore = (node: Selector['nodes'][number]): void => {
+    scope.spaces.before = node.spaces.before;
+    node.spaces.before = '';
+    selector.insertBefore(node, scope);
+  };
   if (atStart && (first.type === 'tag' || first.type === 'universal')) {
     selector.insertAfter(first, scope);
   } else if (atStart) {
-    selector.insertBefore(first, scope);
+    insertBefore(first);
   } else if (pseudoElement) {
-    selector.insertBefore(pseudoElement, scope);
+    insertBefore(pseudoElement);
   } else {
     selector.insertAfter(compound[compound.length - 1]!, scope);
   }
@@ -184,7 +191,8 @@ function scopeSelector(
 }
 
 function renameAnimations(value: string, names: Map<string, string>): string {
-  return value.replace(/[A-Za-z_-][\w-]*/g, (word) => names.get(word) ?? word);
+  // A word does not start inside a number, as the `s` of `1s`.
+  return value.replace(/(?<!\w)[A-Za-z_-][\w-]*/g, (word) => names.get(word) ?? word);
 }
 
 export interface ProcessStylesOptions {

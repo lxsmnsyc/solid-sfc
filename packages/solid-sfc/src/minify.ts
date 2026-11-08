@@ -12,12 +12,15 @@ import { parse } from 'postcss';
  */
 function compact(text: string, separators: string): string {
   let result = '';
+  // The last character written. An escape counts as `\`, so `\,` is no separator.
+  let last: string | undefined;
   let quote: string | undefined;
   let space = false;
   for (let i = 0; i < text.length; i++) {
     const char = text[i]!;
     if (quote) {
       result += char;
+      last = char;
       if (char === '\\') {
         result += text[++i] ?? '';
       } else if (char === quote) {
@@ -29,7 +32,6 @@ function compact(text: string, separators: string): string {
       space = true;
       continue;
     }
-    const last = result.at(-1);
     if (
       space &&
       last !== undefined &&
@@ -41,6 +43,13 @@ function compact(text: string, separators: string): string {
       result += ' ';
     }
     space = false;
+    last = char;
+    if (char === '\\') {
+      // An escaped character, such as `\ ` or `\"`, is part of the token.
+      // PostCSS trims an escaped space at the end of a value, so it is put back.
+      result += char + (text[++i] ?? ' ');
+      continue;
+    }
     if (char === '"' || char === "'") {
       quote = char;
     }
