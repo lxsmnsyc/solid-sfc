@@ -123,6 +123,66 @@ export function analyze(program: Node): Analysis {
     analysis.bindingByNode.set(id, binding);
   }
 
+  /** Function bodies that get their own var scope (the function has parameter expressions). */
+  const separateBodies = new Set<Node>();
+  /** Scopes holding a function or class expression's own name, keyed by that expression. */
+  const nameScopeMap = new Map<Node, Scope>();
+
+  /** Whether a parameter pattern holds a default value or a computed key. */
+  function hasParameterExpression(pattern: Node): boolean {
+    switch (pattern.type) {
+      case 'AssignmentPattern':
+        return true;
+      case 'RestElement':
+        return hasParameterExpression(pattern.argument);
+      case 'ArrayPattern':
+        for (const el of pattern.elements) {
+          if (el && hasParameterExpression(el)) {
+            return true;
+          }
+        }
+        return false;
+      case 'ObjectPattern':
+        for (const prop of pattern.properties) {
+          if (prop.type === 'RestElement') {
+            if (hasParameterExpression(prop.argument)) {
+              return true;
+            }
+          } else if (prop.computed || hasParameterExpression(prop.value)) {
+            return true;
+          }
+        }
+        return false;
+      default:
+        return false;
+    }
+  }
+
+  /** Declares parameters, then the body, keeping body `var`s apart from defaults when needed. */
+  function declareFunction(node: Node, currentScope: Scope): void {
+    let separate = false;
+    for (const param of node.params) {
+      declarePattern(param, 'param', currentScope, currentScope);
+      if (!separate && hasParameterExpression(param)) {
+        separate = true;
+      }
+    }
+    if (node.body) {
+      if (separate && node.body.type === 'BlockStatement') {
+        separateBodies.add(node.body);
+      }
+      declareWalk(node.body, currentScope);
+    }
+  }
+
+  /** Creates the scope that holds a function or class expression's own name. */
+  function declareNameScope(node: Node, kind: string, scope: Scope): Scope {
+    const nameScope: Scope = { kind: 'block', node, parent: scope, bindings: new Map() };
+    declare(node.id, kind, nameScope);
+    nameScopeMap.set(node, nameScope);
+    return nameScope;
+  }
+
   /** Nearest function (or module) scope — the hoisting target for `var`. */
   function varScope(scope: Scope): Scope {
     let current = scope;
@@ -184,11 +244,14 @@ export function analyze(program: Node): Analysis {
       return;
     }
     let currentScope = scope;
+    if (node.type === 'FunctionExpression' && node.id) {
+      currentScope = declareNameScope(node, 'function', scope);
+    }
     if (node !== program && SCOPE_NODES.has(node.type)) {
       currentScope = {
-        kind: FUNCTION_SCOPES.has(node.type) ? 'function' : 'block',
+        kind: FUNCTION_SCOPES.has(node.type) || separateBodies.has(node) ? 'function' : 'block',
         node,
-        parent: scope,
+        parent: currentScope,
         bindings: new Map(),
       };
       scopeMap.set(node, currentScope);
@@ -208,25 +271,12 @@ export function analyze(program: Node): Analysis {
         if (node.id) {
           declare(node.id, 'function', scope);
         }
-        for (const param of node.params) {
-          declarePattern(param, 'param', currentScope, currentScope);
-        }
-        if (node.body) {
-          declareWalk(node.body, currentScope);
-        }
+        declareFunction(node, currentScope);
         break;
       }
       case 'FunctionExpression':
       case 'ArrowFunctionExpression': {
-        if (node.id) {
-          declare(node.id, 'function', currentScope);
-        }
-        for (const param of node.params) {
-          declarePattern(param, 'param', currentScope, currentScope);
-        }
-        if (node.body) {
-          declareWalk(node.body, currentScope);
-        }
+        declareFunction(node, currentScope);
         break;
       }
       case 'CatchClause': {
@@ -249,6 +299,18 @@ export function analyze(program: Node): Analysis {
         eachChild(node, (child) => {
           if (child !== node.id) {
             declareWalk(child, currentScope);
+          }
+        });
+        break;
+      }
+      case 'ClassExpression': {
+        if (node.id) {
+          currentScope = declareNameScope(node, 'class', scope);
+        }
+        const classScope = currentScope;
+        eachChild(node, (child) => {
+          if (child !== node.id) {
+            declareWalk(child, classScope);
           }
         });
         break;
@@ -457,6 +519,10 @@ export function analyze(program: Node): Analysis {
     if (SKIP_TS_STATEMENTS.has(node.type) || node.type === 'TSEnumDeclaration') {
       return;
     }
+    const named = nameScopeMap.get(node);
+    if (named) {
+      scopeStack.push(named);
+    }
     const mapped = scopeMap.get(node);
     if (mapped) {
       scopeStack.push(mapped);
@@ -508,11 +574,19 @@ export function analyze(program: Node): Analysis {
         break;
       }
       case 'UpdateExpression': {
-        if (node.argument.type === 'Identifier') {
-          reference(node.argument, 'readwrite');
+        visitAssignTarget(node.argument, 'readwrite');
+        break;
+      }
+      case 'ForInStatement':
+      case 'ForOfStatement': {
+        // A non-declaration target is an assignment, not a read.
+        if (node.left.type === 'VariableDeclaration') {
+          resolve(node.left);
         } else {
-          resolve(node.argument);
+          visitAssignTarget(node.left, 'write');
         }
+        resolve(node.right);
+        resolve(node.body);
         break;
       }
       case 'CatchClause': {
@@ -604,6 +678,9 @@ export function analyze(program: Node): Analysis {
     }
     parentStack.pop();
     if (mapped) {
+      scopeStack.pop();
+    }
+    if (named) {
       scopeStack.pop();
     }
   }
