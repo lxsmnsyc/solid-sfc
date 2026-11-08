@@ -5,22 +5,6 @@
  */
 
 @font-face {
-  font-family: 'Instrument Serif';
-  font-style: normal;
-  font-weight: 400;
-  font-display: swap;
-  src: url('/fonts/instrument-serif-latin-400-normal.woff2') format('woff2');
-}
-
-@font-face {
-  font-family: 'Instrument Serif';
-  font-style: italic;
-  font-weight: 400;
-  font-display: swap;
-  src: url('/fonts/instrument-serif-latin-400-italic.woff2') format('woff2');
-}
-
-@font-face {
   font-family: 'Geist';
   font-style: normal;
   font-weight: 400;
@@ -45,6 +29,22 @@
 }
 
 @font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/geist-latin-700-normal.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url('/fonts/geist-latin-800-normal.woff2') format('woff2');
+}
+
+@font-face {
   font-family: 'Geist Mono';
   font-style: normal;
   font-weight: 400;
@@ -62,10 +62,10 @@
 
 /* Plain text and names. */
 .twinkleplop {
-  color: var(--ink);
+  color: var(--text);
 }
 
-/* Structure: keywords, directives and control flow take the script hue. */
+/* Keywords, directives and control flow blocks. */
 .twinkleplop
   :is(
     .keyword,
@@ -74,8 +74,6 @@
     .expression,
     .svelte_block,
     .attr_sigil,
-    .decorator,
-    .builtin,
     .lifetime,
     .format,
     .prompt_prefix,
@@ -83,18 +81,17 @@
     .heading_marker,
     .link_text,
     .link_text_open,
-    .link_text_close,
-    .url,
-    .url_link,
-    .url_title,
-    .autolink,
-    .autolink_open,
-    .autolink_close
+    .link_text_close
   ) {
   color: var(--script);
 }
 
-/* Values and styling: numbers, constants, types, selectors and attributes. */
+/* Calls, builtins and decorators, such as `$signal`. */
+.twinkleplop :is(.function, .builtin, .decorator) {
+  color: var(--important);
+}
+
+/* Values: numbers, constants, CSS selectors and attribute names. */
 .twinkleplop
   :is(
     .number,
@@ -105,9 +102,6 @@
     .datetime,
     .unit,
     .variant,
-    .type,
-    .class_name,
-    .namespace,
     .css_variable,
     .selector,
     .selector_class,
@@ -124,7 +118,12 @@
   color: var(--style);
 }
 
-/* Text and markup: strings and tag names. */
+/* Types and class names. */
+.twinkleplop :is(.type, .class_name, .namespace) {
+  color: var(--warning);
+}
+
+/* Strings and tag names. */
 .twinkleplop
   :is(
     .string,
@@ -142,12 +141,18 @@
     .inserted,
     .inserted_marker,
     .task_marker,
-    .output
+    .output,
+    .url,
+    .url_link,
+    .url_title,
+    .autolink,
+    .autolink_open,
+    .autolink_close
   ) {
   color: var(--markup);
 }
 
-/* Quiet: comments, punctuation and markers recede. */
+/* Comments, punctuation and markers recede. */
 .twinkleplop
   :is(
     .comment,
@@ -171,10 +176,6 @@
   color: var(--caution);
 }
 
-.twinkleplop .function {
-  font-weight: 500;
-}
-
 .twinkleplop :is(.heading, .bold) {
   font-weight: 600;
 }
@@ -195,10 +196,14 @@
   white-space: pre;
 }
 
-/* `.label` is also a margin label class of the site; code spans keep code type. */
+/* `.label` is also a class of the site; code spans keep code type. */
 .twinkleplop .label {
   display: inline;
   font: inherit;
   letter-spacing: inherit;
   text-transform: none;
+}
+
+.twinkleplop .label::before {
+  content: none;
 }

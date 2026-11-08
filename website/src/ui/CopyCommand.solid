@@ -1,0 +1,169 @@
+<script module>
+  import { createSignal } from 'solid-js';
+
+  const MANAGERS = ['npm', 'pnpm', 'yarn', 'bun'] as const;
+  type Manager = (typeof MANAGERS)[number];
+
+  function readManager(): Manager {
+    try {
+      const saved = localStorage.getItem('package-manager');
+      for (const name of MANAGERS) {
+        if (name === saved) {
+          return name;
+        }
+      }
+    } catch {
+      // Storage can be off.
+    }
+    return 'npm';
+  }
+
+  // Every install line on the site shows the same package manager.
+  const [manager, setManager] = createSignal<Manager>(readManager());
+
+  let instances = 0;
+</script>
+
+<script>
+  import CopyButton from './CopyButton.solid';
+
+  interface Props {
+    /** Packages to install, such as `solid-sfc`. */
+    packages: string;
+    dev?: boolean;
+  }
+
+  const props = $props<Props>();
+  const id = `install-${instances++}`;
+
+  function command(name: Manager): string {
+    const verb = name === 'npm' ? 'install' : 'add';
+    const flag = props.dev ? (name === 'npm' ? ' --save-dev' : ' -D') : '';
+    return `${name} ${verb}${flag} ${props.packages}`;
+  }
+
+  const line = $memo(command(manager()));
+
+  function choose(name: Manager): void {
+    setManager(() => name);
+    try {
+      localStorage.setItem('package-manager', name);
+    } catch {
+      // Storage can be off.
+    }
+  }
+
+  // Arrow keys move between the tabs, as in a tab list.
+  function move(event: KeyboardEvent, index: number): void {
+    let next = index;
+    if (event.key === 'ArrowRight') {
+      next = (index + 1) % MANAGERS.length;
+    } else if (event.key === 'ArrowLeft') {
+      next = (index + MANAGERS.length - 1) % MANAGERS.length;
+    } else if (event.key === 'Home') {
+      next = 0;
+    } else if (event.key === 'End') {
+      next = MANAGERS.length - 1;
+    } else {
+      return;
+    }
+    event.preventDefault();
+    choose(MANAGERS[next]!);
+    const tabs = (event.currentTarget as HTMLElement).parentElement?.children;
+    (tabs?.[next] as HTMLElement | undefined)?.focus();
+  }
+</script>
+
+<style>
+  .install {
+    overflow: hidden;
+    text-align: left;
+  }
+
+  .tabs {
+    display: flex;
+    gap: var(--space-1);
+    padding: 0 var(--space-3);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .tab {
+    position: relative;
+    padding: 0.625rem 0.5rem;
+    border: 0;
+    font: 500 0.8125rem / 1 var(--font-body);
+    color: var(--muted);
+    background: none;
+    cursor: pointer;
+    transition: color 200ms var(--ease);
+  }
+
+  .tab:hover {
+    color: var(--text);
+  }
+
+  .tab[aria-selected='true'] {
+    color: var(--text);
+  }
+
+  .tab[aria-selected='true']::after {
+    content: '';
+    position: absolute;
+    inset: auto 0.25rem -1px;
+    height: 2px;
+    border-radius: 2px;
+    background: var(--accent);
+    box-shadow: 0 0 12px var(--accent);
+  }
+
+  .tab:focus-visible {
+    outline-offset: -2px;
+  }
+
+  .line {
+    display: flex;
+    gap: var(--space-3);
+    align-items: center;
+    padding: var(--space-2) var(--space-2) var(--space-2) var(--space-4);
+  }
+
+  code {
+    flex: 1;
+    padding: 0;
+    border: 0;
+    background: none;
+    overflow-x: auto;
+    font-size: 0.875rem;
+    white-space: nowrap;
+    scrollbar-width: none;
+  }
+
+  .prompt {
+    color: var(--muted);
+    user-select: none;
+  }
+</style>
+
+<div class="install glass">
+  <div class="tabs" role="tablist" aria-label="Package manager">
+    #for (name, index of MANAGERS) {
+      <button
+        type="button"
+        class="tab"
+        role="tab"
+        id=`${id}-${name}`
+        aria-selected=(manager() === name ? 'true' : 'false')
+        aria-controls=`${id}-panel`
+        tabindex=(manager() === name ? 0 : -1)
+        onClick=(() => choose(name))
+        onKeyDown=((event: KeyboardEvent) => move(event, index))
+      >
+        {name}
+      </button>
+    }
+  </div>
+  <div class="line" role="tabpanel" id=`${id}-panel` aria-labelledby=`${id}-${manager()}`>
+    <code><span class="prompt" aria-hidden="true">$ </span>{line}</code>
+    <CopyButton text=(() => line) label="Copy install command" />
+  </div>
+</div>

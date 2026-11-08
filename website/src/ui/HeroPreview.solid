@@ -1,0 +1,523 @@
+<script module>
+  import type { BlockRange } from './CodeBlock.solid';
+
+  // Line ranges of the blocks in `hero/counter.md`.
+  const BLOCKS: BlockRange[] = [
+    { block: 'script', from: 1, to: 4 },
+    { block: 'style', from: 6, to: 12 },
+    { block: 'markup', from: 14, to: 20 },
+  ];
+
+  const BUNDLERS = ['Vite', 'Rollup', 'Rolldown', 'webpack', 'Rspack', 'esbuild'];
+
+  interface Token {
+    text: string;
+    kind: 'tag' | 'name' | 'scope' | 'value' | 'text';
+  }
+
+  /** Splits serialized HTML into colored parts for the DOM view. */
+  function tokenize(html: string): Token[] {
+    const tokens: Token[] = [];
+    const pattern = /(<\/?[a-z]+)|(\s[a-z-]+)(?==)|(\ss-[\w-]+)|(="[^"]*")|(\/?>)|([^<]+)/g;
+    for (const match of html.matchAll(pattern)) {
+      if (match[1] || match[5]) {
+        tokens.push({ text: match[0], kind: 'tag' });
+      } else if (match[2]) {
+        tokens.push({ text: match[0], kind: 'name' });
+      } else if (match[3]) {
+        tokens.push({ text: match[0], kind: 'scope' });
+      } else if (match[4]) {
+        tokens.push({ text: match[0], kind: 'value' });
+      } else {
+        tokens.push({ text: match[0], kind: 'text' });
+      }
+    }
+    return tokens;
+  }
+</script>
+
+<script>
+  import { href } from '../router.ts';
+  import CodeBlock from './CodeBlock.solid';
+  import CopyCommand from './CopyCommand.solid';
+  import Logo from './Logo.solid';
+  import counter from './hero/counter.md';
+  import Counter from './hero/Counter.solid';
+
+  let canvas!: HTMLDivElement;
+  let dom = $signal<Token[]>([]);
+
+  // The DOM view follows the rendered component: its scope attribute, the
+  // CSS variables of its reactive styles and its text.
+  $settled(() => {
+    const read = () => {
+      dom = tokenize(canvas.innerHTML
+          .replace(/<!--[^>]*-->/g, '')
+          .replace(/(\ss-[\w-]+)=""/g, '$1')
+          .trim());
+    };
+    read();
+    const observer = new MutationObserver(read);
+    observer.observe(canvas, {
+      subtree: true,
+      childList: true,
+      attributes: true,
+      characterData: true,
+    });
+    return () => observer.disconnect();
+  });
+</script>
+
+<style>
+  .hero {
+    position: relative;
+    padding: var(--space-8) var(--gutter) 0;
+    text-align: center;
+  }
+
+  .pill {
+    display: inline-flex;
+    gap: var(--space-2);
+    align-items: center;
+    padding: 0.3125rem 0.75rem 0.3125rem 0.5rem;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    font: 500 0.8125rem / 1.2 var(--font-mono);
+    text-decoration: none;
+    color: var(--muted);
+    background: var(--glass);
+    box-shadow: inset 0 1px 0 var(--sheen);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+    transition:
+      color 200ms var(--ease),
+      border-color 200ms var(--ease);
+  }
+
+  .pill:hover {
+    border-color: var(--border-strong);
+    color: var(--text);
+  }
+
+  .pill strong {
+    font-weight: 500;
+    color: var(--text);
+  }
+
+  .dot {
+    position: relative;
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    background: var(--markup);
+    box-shadow: 0 0 10px var(--markup);
+  }
+
+  .dot::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: var(--markup);
+    animation: ping 2.4s var(--ease) infinite;
+  }
+
+  @keyframes ping {
+    70%,
+    100% {
+      opacity: 0;
+      transform: scale(2.6);
+    }
+  }
+
+  .pill svg {
+    color: var(--faint);
+    transition: transform 200ms var(--ease);
+  }
+
+  .pill:hover svg {
+    transform: translateX(2px);
+  }
+
+  h1 {
+    margin-top: var(--space-6);
+    font-size: var(--step-6);
+  }
+
+  h1 > span {
+    display: block;
+  }
+
+  h1 .gradient-text {
+    filter: drop-shadow(0 10px 48px color-mix(in srgb, var(--script) 35%, transparent));
+  }
+
+  /* The intro rises in, one part after another. */
+  .rise {
+    animation: rise 700ms var(--ease) both;
+    animation-delay: calc(var(--order) * 70ms);
+  }
+
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(14px);
+      filter: blur(6px);
+    }
+  }
+
+  .lede {
+    max-width: 38rem;
+    margin: var(--space-6) auto 0;
+    font-size: var(--step-1);
+    line-height: 1.55;
+    color: var(--muted);
+  }
+
+  .lede code {
+    padding: 0;
+    border: 0;
+    color: var(--text);
+    background: none;
+  }
+
+  .cta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+    justify-content: center;
+    margin-top: var(--space-6);
+  }
+
+  .install {
+    width: min(100%, 26rem);
+    margin: var(--space-5) auto 0;
+  }
+
+  /* The window tilts back and settles flat as it scrolls into view. */
+  .stage {
+    position: relative;
+    max-width: 72rem;
+    margin: var(--space-8) auto 0;
+    perspective: 2000px;
+  }
+
+  .stage::before {
+    content: '';
+    position: absolute;
+    inset: 10% 5% -12%;
+    z-index: -1;
+    border-radius: 50%;
+    background:
+      radial-gradient(closest-side, var(--glow), transparent),
+      radial-gradient(
+        closest-side at 20% 60%,
+        color-mix(in srgb, var(--style) 14%, transparent),
+        transparent
+      ),
+      radial-gradient(
+        closest-side at 80% 60%,
+        color-mix(in srgb, var(--markup) 14%, transparent),
+        transparent
+      );
+    filter: blur(40px);
+  }
+
+  .window {
+    overflow: hidden;
+    text-align: left;
+    transform-origin: 50% 0;
+  }
+
+  @supports (animation-timeline: view()) {
+    .window {
+      animation: settle linear both;
+      animation-timeline: view();
+      animation-range: entry 10% cover 45%;
+    }
+  }
+
+  @keyframes settle {
+    from {
+      opacity: 0.85;
+      transform: rotateX(16deg) scale(0.94);
+    }
+
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  .chrome {
+    display: flex;
+    gap: var(--space-3);
+    align-items: center;
+    height: 2.75rem;
+    padding: 0 var(--space-4);
+    border-bottom: 1px solid var(--border);
+    background: var(--panel);
+  }
+
+  .file {
+    display: flex;
+    gap: var(--space-2);
+    align-items: center;
+    font: 500 0.8125rem / 1 var(--font-mono);
+    color: var(--text);
+  }
+
+  .panes {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  }
+
+  .source :global(figure) {
+    --pad: var(--space-5);
+    height: 100%;
+    border: 0;
+    border-radius: 0;
+    background: none;
+  }
+
+  /* The arrow on the seam between source and preview. */
+  .seam {
+    position: absolute;
+    top: 50%;
+    left: calc(100% * 1.2 / 2.2);
+    z-index: 3;
+    display: grid;
+    place-items: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    border: 1px solid var(--border-strong);
+    border-radius: 50%;
+    color: var(--accent-strong);
+    background: var(--bg-raised);
+    box-shadow:
+      0 0 0 6px color-mix(in srgb, var(--bg-raised) 60%, transparent),
+      0 0 24px color-mix(in srgb, var(--accent) 50%, transparent);
+    transform: translate(-50%, -50%);
+  }
+
+  .preview {
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    border-left: 1px solid var(--border);
+    background:
+      radial-gradient(circle at 50% 45%, color-mix(in srgb, var(--accent) 8%, transparent), transparent 60%),
+      radial-gradient(var(--grid-line) 1px, transparent 1px) 0 0 / 16px 16px;
+  }
+
+  .pane-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-4) var(--space-5) 0;
+  }
+
+  .canvas {
+    display: grid;
+    place-content: center;
+    justify-items: center;
+    gap: var(--space-3);
+    min-height: 14rem;
+    padding: var(--space-6) var(--space-5);
+  }
+
+  .canvas :global(button) {
+    padding: 0.875rem 1.5rem;
+    border: 0;
+    border-radius: 999px;
+    font: 600 1rem / 1 var(--font-body);
+    letter-spacing: -0.01em;
+    cursor: pointer;
+    box-shadow:
+      inset 0 1px 0 var(--sheen-strong),
+      0 12px 32px -8px var(--shadow);
+    transition:
+      background-color 300ms var(--ease),
+      scale 300ms var(--ease);
+  }
+
+  .canvas :global(p) {
+    margin: var(--space-2) 0 0;
+    font-size: var(--step--1);
+    color: var(--muted);
+  }
+
+  .dom {
+    margin: 0;
+    padding: var(--space-4) var(--space-5);
+    border-top: 1px solid var(--border);
+    background: var(--panel);
+  }
+
+  .dom code {
+    display: block;
+    padding: 0;
+    border: 0;
+    background: none;
+    margin-top: var(--space-2);
+    font-size: 0.75rem;
+    line-height: 1.6;
+    word-break: break-all;
+    color: var(--text);
+  }
+
+  .tag {
+    color: var(--muted);
+  }
+
+  .name {
+    color: var(--style);
+  }
+
+  .scope {
+    color: var(--style);
+    text-decoration: underline;
+    text-decoration-color: color-mix(in srgb, var(--style) 50%, transparent);
+    text-underline-offset: 0.25em;
+  }
+
+  .value {
+    color: var(--markup);
+  }
+
+  .bundlers {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2) var(--space-5);
+    align-items: center;
+    justify-content: center;
+    margin: var(--space-7) 0 0;
+    padding: 0;
+    list-style: none;
+    font: 500 0.875rem / 1 var(--font-mono);
+    color: var(--muted);
+  }
+
+  .bundlers li {
+    color: var(--text);
+  }
+
+  .bundlers li:first-child {
+    color: var(--muted);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .rise,
+    .window,
+    .dot::after {
+      animation: none;
+    }
+  }
+
+  @media (max-width: 60rem) {
+    .panes {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .preview {
+      border-top: 1px solid var(--border);
+      border-left: 0;
+    }
+
+    .seam {
+      display: none;
+    }
+  }
+
+  @media (max-width: 30rem) {
+    .source :global(figure) {
+      --code-size: 0.75rem;
+    }
+
+    .cta .button {
+      flex: 1;
+    }
+  }
+</style>
+
+<section class="hero" aria-labelledby="hero-title">
+  <a class="pill rise" style={ '--order': '0' } href=href('/docs/migration')>
+    <span class="dot" aria-hidden="true" />
+    <span><strong>1.0</strong> · rebuilt for SolidJS 2.0</span>
+    <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
+      <path d="M6 3.5 10.5 8 6 12.5" stroke-linecap="round" stroke-linejoin="round" />
+    </svg>
+  </a>
+
+  <h1 id="hero-title">
+    <span class="rise" style={ '--order': '1' }>One file.</span>
+    <span class="rise" style={ '--order': '2' }>
+      <span class="gradient-text">Three blocks.</span>
+    </span>
+  </h1>
+
+  <p class="lede rise" style={ '--order': '3' }>
+    Write the script, the scoped styles and the markup of a Solid 2.0 component in one
+    <code>.solid</code> file. The compiler turns it into a plain Solid component.
+  </p>
+
+  <div class="cta rise" style={ '--order': '4' }>
+    <a class="button primary" href=href('/docs/getting-started')>
+      Get started
+      <svg class="arrow" viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
+        <path d="M3 8h10M9 4l4 4-4 4" stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+    </a>
+    <a class="button" href=href('/playground')>
+      <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" aria-hidden="true">
+        <path d="M4.5 2.8v10.4a.6.6 0 0 0 .9.5l8.2-5.2a.6.6 0 0 0 0-1L5.4 2.3a.6.6 0 0 0-.9.5Z" />
+      </svg>
+      Open the playground
+    </a>
+  </div>
+
+  <div class="install rise" style={ '--order': '5' }>
+    <CopyCommand packages="solid-sfc" />
+  </div>
+
+  <div class="stage">
+    <div class="window glass">
+      <div class="chrome">
+        <span class="file"><Logo size=14 />Counter.solid</span>
+      </div>
+      <div class="panes">
+        <div class="source">
+          <CodeBlock html=counter.html blocks=BLOCKS copy=false />
+        </div>
+        <span class="seam" aria-hidden="true">
+          <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.75">
+            <path d="M3 8h10M9 4l4 4-4 4" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </span>
+        <div class="preview">
+          <div class="pane-head">
+            <span class="label">Preview</span>
+          </div>
+          <div class="canvas" ref=canvas>
+            <Counter />
+          </div>
+          <div class="dom">
+            <span class="label">DOM</span>
+            <code>
+              #for (token of dom) {
+                <span class=token.kind>{token.text}</span>
+              }
+            </code>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <ul class="bundlers" aria-label="Bundler plugins">
+    <li aria-hidden="true">Plugins for</li>
+    #for (name of BUNDLERS) {
+      <li>{name}</li>
+    }
+  </ul>
+</section>

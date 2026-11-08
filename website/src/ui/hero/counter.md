@@ -1,0 +1,22 @@
+```html
+<script>
+  let count = $signal(0);
+  const doubled = $memo(count * 2);
+</script>
+
+<style>
+  button {
+    color: white;
+    background: ${count > 4 ? 'crimson' : 'royalblue'};
+    scale: ${1 + Math.min(count, 8) / 40};
+  }
+</style>
+
+<button onClick=(() => count++)>
+  Clicked {count} {count === 1 ? 'time' : 'times'}
+</button>
+
+#if (count > 4) {
+  <p>Doubled, that is {doubled}.</p>
+}
+```

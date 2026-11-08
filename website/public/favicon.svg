@@ -1,15 +1,15 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
   <style>
-    .script { fill: #2f3fd0; }
-    .style { fill: #bd3f0b; }
+    .script { fill: #2f5fd0; }
+    .style { fill: #c2410c; }
     .markup { fill: #0f766e; }
     @media (prefers-color-scheme: dark) {
-      .script { fill: #8b96ff; }
-      .style { fill: #fb8a5c; }
-      .markup { fill: #3cc4b4; }
+      .script { fill: #7ea6ff; }
+      .style { fill: #ff8f6b; }
+      .markup { fill: #4fe0b8; }
     }
   </style>
-  <rect class="script" x="1" y="1.5" width="14" height="3.5" rx="0.5"/>
-  <rect class="style" x="1" y="6.25" width="9" height="3.5" rx="0.5"/>
-  <rect class="markup" x="1" y="11" width="11.5" height="3.5" rx="0.5"/>
+  <rect class="script" x="1" y="2.5" width="12" height="4" rx="1.5"/>
+  <rect class="style" x="4" y="8" width="12" height="4" rx="1.5"/>
+  <rect class="markup" x="7" y="13.5" width="12" height="4" rx="1.5"/>
 </svg>

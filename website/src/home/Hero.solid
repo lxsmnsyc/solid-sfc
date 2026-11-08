@@ -1,0 +1,6 @@
+<script>
+  // web-hero replaces this with the live hero.
+  import HeroPreview from '../ui/HeroPreview.solid';
+</script>
+
+<HeroPreview />

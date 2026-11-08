@@ -1,0 +1,90 @@
+<script>
+  interface Props {
+    /** Reads the text to copy when the button is pressed. */
+    text: () => string;
+    /** Accessible name, which must start with "Copy". */
+    label?: string;
+  }
+
+  const props = $props<Props>();
+  let copied = $signal(false);
+  let timer: ReturnType<typeof setTimeout> | undefined;
+
+  async function copy(): Promise<void> {
+    try {
+      await navigator.clipboard.writeText(props.text());
+    } catch {
+      // The clipboard needs a secure context and permission.
+      return;
+    }
+    copied = true;
+    clearTimeout(timer);
+    timer = setTimeout(() => (copied = false), 1600);
+  }
+
+  $cleanup(() => clearTimeout(timer));
+</script>
+
+<style>
+  button {
+    display: inline-flex;
+    flex: none;
+    gap: 0.375rem;
+    align-items: center;
+    height: 1.875rem;
+    padding: 0 0.625rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font: 500 0.75rem / 1 var(--font-body);
+    color: var(--muted);
+    background: var(--panel);
+    cursor: pointer;
+    transition:
+      color 200ms var(--ease),
+      border-color 200ms var(--ease),
+      background-color 200ms var(--ease);
+  }
+
+  button:hover {
+    border-color: var(--border-strong);
+    color: var(--text);
+  }
+
+  .done {
+    color: var(--markup);
+  }
+</style>
+
+<button type="button" class={ done: copied } onClick=copy aria-label=props.label>
+  #if (copied) {
+    <svg
+      viewBox="0 0 16 16"
+      width="13"
+      height="13"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="1.75"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      aria-hidden="true"
+    >
+      <path d="m3 8.5 3 3 7-7" />
+    </svg>
+    Copied
+  } #else {
+    <svg
+      viewBox="0 0 16 16"
+      width="13"
+      height="13"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="1.5"
+      aria-hidden="true"
+    >
+      <rect x="5" y="5" width="8.5" height="8.5" rx="2" />
+      <path d="M10.5 5V3.5a1.5 1.5 0 0 0-1.5-1.5H3.5A1.5 1.5 0 0 0 2 3.5V9a1.5 1.5 0 0 0 1.5 1.5H5" />
+    </svg>
+    Copy
+  }
+</button>
+<span class="visually-hidden" aria-live="polite">{copied ? 'Copied' : ''}</span>
