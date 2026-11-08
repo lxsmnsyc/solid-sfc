@@ -1,7 +1,7 @@
 ---
 id: deps-solid-rc
 title: Bump Solid 2.0 to the latest release candidate
-status: todo
+status: active
 priority: must
 type: chore
 milestone: 1.0.x
@@ -21,6 +21,8 @@ owns:
   - website/package.json
   - packages/solid-sfc/src/runtime.ts
   - packages/solid-sfc/src/control.ts
+  - packages/solid-sfc/src/vite.ts
+  - packages/solid-sfc/test/vite.test.ts
   - packages/solid-sfc/test/__snapshots__/**
   - packages/solid-sfc/test/labels/__snapshots__/**
 shared:
@@ -47,6 +49,10 @@ At `1ca2128`: Solid 2.0.0-rc.15 -> rc.21, `@solidjs/vite-plugin` 3.0.0-next.35 -
 - [ ] Snapshot changes are explained in the outcome, one line per kind of change.
 - [ ] `examples/tasks` and `examples/ssr` build; the SSR example renders and hydrates (`pnpm --filter ssr build`).
 - [ ] Full check passes. Changeset for `solid-sfc` if the output or peer range changed.
+
+## Widened 2026-11-08
+
+`@solidjs/vite-plugin` next.57 matches the style query ids and changed the shape of `.vite/solid-server-functions.json`. `src/vite.ts` must adapt in the same PR (the bump breaks the website, tasks and ssr builds otherwise), with a test for both.
 
 ## Sizing
 

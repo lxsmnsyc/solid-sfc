@@ -76,10 +76,8 @@ Dependencies are current, the open issues (#1, #4, #5) are closed, the compiler,
 
 ## Open questions
 
-- Website redesign direction (blocks refining website-redesign).
-- May issue-1-reply post on GitHub and close #1?
 
 ## Gates
 
-- website-redesign: user approves the design before build nodes start.
+- website-redesign: user approved the v3 shell and hero prototype on 2026-11-08 ("design is good enough").
 - issue-1-reply: user approves the comment text.

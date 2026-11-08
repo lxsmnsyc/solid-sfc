@@ -1,7 +1,7 @@
 ---
 id: fix-scope
 title: "Port solid-labels scope fixes for #46, #47 and #49"
-status: active
+status: done
 priority: must
 type: fix
 milestone: 1.0.x

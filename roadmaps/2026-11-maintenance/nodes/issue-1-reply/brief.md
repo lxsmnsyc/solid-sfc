@@ -1,7 +1,7 @@
 ---
 id: issue-1-reply
 title: "Answer and close issue #1 (context in a .solid file)"
-status: active
+status: done
 priority: could
 type: docs
 milestone: 1.0.x
