@@ -234,8 +234,23 @@ function rewriteWrite(ctx: Ctx, binding: Binding, info: ReactiveInfo, ref: Ref):
   const parent = ref.parents[top];
   if (parent?.type === 'UpdateExpression') {
     const current = ctx.parameter('current');
-    const op = parent.operator === '++' ? `++${current}` : `--${current}`;
-    s.overwrite(parent.start, parent.end, `${set}(${current} => ${op})`);
+    const grand = ref.parents[top - 1];
+    const unused =
+      grand?.type === 'ExpressionStatement' ||
+      (grand?.type === 'ForStatement' && grand.update === parent);
+    if (parent.prefix || unused) {
+      const op = parent.operator === '++' ? `++${current}` : `--${current}`;
+      s.overwrite(parent.start, parent.end, `${set}(${current} => ${op})`);
+      return;
+    }
+    // A postfix update whose value is used evaluates to the old value.
+    const tmp = ctx.unique('tmp');
+    const sign = parent.operator === '++' ? '+' : '-';
+    s.overwrite(
+      parent.start,
+      parent.end,
+      `(() => { let ${tmp}; ${set}(${current} => (${tmp} = ${current}) ${sign} 1); return ${tmp}; })()`,
+    );
     return;
   }
   if (parent?.type !== 'AssignmentExpression' || parent.left !== ref.node) {
