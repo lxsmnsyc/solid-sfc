@@ -2,7 +2,7 @@
 
 ## Built
 
-Branch `feat/web-design-system`, commits 1d697dc and 290de95 on top of a357295 (v1), draft PR #11 against `feat/website-redesign`. Implements contract `web-design` v3 ("Unfold").
+Branch `feat/web-design-system`, commits 1d697dc, 290de95 and 0990a97 on top of a357295 (v1), draft PR #11 against `feat/website-redesign`. Implements contract `web-design` v4 ("Unfold", with the CR-2 tokens).
 
 ### Files
 
@@ -17,9 +17,9 @@ Branch `feat/web-design-system`, commits 1d697dc and 290de95 on top of a357295 (
 
 ### Tokens
 
-All contract v3 colors, each as `light-dark(light, dark)`. `:root` has `color-scheme: dark`; `:root[data-theme='light']` sets `color-scheme: light`. Never branch on `prefers-color-scheme` in pages: use the tokens, or `:global([data-theme='light'])` for the rare non-color difference.
+All contract v4 colors, each as `light-dark(light, dark)`. Light `--style` is `#bd3f0b` everywhere (the contract's panel value): `#c2410c` measured 4.49:1 on the hero glass. `:root` has `color-scheme: dark`; `:root[data-theme='light']` sets `color-scheme: light`. Never branch on `prefers-color-scheme` in pages: use the tokens, or `:global([data-theme='light'])` for the rare non-color difference.
 
-Added (change request): `--glass`, `--sheen`, `--sheen-strong`, `--shadow`, `--grid-line`, and light alert values.
+From CR-2, now in v4: `--glass`, `--sheen`, `--sheen-strong`, `--shadow`, `--grid-line`, and light alert values.
 
 Type steps (fluid, 390px to 1440px):
 
@@ -78,11 +78,12 @@ To get build-time highlighted HTML for a sample, put it in a `.md` file in a fen
 
 ### Hero prototype
 
-`HeroPreview.solid`: pill (1.0 · rebuilt for SolidJS 2.0, links to migration), "One file." / "Three blocks." (gradient with glow), lede, Get started and Open the playground, `CopyCommand`, then a glass window in 3D perspective that settles flat on scroll (`animation-timeline: view()`, static where unsupported). The window holds `Counter.solid` source with block bands, an arrow on the seam, a live preview of the real component, and a DOM view that updates on each click and underlines the scope attribute. A row of bundler names follows. The intro rises in with a 70ms stagger. web-hero replaces the static source with the live editor and compiler.
+`HeroPreview.solid`: pill (1.0 · rebuilt for SolidJS 2.0, links to migration), "One file." / "Three blocks." (gradient with glow), lede, Get started and Open the playground, `CopyCommand`, then a glass window in 3D perspective that settles flat on scroll (`animation-timeline: view()`, transform only, so text is at full opacity at every point; static where unsupported). The window holds `Counter.solid` source with block bands, an arrow on the seam, a live preview of the real component, and a DOM view (`aria-hidden`, it is a visual echo of the preview) that updates on each click and underlines the scope attribute. A row of bundler names follows. The intro rises in with a 70ms stagger. web-hero replaces the static source with the live editor and compiler.
 
 ## Deviations
 
-- Tokens added and light alerts chosen; dark is the default regardless of system preference (see change request).
+- Light `--style` is `#bd3f0b` in every place, not only on panels, so one value serves the whole site.
+- Dark is the default regardless of system preference (accepted in v4).
 - Hero sample source is kept twice (`hero/Counter.solid` and `hero/counter.md`); they must stay identical. web-hero should replace this with compiling the snippet.
 - `Home.solid` edited (allowed by the brief): imports the stubs, drops the old hero.
 - Search (`cmd-K`) not built; left to web-docs.
@@ -99,6 +100,7 @@ To get build-time highlighted HTML for a sample, put it in a `.md` file in a fen
 - `light-dark()` only works on colors. Non-color differences need `:global([data-theme='light'])`.
 - twinkleplop emits `<span class="label">` in code; `theme.css` resets `.twinkleplop .label` (font, case and the `::before` square).
 - Saved light theme flashes dark until main.ts runs (index.html not owned).
+- Signal writes are batched in Solid 2.0: after `theme = next`, reading `theme` in the same handler still gives the old value. Keep the new value in a local.
 - `class={ name }` object shorthand works for conditional classes; boolean `aria-*` attributes need `'true'`/`'false'` strings to typecheck; use `tabindex`, not `tabIndex`.
 - The solid highlighter colors a CSS property that holds `${}` in the style hue, unlike other properties.
 - Page `<main>` max widths still come from the old pages.
@@ -112,12 +114,13 @@ To get build-time highlighted HTML for a sample, put it in a `.md` file in a fen
 
 - `pnpm --filter website build`: pass (main JS 296 kB, 46 kB gzip; CSS 2.6 kB).
 - `pnpm --filter website typecheck`: pass. `./node_modules/.bin/oxfmt --check`: pass. `./node_modules/.bin/oxlint`: pass.
+- Theme toggle with real clicks (reviewer's `toggle.mjs`, against port 5391): load dark, click 1 light (saved light), click 2 dark, click 3 light, reload light.
 - CDP checks: playground scrollHeight 900 at innerHeight 900; Tab, Enter on the skip link focuses `#content`, next Tab stays inside it; no horizontal overflow at 1440 or 390.
-- Contrast (WCAG): dark text 16.1 to 16.8, muted 6.2 to 6.5, accent-strong 7.9 to 8.3, script 7.9, style 8.4, markup 11.4, alerts 7.5 to 11.8, accent-ink on accent 6.2. Light text 16.6 to 18.7, muted 5.6 to 6.4, accent 5.1 to 5.7, style 4.59 to 5.18 (4.5+ on 8% code bands), markup 4.85 to 5.47, alerts 5.0+, white on accent 5.72. `--faint` (2.4 to 2.6) is never used for text. Focus ring `--accent-strong` is 6.7+ on every ground.
+- Contrast (WCAG): dark text 16.1 to 16.8, muted 6.2 to 6.5, accent-strong 7.9 to 8.3, script 7.9, style 8.4, markup 11.4, alerts 7.5 to 11.8, accent-ink on accent 6.2. Light text 16.6 to 18.7, muted 5.6 to 6.4, accent 5.1 to 5.7, style `#bd3f0b` 4.75+ on bg, raised and panel (about 0.15 above `#c2410c` on the hero glass, which measured 4.49), markup 4.85 to 5.47, alerts 5.0+, white on accent 5.72. `--faint` (2.4 to 2.6) is never used for text. Focus ring `--accent-strong` is 6.7+ on every ground.
 - Lighthouse not run in this node.
 - Screenshots in `/private/tmp/claude-501/-Users-alexis-Documents-GitHub-solid-sfc/00831d19-3175-471f-924a-e40fb5a85545/scratchpad/web-design-system/v3/`:
   - `{home,docs,playground}-{dark,light}-{1440,390}.png` (viewport)
-  - `{home,docs,playground}-{dark,light}-{1440,390}-full.png` (full page; the hero window appears tilted because full-page capture does not scroll the timeline)
+  - `{home,docs,playground}-{dark,light}-{1440,390}-full.png` (full page; the hero window appears tilted because full-page capture does not scroll the timeline). Home shots retaken after 0990a97; docs and playground shots are from 290de95, whose shell is unchanged apart from the light `--style` value.
   - `home-{dark,light}-{1440,390}-scrolled.png` (hero window in view after six clicks: crimson button, `#if` paragraph, `class="hot"` in the DOM view)
 
 ## Size

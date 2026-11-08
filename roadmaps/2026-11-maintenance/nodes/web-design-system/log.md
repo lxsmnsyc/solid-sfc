@@ -17,4 +17,6 @@
 - Screenshots via a small CDP script (scratchpad `shoot.mjs`): headless Chrome cannot set localStorage per run otherwise, and old-style `--screenshot` cannot go below 500px.
 - 390px code blocks: the block labels covered long lines; a container query hides them under 34rem.
 - Checks: build, typecheck, oxfmt, oxlint pass. Commits 1d697dc and 290de95, pushed to PR #11 (still draft).
+- Review 5816013686: the toggle applied the old theme (batched signal write read back in the same handler); fixed with a local `next`, checked with real clicks. The `settle` keyframe faded opacity from 0.85, which put resting hero code under AA; now transform only. Light `--style` set to `#bd3f0b` (4.49 on glass with `#c2410c`). DOM view `aria-hidden`. Commit 0990a97. The reviewer's server on port 4317 belongs to another session, so the toggle script was run against a copy pointed at port 5391.
+- My earlier screenshots set the theme through localStorage, so they never exercised the toggle; that is how the bug got through.
 - The worktree guard refuses writes to the main checkout, so log, outcome and change request are in the scratchpad.
