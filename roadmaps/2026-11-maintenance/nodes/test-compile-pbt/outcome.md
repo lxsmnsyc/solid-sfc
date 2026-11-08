@@ -1,6 +1,6 @@
 # Outcome: test-compile-pbt
 
-Branch `test/compile-pbt`, draft PR #21 (https://github.com/lxsmnsyc/solid-sfc/pull/21). Review: fresh review needed.
+Branch `test/compile-pbt`, draft PR #21 (https://github.com/lxsmnsyc/solid-sfc/pull/21). Review: fresh review done; two weak properties fixed in d25a3ec. PR marked ready.
 
 ## Built
 
@@ -26,6 +26,15 @@ All four are bugs in `src/`. Not fixed here. Each is an `it.fails` test; change 
    - Shrunk: `<style>] {}</style><p />` ("Expected an opening square bracket."). Also `a]`, `a)`, `a::`, `.a].b`.
 
 Searched without further findings: 12000 runs each (seeds 1-3) of the committed properties, plus 80000 runs of `brokenBlock` and `brokenMarkup` and 30000 runs of files with three edits, for raw errors, unparsable output, bad locations and out-of-range source map positions.
+
+## Review fixes
+
+- Determinism now compiles twice without the cache and compares the code and the map.
+- The scanner check now requires blocks, top-level templates and markup to tile the source with no gap or overlap, and each block text to start with its opening tag and end with its closing tag.
+- `FC_SEED` and `FC_RUNS` are read first, `PBT_SEED` and `PBT_RUNS` still work.
+- Control-flow blocks weigh more in the generator: of 300 samples, 74 have `#if`, 78 `#for`, 55 `#switch`, 48 `#loading`, 48 `#try`.
+- Finding 1 noise no longer has the `/[}]/` case. Each remaining case fails on main in at least one form (`/'/` and `/* ) */` only with `by`).
+- Seeds 1, 2, 3 at 3000 runs on the strengthened properties: no new findings.
 
 ## Deviations
 
