@@ -1,6 +1,6 @@
 ---
 name: web-design
-version: 2
+version: 3
 status: frozen
 defined_by: website-redesign
 ---
@@ -9,76 +9,62 @@ defined_by: website-redesign
 
 ## Purpose
 
-The visual direction and the CSS custom properties every page of the redesigned website uses. web-design-system implements the tokens and the shell; web-home, web-docs, web-playground and web-og-image build on them.
+The visual direction and shared interface of the redesigned website. v3 replaces the v1/v2 "Source and output" editorial direction, which the user rejected as too basic (2026-11-08). The bar: the user's other sites (solid-optimizer, atemno, compostate: dark, atmospheric, heavy display type, built around live demos). solid-sfc must match that family and go past it.
 
-## Direction: "Source and output"
+## Direction: "Unfold"
 
-A `.solid` file is one document in three parts. The site is typeset like a printed technical monograph: an editorial, Swiss-style layout on a 12-column grid, wide margins, large display serif headlines against a quiet sans body, and small monospace labels in the margin (`<script>`, `<style>`, `markup`, `out.js`) that mark sections the way a block marks part of a file.
+The site is a live demonstration that one `.solid` file unfolds into a Solid component. Everything that can be live is live.
 
-- **Signature element.** The three blocks of a `.solid` file have their own hue: script, style, markup. They appear as a 3px rule on the left of code blocks, as the color of margin labels, and as the three-band mark in the logo and favicon. Nothing else is colored except links and the accent.
-- **Hairlines, not boxes.** Sections are divided by 1px hairlines and space. No drop shadows, no gradients, no rounded cards. Radius is 2px at most.
-- **Typography.** Display: Instrument Serif (regular and italic) for h1 and h2 only, set large and tight (line-height 1.0 to 1.1, letter-spacing -0.01em). Body: Geist, 17px base, line-height 1.6. Mono: Geist Mono for code, labels, nav and numbers. Labels are mono, 12px, uppercase, letter-spacing 0.08em.
-- **Motion.** Only where it explains: the hero source-to-output reveal, 150 ms color transitions. All motion off under `prefers-reduced-motion`.
-- **Light and dark.** Paper and ink in light; warm near-black and bone in dark. Both meet WCAG AA for body text and for every label color on its background.
-- **Fonts are self-hosted** woff2 files in `website/public/fonts/` with their OFL license files, loaded with `@font-face` and `font-display: swap`. No third-party requests.
+1. **Atmosphere.** Dark first: near-black blue `--bg #070a12`, a large soft radial glow of Solid blue behind the hero, a faint 32px grid that fades out at the edges, subtle noise. Light scheme supported and designed (paper `#f7f8fb`, same structure, glow at low opacity), never a plain inversion.
+2. **Type.** Display: Geist 700 to 800, tight (`letter-spacing: -0.045em`, line-height 0.95), huge (hero up to 7rem). Key words in a gradient made from the block hues. Body Geist 400. Mono Geist Mono for code, labels, numbers.
+3. **The three block hues** are the brand: script `--script`, style `--style`, markup `--markup`. They mark every place a block appears: code rules, scene layers, demo labels, the logo.
+4. **Signature scene: the unfolding file.** Below the hero, a `.solid` file card sits in 3D perspective. As the user scrolls, its script, style and markup blocks lift apart into three layers (CSS 3D transforms, scroll-driven animation with an IntersectionObserver fallback), and animated connectors draw from each layer to what it becomes: the component function, the scoped CSS (with the hashed attribute visible), and the DOM it renders. All outputs are compiled at build time from the real compiler, never hand-written. Under `prefers-reduced-motion` it shows the final unfolded state.
+5. **Live hero.** The hero holds an editable `.solid` snippet with a live preview next to it. The compiler (wasm, already used by the playground) loads lazily on first focus or idle, compiles in a worker, and shows "compiled in N ms · N B". Before it loads, the preview shows the build-time render, so the page is complete without JS.
+6. **Live feature demos**, each a small interactive component with its source and the compiled line that matters highlighted: `$signal` counter (shows the setter call), `#for` with keys (add, remove, reorder), scoped styles (toggle shows the attribute selector), `#loading` with a fake fetch.
+7. **Build-time numbers band**: compile time and output size of the example components, measured when the site builds.
+8. **Detail.** Glass panels (`backdrop-filter`, 1px inner border at 8% white), 12px radius, buttons with a soft glow on the primary, copy buttons, keyboard shortcut hints, `cmd-K` docs search. Motion 200-400 ms, ease-out, purposeful.
 
 ## Interface
 
 ```css
-:root {
-  /* color, light */
-  --paper: #f6f4ef;       /* page background */
-  --surface: #efece4;     /* code blocks, panes */
-  --ink: #14130f;         /* text */
-  --muted: #6b675e;       /* secondary text */
-  --hairline: #d9d4c7;    /* rules and borders */
-  --accent: #2f3fd0;      /* links, primary action */
-  --accent-ink: #ffffff;  /* text on accent */
-  --script: #2f3fd0;      /* <script> block */
-  --style: #bd3f0b;       /* <style> block (v2: 4.59:1 on --surface) */
-  --markup: #0f766e;      /* markup */
-  /* alerts: --note #2f3fd0 --tip #0f766e --important #7a3fc0 --warning #8a5a00 --caution #b42318 */
-
-  /* type */
-  --font-display: 'Instrument Serif', 'Iowan Old Style', Georgia, serif;
+:root { /* dark, default */
+  --bg: #070a12; --bg-raised: #0c111c; --panel: rgb(255 255 255 / 0.03);
+  --border: rgb(255 255 255 / 0.08); --border-strong: rgb(255 255 255 / 0.16);
+  --text: #e8edf6; --muted: #8a95a8; --faint: #4b5567;
+  --accent: #5b8def; --accent-strong: #7ea6ff; --accent-ink: #050810;
+  --glow: rgb(68 107 158 / 0.45);
+  --script: #7ea6ff; --style: #ff8f6b; --markup: #4fe0b8;
+  --note: #7ea6ff; --tip: #4fe0b8; --important: #c9a2ff; --warning: #f2c14e; --caution: #ff7a7a;
+  --font-display: 'Geist', system-ui, sans-serif;
   --font-body: 'Geist', system-ui, sans-serif;
-  --font-mono: 'Geist Mono', ui-monospace, Menlo, monospace;
-  --step--1: clamp(0.8rem, 0.78rem + 0.1vw, 0.875rem);
-  --step-0: clamp(1rem, 0.96rem + 0.2vw, 1.0625rem);
-  --step-1: clamp(1.25rem, 1.1rem + 0.6vw, 1.5rem);
-  --step-2: clamp(1.6rem, 1.3rem + 1.4vw, 2.25rem);
-  --step-3: clamp(2.2rem, 1.6rem + 2.8vw, 3.75rem);
-  --step-4: clamp(3rem, 2rem + 5vw, 6.5rem);
-
-  /* space and layout */
-  --space-1: 0.25rem; --space-2: 0.5rem; --space-3: 0.75rem; --space-4: 1rem;
-  --space-5: 1.5rem; --space-6: 2.5rem; --space-7: 4rem; --space-8: 7rem;
-  --grid-max: 76rem;      /* content width */
-  --gutter: clamp(1rem, 4vw, 3rem);
-  --measure: 66ch;        /* prose width */
-  --radius: 2px;
-  --header-height: 3.5rem;
+  --font-mono: 'Geist Mono', ui-monospace, monospace;
+  --radius: 12px; --radius-sm: 8px;
+  --grid-max: 80rem; --gutter: clamp(1rem, 4vw, 2.5rem); --measure: 68ch;
+  --header-height: 3.75rem;
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
 }
-/* dark (prefers-color-scheme: dark):
-   --paper #0e0e0c  --surface #171714  --ink #ece8df  --muted #9a958a  --hairline #2a2925
-   --accent #8b96ff --accent-ink #0e0e0c --script #8b96ff --style #fb8a5c --markup #3cc4b4
-   --note #8b96ff --tip #3cc4b4 --important #c59bff --warning #e0a63a --caution #ff7a6b */
+/* light: --bg #f7f8fb --bg-raised #ffffff --panel rgb(10 20 40 / 0.03) --border rgb(10 20 40 / 0.08)
+   --border-strong rgb(10 20 40 / 0.16) --text #0b1220 --muted #556072 --faint #9aa3b2
+   --accent #2f5fd0 --accent-strong #1f4cb8 --accent-ink #ffffff --glow rgb(47 95 208 / 0.18)
+   --script #2f5fd0 --style #c2410c (use #bd3f0b on panels if under 4.5:1) --markup #0f766e */
 ```
 
-Shared classes defined by web-design-system in the global style of `website/src/App.solid`:
+Fluid type steps `--step--1` to `--step-6` and spacing `--space-1` to `--space-9` are defined by web-design-system and documented in its outcome.
 
-- `.label`: mono margin label. Add `data-block="script|style|markup"` for the block hue.
-- `.button`, `.button.primary`: mono, uppercase label text, 2px radius, 1px border.
-- `.rule`: full-width hairline.
-- `.grid`: 12-column grid inside `--grid-max` with `--gutter` side padding.
-- `pre.twinkleplop`: code block on `--surface` with a 3px left rule; `data-block` picks its hue, default `--script`.
+Shared building blocks (web-design-system, global styles and `website/src/ui/*.solid`):
+
+- `.glass` panel, `.button` / `.button.primary`, `.kbd`, `.label` (mono, uppercase, `data-block="script|style|markup"` for hue), `.gradient-text`, `.grid`.
+- `<CodeBlock>` with copy button and optional highlighted lines; `<CopyCommand>` (install line with package manager tabs: npm, pnpm, yarn, bun).
+- Atmosphere layer (glow, grid, noise) in the shell, toggled per page.
 
 ## Behavior
 
-- Pages use only these tokens for color, type and spacing. New tokens go through a change request.
-- The old names (`--background`, `--border`, `--text`, `--code-background`, `--accent-text`, `--font`, `--mono`) stay as aliases until every page has moved, then web-og-image (the last child) removes them.
+- Home initial JS stays small: no compiler or wasm until the user focuses the hero editor or the browser is idle. Lighthouse performance 95+ on home.
+- Every live demo works with keyboard and has a static fallback.
+- WCAG AA contrast for all text in both schemes.
+- Pages use only these tokens. New tokens go through a change request.
 
 ## Changes
 
-- v1: initial.
-- v2: light `--style` #c2410c -> #bd3f0b for AA on `--surface`; alert values; `--accent-text` alias. From web-design.change-request.md, accepted 2026-11-08. Affects: web-home, web-docs, web-playground (none started).
+- v1: "Source and output", editorial. v2: contrast fix.
+- v3: "Unfold", dark-first, atmospheric, live. Replaces v1/v2 entirely, 2026-11-08, after user feedback.

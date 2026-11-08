@@ -1,6 +1,6 @@
 ---
 id: web-og-image
-title: Commit the Open Graph image source, drop old token aliases
+title: Open Graph image in the v3 design, drop old token aliases
 status: todo
 priority: should
 type: feature
@@ -18,6 +18,12 @@ depends_on:
   - on: web-home
     kind: hard
     why: aliases can go only after every page moved
+  - on: web-hero
+    kind: hard
+    why: the image uses the final hero look
+  - on: web-unfold
+    kind: hard
+    why: aliases can go only after every page moved
   - on: web-docs
     kind: hard
     why: aliases can go only after every page moved
@@ -30,7 +36,7 @@ depends_on:
 
 ## Goal
 
-The new-design `og.png` already shipped in PR #8 (2026-11-08, at the user's request). Its HTML source is `nodes/web-og-image/og-source.html` in this roadmap, with absolute `file://` font paths. Commit it as `website/og/og.html` with font URLs relative to `website/public/fonts/`, and add `website/og/render.sh` that renders it with headless Chrome (`--window-size=1200,630 --force-device-scale-factor=1 --screenshot`). Re-render only if the page tokens changed since. Then remove the old token aliases from `App.solid` and fix any remaining use.
+PR #8 shipped an image in the rejected v1 design. Redraw `website/public/og.png` in contract v3 (dark, glow, heavy display type, block hues; use the hero's look) from an HTML source committed at `website/og/og.html` with `website/og/render.sh` (headless Chrome, `--window-size=1200,630 --force-device-scale-factor=1 --screenshot`). The v1 source in `nodes/web-og-image/og-source.html` shows the rendering setup. Then remove the old token aliases from `App.solid` and fix remaining uses.
 
 ## Acceptance
 

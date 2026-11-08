@@ -1,6 +1,6 @@
 ---
 id: web-home
-title: Website home page redesign
+title: Home page sections and live demos
 status: todo
 priority: should
 type: feature
@@ -9,24 +9,25 @@ size: M
 verify: pnpm --filter website build
 owns:
   - website/src/pages/Home.solid
+  - website/src/home/demos/**
+  - website/plugins/stats.ts
   - website/src/content/**
 depends_on:
   - on: web-design-system
     kind: hard
-    why: the page is judged against the real shell and shared classes, not a stub
+    why: builds on the v3 shell and shared UI after the user approves them (gate)
 ---
 
-# Website home page redesign
+# Home page sections and live demos
 
 ## Goal
 
-Rebuild `website/src/pages/Home.solid` per `contracts/web-design.md`. Hero: a huge display serif headline (an idea like "One file. Three parts. Zero runtime ceremony." — write your own, short), one line of body, two buttons (Get started, Playground). Beside or below it, the signature: a short `.solid` example whose script, style and markup are labeled in the margin with their hues, and a reveal that shows the compiled Solid output next to it (precompiled at build time from `content/example.md`, no compiler in the home chunk). Then the features as a numbered editorial list (01, 02, ...) with hairlines, not cards, and a closing install line (`npm i solid-sfc`) with a copy button.
+Contract v3 items 6 and 7. Compose `website/src/pages/Home.solid`: hero and unfold (imported from `src/home/`), then live feature demos (`$signal` counter showing the setter call, `#for` with keys, scoped style toggle showing the attribute selector, `#loading` with a fake fetch), each with its source and the compiled line highlighted, compiled at build time; a build-time numbers band (compile time and output size of the example components, measured by `website/plugins/stats.ts`); a closing call to action. Demos run as real compiled `.solid` components in the page.
 
 ## Acceptance
 
-- [ ] No compiler or wasm in the home page chunk (check the build output).
-- [ ] Layout works from 320px to 1600px; hero headline never overflows.
-- [ ] Reveal motion off under `prefers-reduced-motion`; content readable without JS animation.
+- [ ] Every demo works with keyboard and has a static fallback.
+- [ ] No compiler or wasm in the home chunk.
 - [ ] Build and typecheck pass.
 
 ## Sizing

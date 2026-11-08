@@ -1,6 +1,6 @@
 ---
 id: web-playground
-title: Website playground redesign
+title: Playground restyle and share links
 status: todo
 priority: should
 type: feature
@@ -14,22 +14,18 @@ owns:
 depends_on:
   - on: web-design-system
     kind: hard
-    why: the page is judged against the real shell and shared classes, not a stub
+    why: builds on the v3 shell and shared UI after the user approves them (gate)
 ---
 
-# Website playground redesign
+# Playground restyle and share links
 
 ## Goal
 
-Restyle `website/src/pages/Playground.solid` and the preview frame per `contracts/web-design.md` as a full-height tool: a slim mono toolbar (example picker, output tabs), the editor and the output or preview in panes split by hairlines, pane titles as margin-style labels (`App.solid`, `out.js`, `preview`), errors shown in a mono strip in `--caution` with the location. Keep every current feature working.
-
-## Context
-
-The editor scroll sync and highlighting exist (commit `6d91464`); keep them. `website/src/preview/frame.ts` runs the preview iframe; its styles should use the same tokens (pass them in or duplicate the token block, say which in the outcome).
+Restyle `website/src/pages/Playground.solid` and the preview frame per contract v3 as a full-height tool: glass toolbar (example picker, output tabs, share button), editor and output panes with a draggable divider, errors in a mono strip. Add share links: the source is compressed into the URL hash and restored on load.
 
 ## Acceptance
 
-- [ ] Every playground example compiles and previews as before.
+- [ ] Every example compiles and previews as before; a shared link restores the source.
 - [ ] Panes stack on narrow screens with a tab switcher.
 - [ ] Build and typecheck pass.
 

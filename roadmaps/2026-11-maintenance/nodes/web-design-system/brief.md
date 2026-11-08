@@ -13,6 +13,10 @@ owns:
   - website/src/main.ts
   - website/public/fonts/**
   - website/public/favicon.svg
+  - website/src/ui/**
+  - website/src/router.ts
+  - website/src/home/Hero.solid
+  - website/src/home/Unfold.solid
 provides: [web-design]
 depends_on: []
 ---
@@ -21,27 +25,21 @@ depends_on: []
 
 ## Goal
 
-Implement `contracts/web-design.md`: the tokens (light and dark) and old-name aliases in the global style of `website/src/App.solid`, self-hosted Instrument Serif, Geist and Geist Mono woff2 files with their OFL licenses in `website/public/fonts/`, the shared classes, a header and a new footer, a syntax highlight theme in `website/src/theme.css` built from the tokens (replacing the GitHub theme imports), and a favicon with the three-band block mark.
+Rework PR #11 to contract v3 ("Unfold"): v3 tokens for dark and light, the atmosphere layer (glow, grid, noise), the shell (glass header with version badge, nav, GitHub icon, theme toggle; footer), shared UI in `website/src/ui/` (`CodeBlock`, `CopyCommand`) and global classes, a v3 highlight theme, the favicon and logo mark. Also build a hero prototype as a static page section in `website/src/ui/HeroPreview.solid` (headline, gradient words, buttons, install tabs, a non-live code panel) so the user can judge the direction before the other children start. Create `website/src/home/Hero.solid` (renders the hero prototype) and `website/src/home/Unfold.solid` (an empty section) as stubs that web-hero and web-unfold take over, and have `Home.solid` import them (minimal edit, deviation allowed). Keep old token names aliased until web-og-image.
 
 ## Context
 
-- Current shell: `website/src/App.solid` (global style, header with Docs, Playground, GitHub). Pages: `website/src/pages/*.solid` keep working through the aliases.
-- Fonts: download the latin woff2 subsets from the `@fontsource/instrument-serif`, `@fontsource/geist` and `@fontsource/geist-mono` packages on jsDelivr (`https://cdn.jsdelivr.net/npm/@fontsource/<name>/files/...`), and their `LICENSE`. Do not add npm dependencies; the lockfile belongs to the dependency nodes.
-- Highlight classes come from twinkleplop; read `node_modules/@twinkleplop/theme-github/` for the selectors to restyle.
+- Contract: `contracts/web-design.md` v3. Reference screenshots of the user's other sites: `reviews/ref/*.png`. Match that family's richness, then go past it.
+- Fix the PR #11 review findings (https://github.com/lxsmnsyc/solid-sfc/pull/11#pullrequestreview-5815874247): header height off by 1px against the playground's `calc(100vh - var(--header-height))`; skip link does not move focus (router cancels the jump; `router.ts` is now owned, fix it there); remove the dead `.name` duplicate of `.visually-hidden`; ship the Geist weights you use (700, 800 for display) and no unused ones.
+- Fonts: self-hosted woff2 from `@fontsource/geist` on jsDelivr, OFL included. Drop Instrument Serif.
 
 ## Acceptance
 
-- [ ] Header: wordmark with the block mark at left, mono uppercase nav at right, hairline under it, active page marked; usable at 320px wide.
-- [ ] Footer: hairline, short colophon line, links (GitHub, npm, docs).
-- [ ] Code highlight readable in both schemes, token colors from the contract hues.
-- [ ] Fast keyboard focus ring (2px accent outline, offset 2px) on every interactive element.
-- [ ] `pnpm --filter website build` and `pnpm --filter website typecheck` pass.
-
-## Sizing
-
-M: one shell file, a theme file, assets.
+- [ ] Screenshots, light and dark, 1440 and 390 wide, of home with the hero prototype in place, docs and playground, saved to the scratchpad and listed in the outcome.
+- [ ] AA contrast for every text pair; focus ring visible; reduced motion honored.
+- [ ] `pnpm --filter website build`, `typecheck`, `oxfmt --check` pass.
 
 ## Notes for the worker
 
-- Do not edit `website/index.html`: og-tags owns it in parallel. Load fonts with `@font-face` in CSS.
-- Read the ui-style skill before writing UI.
+- Do not edit `website/index.html`.
+- Gate: the orchestrator shows your screenshots to the user before hero, unfold, home, docs and playground start.
