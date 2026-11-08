@@ -1,5 +1,22 @@
 # @solid-sfc/language-server
 
+## 1.0.1
+
+### Patch Changes
+
+- 7f29377: Update dependencies to their latest minor and patch versions: Volar 2.4.31, oxc-parser and oxc-transform 0.157, magic-string, postcss, postcss-selector-parser and unplugin.
+- Updated dependencies [7f29377]
+- Updated dependencies [472cccf]
+- Updated dependencies [978fca2]
+- Updated dependencies [eb52919]
+- Updated dependencies [e19d194]
+- Updated dependencies [7a24e29]
+- Updated dependencies [ddb7310]
+- Updated dependencies [2f78648]
+- Updated dependencies [03de971]
+  - solid-sfc@1.0.1
+  - @solid-sfc/language-core@1.0.1
+
 ## 1.0.0
 
 ### Major Changes

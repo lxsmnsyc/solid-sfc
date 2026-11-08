@@ -1,5 +1,13 @@
 # @solid-sfc/tsc
 
+## 1.0.1
+
+### Patch Changes
+
+- 7f29377: Update dependencies to their latest minor and patch versions: Volar 2.4.31, oxc-parser and oxc-transform 0.157, magic-string, postcss, postcss-selector-parser and unplugin.
+- Updated dependencies [7f29377]
+  - @solid-sfc/language-core@1.0.1
+
 ## 1.0.0
 
 ### Major Changes
