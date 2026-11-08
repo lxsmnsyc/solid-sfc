@@ -1,6 +1,6 @@
 ---
 name: web-design
-version: 1
+version: 2
 status: frozen
 defined_by: website-redesign
 ---
@@ -35,9 +35,9 @@ A `.solid` file is one document in three parts. The site is typeset like a print
   --accent: #2f3fd0;      /* links, primary action */
   --accent-ink: #ffffff;  /* text on accent */
   --script: #2f3fd0;      /* <script> block */
-  --style: #c2410c;       /* <style> block */
+  --style: #bd3f0b;       /* <style> block (v2: 4.59:1 on --surface) */
   --markup: #0f766e;      /* markup */
-  /* alerts keep their names: --note --tip --important --warning --caution */
+  /* alerts: --note #2f3fd0 --tip #0f766e --important #7a3fc0 --warning #8a5a00 --caution #b42318 */
 
   /* type */
   --font-display: 'Instrument Serif', 'Iowan Old Style', Georgia, serif;
@@ -61,7 +61,8 @@ A `.solid` file is one document in three parts. The site is typeset like a print
 }
 /* dark (prefers-color-scheme: dark):
    --paper #0e0e0c  --surface #171714  --ink #ece8df  --muted #9a958a  --hairline #2a2925
-   --accent #8b96ff --accent-ink #0e0e0c --script #8b96ff --style #fb8a5c --markup #3cc4b4 */
+   --accent #8b96ff --accent-ink #0e0e0c --script #8b96ff --style #fb8a5c --markup #3cc4b4
+   --note #8b96ff --tip #3cc4b4 --important #c59bff --warning #e0a63a --caution #ff7a6b */
 ```
 
 Shared classes defined by web-design-system in the global style of `website/src/App.solid`:
@@ -75,8 +76,9 @@ Shared classes defined by web-design-system in the global style of `website/src/
 ## Behavior
 
 - Pages use only these tokens for color, type and spacing. New tokens go through a change request.
-- The old names (`--background`, `--border`, `--text`, `--code-background`, `--font`, `--mono`) stay as aliases until every page has moved, then web-og-image (the last child) removes them.
+- The old names (`--background`, `--border`, `--text`, `--code-background`, `--accent-text`, `--font`, `--mono`) stay as aliases until every page has moved, then web-og-image (the last child) removes them.
 
 ## Changes
 
 - v1: initial.
+- v2: light `--style` #c2410c -> #bd3f0b for AA on `--surface`; alert values; `--accent-text` alias. From web-design.change-request.md, accepted 2026-11-08. Affects: web-home, web-docs, web-playground (none started).
