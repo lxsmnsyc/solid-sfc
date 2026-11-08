@@ -26,7 +26,10 @@
     }
     try {
       const binary = atob(hash);
-      return new TextDecoder().decode(Uint8Array.from(binary, (char) => char.charCodeAt(0)));
+      const text = new TextDecoder().decode(Uint8Array.from(binary, (char) => char.charCodeAt(0)));
+      // Other fragments, such as `#content` from the skip link, can also be
+      // valid base64. Only a hash that `encode` wrote holds source.
+      return encode(text) === hash ? text : undefined;
     } catch {
       return undefined;
     }
@@ -119,8 +122,17 @@
 
   // Loading an example replaces edited code, so it can be undone: with the
   // toast, or with Back, since each load is a new history entry.
-  let undo = $signal<{ name: string; source: string } | undefined>(undefined);
+  // Each load adds a Back stop, so leaving after three loads takes three Backs.
+  let undo = $signal<{ name: string; loaded: string } | undefined>(undefined);
   let undoTimer: ReturnType<typeof setTimeout> | undefined;
+  // Undo only while the editor still holds the loaded example: after an
+  // edit, going back would throw the new edits away.
+  const canUndo = $memo(!!undo && source === undo.loaded);
+
+  function dismissUndo() {
+    clearTimeout(undoTimer);
+    undo = undefined;
+  }
 
   function load(name?: string) {
     const example = examples.find((item) => item.name === name);
@@ -133,7 +145,7 @@
     source = example.source;
     clearTimeout(undoTimer);
     if (edited) {
-      undo = { name: example.name, source: before };
+      undo = { name: example.name, loaded: example.source };
       undoTimer = setTimeout(() => (undo = undefined), 6000);
     } else {
       undo = undefined;
@@ -141,13 +153,15 @@
   }
 
   function restore() {
-    if (undo) {
+    if (canUndo) {
+      dismissUndo();
       history.back();
-      undo = undefined;
     }
   }
 
   function onPopState() {
+    // Back or Forward makes the toast stale: its Undo would go back again.
+    dismissUndo();
     const restored = decode(location.hash.slice(1));
     if (restored !== undefined) {
       source = restored;
@@ -169,6 +183,10 @@
   // Tab inserts two spaces instead of leaving the editor. After Esc, the
   // next Tab leaves it, so the keyboard is never trapped.
   let released = false;
+
+  function hold() {
+    released = false;
+  }
 
   function indent(event: KeyboardEvent & { currentTarget: HTMLTextAreaElement }) {
     if (event.key === 'Escape') {
@@ -590,6 +608,7 @@
         value=source
         onInput=((event) => (source = event.currentTarget.value))
         onKeyDown=indent
+        onBlur=hold
         onScroll=syncScroll
       />
       <span class="keys" aria-hidden="true">
@@ -663,7 +682,7 @@
     </TabGroup>
   </div>
 
-  <div class={ toast: true, open: !!undo } role="status" inert=!undo>
+  <div class={ toast: true, open: canUndo } role="status" inert=!canUndo>
     <span>Loaded {undo?.name ?? ''}. Your edits were replaced.</span>
     <button type="button" class="button" onClick=restore>
       <Icon name="undo" />

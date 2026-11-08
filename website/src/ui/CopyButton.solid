@@ -16,14 +16,16 @@
 
   async function copy(): Promise<void> {
     clearTimeout(timer);
+    // Writes are batched, so the outcome is kept in a local, not read back.
+    let next: 'copied' | 'failed' = 'copied';
     try {
       await navigator.clipboard.writeText(props.text());
-      status = 'copied';
     } catch {
       // The clipboard needs a secure context and permission.
-      status = 'failed';
+      next = 'failed';
     }
-    timer = setTimeout(() => (status = 'idle'), status === 'failed' ? 2400 : 1600);
+    status = next;
+    timer = setTimeout(() => (status = 'idle'), next === 'failed' ? 2400 : 1600);
   }
 
   $cleanup(() => clearTimeout(timer));
