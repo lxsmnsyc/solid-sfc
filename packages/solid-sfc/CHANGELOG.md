@@ -1,5 +1,19 @@
 # solid-sfc
 
+## 1.0.1
+
+### Patch Changes
+
+- 7f29377: Update dependencies to their latest minor and patch versions: Volar 2.4.31, oxc-parser and oxc-transform 0.157, magic-string, postcss, postcss-selector-parser and unplugin.
+- 472cccf: Fix CSS scoping of a selector list whose later selector starts with whitespace, as in `.a, .b` in SCSS and Less and `.a, ::before` in CSS, which put the attribute on a separate compound. Keyframe renaming no longer changes the unit of a time such as `1s` when a keyframe is named `s`.
+- 978fca2: Require Solid 2.0.0-rc.21 (`solid-js`, `@solidjs/web`, `@solidjs/compiler`) and `@solidjs/vite-plugin` 3.0.0-next.57 in the peer ranges. Keep the style modules of `.solid` files out of the Solid plugin's filter, and read the new object shape of the server function manifest as well as the old array.
+- eb52919: Fix a dynamic tag that closes at the very end of the file, with no newline after it. The component compiled to TSX with a syntax error.
+- e19d194: Fix source maps for code that the compiler moves. The body of an `$effect` callback that moves to module level had no mappings, so breakpoints and stack traces in it pointed nowhere. The parameters of `#for`, `#repeat` and `#catch` had no mappings either, so the editor could not map hover or go to definition on them.
+- 7a24e29: Fix `const y = x++` on a `$signal`: a postfix update whose value is used now returns the old value, not the new one. An update used as a statement or a for-update keeps its short form.
+- ddb7310: Fix scope analysis: a `for (x of xs)` or `for (x in o)` head and a `x!++` target are writes, a class expression's own name is local inside the class, a parameter default no longer sees a body `var`, and a function expression's name no longer shadows a same-named parameter.
+- 2f78648: Fix scope analysis: references in decorators, namespace bodies and enum initializers are recorded, `constructor(private p)` declares `p`, and `import fs = require("fs")` declares `fs`.
+- 03de971: Fix CSS minification of escapes outside strings: `.a\ ,.b`, `x\, y` and a value that ends in `\ ` keep their meaning, and `\"` no longer starts a string.
+
 ## 1.0.0
 
 ### Major Changes
