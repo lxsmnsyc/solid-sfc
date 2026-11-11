@@ -6,6 +6,7 @@
     "**/dist/**",
     "pnpm-lock.yaml",
     ".changeset/*.md",
-    "website/public/coi-serviceworker.js"
+    "website/public/coi-serviceworker.js",
+    "website/og/og.html"
   ]
 }
