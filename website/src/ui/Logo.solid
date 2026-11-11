@@ -1,0 +1,29 @@
+<script>
+  // Three layers sliding apart: script, style and markup.
+  const { size = 20 } = $props<{ size?: number }>();
+</script>
+
+<style>
+  svg {
+    flex: none;
+    display: block;
+  }
+
+  .script {
+    fill: var(--script);
+  }
+
+  .style {
+    fill: var(--style);
+  }
+
+  .markup {
+    fill: var(--markup);
+  }
+</style>
+
+<svg viewBox="0 0 20 20" width=size height=size aria-hidden="true">
+  <rect class="script" x="1" y="2.5" width="12" height="4" rx="1.5" />
+  <rect class="style" x="4" y="8" width="12" height="4" rx="1.5" />
+  <rect class="markup" x="7" y="13.5" width="12" height="4" rx="1.5" />
+</svg>

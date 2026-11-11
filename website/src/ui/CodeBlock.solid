@@ -1,0 +1,188 @@
+<script module>
+  export type Block = 'script' | 'style' | 'markup';
+
+  export interface BlockRange {
+    block: Block;
+    /** First line, from 1. */
+    from: number;
+    /** Last line, included. */
+    to: number;
+    /** Text of the margin label. Defaults to `<script>`, `<style>` or `markup`. */
+    label?: string;
+  }
+
+  const LABELS: Record<Block, string> = {
+    script: '<script>',
+    style: '<style>',
+    markup: 'markup',
+  };
+</script>
+
+<script>
+  import CopyButton from './CopyButton.solid';
+
+  interface Props {
+    /** Highlighted HTML with a `pre.twinkleplop`, such as the `html` of a Markdown import. */
+    html: string;
+    /** File name or language in the head bar. Without it, there is no head bar. */
+    title?: string;
+    /** Lines to highlight, from 1. */
+    highlight?: number[];
+    /** Line ranges marked with the hue of their block. */
+    blocks?: BlockRange[];
+    /** Shows a copy button. Defaults to true. */
+    copy?: boolean;
+  }
+
+  const props = $props<Props>();
+  let body!: HTMLDivElement;
+
+  function text(): string {
+    return body.querySelector('pre')?.textContent ?? '';
+  }
+</script>
+
+<style>
+  figure {
+    --code-size: 0.8125rem;
+    --line: calc(var(--code-size) * 1.7);
+    --pad: var(--space-4);
+    position: relative;
+    overflow: hidden;
+    container-type: inline-size;
+    margin: 0;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg-raised);
+  }
+
+  .head {
+    display: flex;
+    gap: var(--space-3);
+    align-items: center;
+    justify-content: space-between;
+    min-height: 2.75rem;
+    padding: 0 var(--space-2) 0 var(--space-4);
+    border-bottom: 1px solid var(--border);
+    font: 500 0.75rem / 1 var(--font-mono);
+    color: var(--muted);
+    background: var(--panel);
+  }
+
+  .float {
+    position: absolute;
+    top: var(--space-2);
+    right: var(--space-2);
+    z-index: 2;
+    opacity: 0;
+    transition: opacity 200ms var(--ease);
+  }
+
+  figure:hover .float,
+  .float:focus-within {
+    opacity: 1;
+  }
+
+  /* Without hover, as on touch, the button is always shown. */
+  @media (hover: none) {
+    .float {
+      opacity: 1;
+    }
+  }
+
+  .body {
+    position: relative;
+    font-size: var(--code-size);
+  }
+
+  .body :global(pre.twinkleplop) {
+    position: relative;
+    z-index: 1;
+    margin: 0;
+    padding: var(--pad) var(--space-5);
+    border: 0;
+    border-radius: 0;
+    font-size: inherit;
+    line-height: var(--line);
+    background: none;
+  }
+
+  .mark {
+    --hue: var(--accent);
+    position: absolute;
+    top: calc(var(--pad) + (var(--from) - 1) * var(--line));
+    right: 0;
+    left: 0;
+    height: calc((var(--to) - var(--from) + 1) * var(--line));
+    border-left: 2px solid var(--hue);
+    background: linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--hue) 8%, transparent),
+      color-mix(in srgb, var(--hue) 2%, transparent) 60%
+    );
+  }
+
+  .mark[data-block='script'] {
+    --hue: var(--script);
+  }
+
+  .mark[data-block='style'] {
+    --hue: var(--style);
+  }
+
+  .mark[data-block='markup'] {
+    --hue: var(--markup);
+  }
+
+  .mark .label {
+    position: absolute;
+    top: 0.3rem;
+    right: var(--space-4);
+    font-size: 0.6875rem;
+  }
+
+  .line {
+    background: color-mix(in srgb, var(--accent) 14%, transparent);
+  }
+
+  /* In a narrow block the labels would cover code; the rail hue stays. */
+  @container (max-width: 34rem) {
+    .mark .label {
+      display: none;
+    }
+  }
+</style>
+
+<figure>
+  #if (props.title) {
+    <figcaption class="head">
+      <span>{props.title}</span>
+      #if (props.copy !== false) {
+        <CopyButton text=text label=`Copy ${props.title}` />
+      }
+    </figcaption>
+  } #else {
+    #if (props.copy !== false) {
+      <div class="float">
+        <CopyButton text=text label="Copy code" />
+      </div>
+    }
+  }
+  <div class="body" ref=body>
+    <div aria-hidden="true">
+      #for (range of props.blocks ?? []) {
+        <div
+          class="mark"
+          data-block=range.block
+          style={ '--from': String(range.from), '--to': String(range.to) }
+        >
+          <span class="label" data-block=range.block>{range.label ?? LABELS[range.block]}</span>
+        </div>
+      }
+      #for (line of props.highlight ?? []) {
+        <div class="mark line" style={ '--from': String(line), '--to': String(line) } />
+      }
+    </div>
+    <div innerHTML=props.html />
+  </div>
+</figure>

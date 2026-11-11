@@ -59,7 +59,10 @@ document.addEventListener('click', (event) => {
     event.shiftKey ||
     link.target ||
     link.origin !== location.origin ||
-    !link.pathname.startsWith(base)
+    !link.pathname.startsWith(base) ||
+    // A link to a part of this page, such as the skip link, is left to the
+    // browser, which also moves focus to the target.
+    (link.hash && link.pathname === location.pathname && link.search === location.search)
   ) {
     return;
   }
