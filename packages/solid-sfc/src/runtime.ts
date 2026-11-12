@@ -2,6 +2,7 @@ import type { JSX } from '@solidjs/web';
 import { isServer, useHead } from '@solidjs/web';
 import { createMemo, onCleanup, untrack } from 'solid-js';
 import type { Accessor, Element } from 'solid-js';
+import { SHEET_ATTRIBUTE, findNonce } from './nonce.ts';
 
 type Style = JSX.CSSProperties | string | null | undefined;
 
@@ -60,12 +61,8 @@ export function listen<T extends keyof EventMaps, K extends keyof EventMaps[T]>(
   return undefined;
 }
 
-/**
- * The attribute that names the stylesheet of a component, as in
- * solid-styled. Sheets that the server rendered keep it, so the client
- * does not add them again.
- */
-const SHEET_ATTRIBUTE = 's:id';
+/** The CSP nonce of new stylesheets, once found. */
+let nonce: string | undefined;
 
 /** The sheets in the document, and how many components use each one. */
 const sheets = new Map<string, { node: HTMLStyleElement; count: number }>();
@@ -102,10 +99,15 @@ export function useStyle(id: string, sheet: string): void {
       entry.node.textContent = sheet;
     }
   } else {
+    // Read before a server rendered sheet can be removed.
+    nonce ??= findNonce(document);
     let node = findSheet(id);
     if (!node) {
       node = document.createElement('style');
       node.setAttribute(SHEET_ATTRIBUTE, id);
+      if (nonce) {
+        node.setAttribute('nonce', nonce);
+      }
       node.textContent = sheet;
       document.head.appendChild(node);
     } else if (node.textContent !== sheet) {

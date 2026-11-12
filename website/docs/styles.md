@@ -198,6 +198,28 @@ The compiler scopes the selectors in the SCSS or Less source, and the bundler pl
 - `${expression}` works as in CSS. SCSS and Less `//` comments are comments for interpolations too.
 - Every `<style>` block of a file must use the same `lang`.
 
+## Content Security Policy
+
+A `style-src` directive without `'unsafe-inline'` blocks `<style>` elements that do not have its nonce. Create a random nonce for each response, send it in the header, and pass it to the render:
+
+```text
+Content-Security-Policy: style-src 'self' 'nonce-r4nd0m'
+```
+
+```tsx
+renderToString(() => <App />, { nonce: 'r4nd0m' });
+```
+
+- On the server, the stylesheets get the nonce of the render, as other head tags do.
+- In the browser, a stylesheet added after the first render, such as the styles of a component that was not server rendered, gets the nonce of the server rendered stylesheets.
+- A page without server rendered stylesheets gives the nonce in a meta tag. Vite reads the same tag for its own styles, through `html.cspNonce`:
+
+```html
+<meta property="csp-nonce" nonce="r4nd0m" />
+```
+
+The CSS variables of [reactive values](#reactive-values) are set in the `style` attribute of elements. A nonce does not cover `style` attributes, so server rendered pages that use reactive values also need `style-src-attr 'unsafe-inline'`. In the browser, Solid sets them through `element.style`, which a CSP does not block.
+
 ## Unused selectors
 
 The compiler warns about scoped selectors that no element in the file can match:
