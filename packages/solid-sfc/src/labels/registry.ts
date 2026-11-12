@@ -8,6 +8,9 @@ export const AUTO_ALIAS: Record<string, ImportDef> = {
   $reaction: ['createReaction', 'solid-js'],
   $root: ['createRoot', 'solid-js'],
   $flush: ['flush', 'solid-js'],
+  $onFlush: ['onFlush', 'solid-js'],
+  $isDisposed: ['isDisposed', 'solid-js'],
+  $observer: ['getObserver', 'solid-js'],
 
   // Lifecycles
   $settled: ['onSettled', 'solid-js'],
@@ -17,6 +20,7 @@ export const AUTO_ALIAS: Record<string, ImportDef> = {
   $action: ['action', 'solid-js'],
   $refresh: ['refresh', 'solid-js'],
   $affects: ['affects', 'solid-js'],
+  $from: ['from', 'solid-js'],
 
   // Component APIs
   $uid: ['createUniqueId', 'solid-js'],
@@ -26,6 +30,8 @@ export const AUTO_ALIAS: Record<string, ImportDef> = {
   $createContext: ['createContext', 'solid-js'],
   $owner: ['getOwner', 'solid-js'],
   $runWithOwner: ['runWithOwner', 'solid-js'],
+  $flatten: ['flatten', 'solid-js'],
+  $useHead: ['useHead', '@solidjs/web'],
 
   // Stores
   $store: ['createStore', 'solid-js'],
@@ -35,6 +41,7 @@ export const AUTO_ALIAS: Record<string, ImportDef> = {
   $reconcile: ['reconcile', 'solid-js'],
   $snapshot: ['snapshot', 'solid-js'],
   $deep: ['deep', 'solid-js'],
+  $isWrappable: ['isWrappable', 'solid-js'],
 };
 
 /**
@@ -47,6 +54,9 @@ export const ARROW_CTF: Record<string, [name: string, source: string, args: numb
   $resolve: ['resolve', 'solid-js', 1],
   $isPending: ['isPending', 'solid-js', 1],
   $latest: ['latest', 'solid-js', 1],
+  $until: ['until', 'solid-js', 2],
+  $lazyModule: ['lazyModule', 'solid-js', 1],
+  $clientOnly: ['clientOnly', '@solidjs/web', 2],
 };
 
 /**
@@ -57,6 +67,7 @@ export const ACCESSOR_CTF: Record<string, [name: string, source: string, args: n
   $children: ['children', 'solid-js', 1],
   $mapArray: ['mapArray', 'solid-js', 3],
   $repeat: ['repeat', 'solid-js', 3],
+  $deferred: ['createDeferred', 'solid-js', 2],
 };
 
 /** Auto-imported components, usable bare when not shadowed. */

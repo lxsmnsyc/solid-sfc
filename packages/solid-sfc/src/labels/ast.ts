@@ -1,3 +1,5 @@
+import type MagicString from 'magic-string';
+
 export interface Node {
   type: string;
   start: number;
@@ -166,17 +168,10 @@ export function expandParens(
 }
 
 /**
- * Inserts `() => ` before an expression. The body gets parentheses when it
- * starts with `{`, which would otherwise read as a block (`() => { a: 1 }`).
+ * Prepends `() => ` to an expression. A value starting with `{` is wrapped in
+ * parentheses so the arrow does not parse it as a block body.
  */
-export function prependArrow(
-  s: {
-    prependRight(index: number, content: string): unknown;
-    appendLeft(index: number, content: string): unknown;
-  },
-  code: string,
-  node: Node,
-): void {
+export function prependArrow(s: MagicString, code: string, node: Node): void {
   if (code[node.start] === '{') {
     s.prependRight(node.start, '() => (');
     s.appendLeft(node.end, ')');

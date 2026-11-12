@@ -76,13 +76,40 @@ declare global {
    */
   function $refresh<T>(value: T): Promise<T extends (...args: any) => infer V ? V : T>;
 
+  /** Resolves with `value` once it is truthy. */
+  function $until<T>(value: T, options?: solid.UntilOptions): Promise<solid.Truthy<T>>;
+
   function $lazy<T extends Component<any>>(
     fn: Promise<{ default: T }>,
   ): T & {
     preload: () => void;
   };
 
+  /** A lazy module. `preload` loads it ahead of use and `peek` returns it once loaded. */
+  function $lazyModule<T extends Record<string, any>>(
+    fn: Promise<T>,
+  ): (() => Promise<T>) & {
+    preload: () => Promise<T>;
+    peek: () => T | undefined;
+  };
+
+  /** A component that renders on the client only. */
+  function $clientOnly<T extends Component<any>>(
+    fn: Promise<{ default: T }>,
+    options?: { lazy?: boolean },
+  ): Component<solid.ComponentProps<T> & { fallback?: solid.Element }>;
+  function $clientOnly<M extends Record<string, any>, K extends keyof M & string>(
+    fn: Promise<M>,
+    options: { lazy?: boolean; export: K },
+  ): Component<solid.ComponentProps<M[K]> & { fallback?: solid.Element }>;
+
   function $children(value: solid.Element): solid.Element;
+
+  /** A memo that holds the previous value while a new one loads. */
+  function $deferred<T>(
+    value: T,
+    options?: solid.MemoOptions<Awaited<T>> & { loadingValue?: Awaited<T> },
+  ): Awaited<T>;
 
   function $mapArray<T, U>(
     arr: readonly T[] | undefined | null | false,
@@ -122,12 +149,16 @@ declare global {
   const $reaction: typeof solid.createReaction;
   const $root: typeof solid.createRoot;
   const $flush: typeof solid.flush;
+  const $onFlush: typeof solid.onFlush;
+  const $isDisposed: typeof solid.isDisposed;
+  const $observer: typeof solid.getObserver;
 
   const $settled: typeof solid.onSettled;
   const $cleanup: typeof solid.onCleanup;
 
   const $action: typeof solid.action;
   const $affects: typeof solid.affects;
+  const $from: typeof solid.from;
 
   const $uid: typeof solid.createUniqueId;
   const $merge: typeof solid.merge;
@@ -136,6 +167,8 @@ declare global {
   const $createContext: typeof solid.createContext;
   const $owner: typeof solid.getOwner;
   const $runWithOwner: typeof solid.runWithOwner;
+  const $flatten: typeof solid.flatten;
+  const $useHead: typeof solidWeb.useHead;
 
   const $store: typeof solid.createStore;
   const $projection: typeof solid.createProjection;
@@ -144,6 +177,7 @@ declare global {
   const $reconcile: typeof solid.reconcile;
   const $snapshot: typeof solid.snapshot;
   const $deep: typeof solid.deep;
+  const $isWrappable: typeof solid.isWrappable;
 
   // Components
 

@@ -301,8 +301,10 @@ Both declare read-only variables. In markup, the [`#for` and `#repeat` blocks](.
 | `$affects`          | `affects`                |
 | `$flush`            | `flush`                  |
 | `$resolve(value)`   | `resolve(() => value)`   |
+| `$until(value)`     | `until(() => value)`     |
+| `$from`             | `from`                   |
 
-`$isPending`, `$latest` and `$resolve` wrap their argument in a function, so `$isPending(user)` reads `user` when Solid calls it. An argument that is already a function, as in `$isPending(() => user)`, stays as it is.
+`$isPending`, `$latest`, `$resolve` and `$until` wrap their argument in a function, so `$isPending(user)` reads `user` when Solid calls it. An argument that is already a function, as in `$isPending(() => user)`, stays as it is.
 
 `$refresh` runs the source of a value again, such as the fetch of an async `$memo`, even when nothing it reads changed. Solid refreshes the source itself, so a reactive variable passes its accessor: `$refresh(user)` compiles to `refresh(user)`, not `refresh(user())`. A store passes itself. It returns a promise for the next settled value.
 
@@ -323,6 +325,7 @@ In an `$effect`, `$refresh(user)` does not make the effect track `user`. The eff
 | `$reconcile`       | `reconcile`             |
 | `$snapshot`        | `snapshot`              |
 | `$deep`            | `deep`                  |
+| `$isWrappable`     | `isWrappable`           |
 
 ## Other functions
 
@@ -340,6 +343,14 @@ In an `$effect`, `$refresh(user)` does not make the effect track `user`. The eff
 | `$useContext`                   | `useContext`                         |                                        |
 | `$owner`                        | `getOwner`                           |                                        |
 | `$runWithOwner`                 | `runWithOwner`                       |                                        |
+| `$onFlush`                      | `onFlush`                            |                                        |
+| `$isDisposed`                   | `isDisposed`                         |                                        |
+| `$observer`                     | `getObserver`                        |                                        |
+| `$flatten`                      | `flatten`                            |                                        |
+| `$useHead`                      | `useHead` from `@solidjs/web`        |                                        |
+| `$deferred(value)`              | `createDeferred(() => value)`        | Declares a read-only variable.         |
+| `$lazyModule(import('./m.ts'))` | `lazyModule(() => import('./m.ts'))` |                                        |
+| `$clientOnly(import('./C.ts'))` | `clientOnly(() => import('./C.ts'))` | From `@solidjs/web`.                   |
 
 Solid 2.0 batches writes by default, so there is no `$batch`. Use `$flush` to apply queued writes right away.
 

@@ -1,5 +1,5 @@
 import { type Node, containsAwaitOrYield, expandParens, isWrapper, unwrap } from './ast.ts';
-import type { Ctx, ReactiveInfo } from './context.ts';
+import type { Ctx, ReactiveInfo, SignalInfo } from './context.ts';
 import type { Binding, Ref } from './scope.ts';
 
 /** CTFs applied to a reference of an existing reactive variable. */
@@ -113,28 +113,31 @@ function rewriteRefCtf(ctx: Ctx, info: ReactiveInfo, ref: Ref, use: RefCtfUse): 
   ctx.consumed.add(ref.node);
   ctx.consumed.add(use.callee);
   const { s } = ctx;
-  const signalOnly = (): void => {
-    if (info.kind !== 'signal' || !info.set) {
+  const signalOnly = (): SignalInfo => {
+    if (info.kind !== 'signal') {
       ctx.error(use.callee, `${use.name} must be used on a signal variable`);
     }
+    return info;
   };
   switch (use.name) {
     case '$get': {
-      s.overwrite(use.call.start, use.call.end, info.get);
+      s.overwrite(use.call.start, use.call.end, info.get, { contentOnly: true });
       break;
     }
     case '$set': {
-      signalOnly();
-      s.overwrite(use.call.start, use.call.end, info.set!);
+      const signal = signalOnly();
+      s.overwrite(use.call.start, use.call.end, signal.set, { contentOnly: true });
       break;
     }
     case '$refSignal': {
-      signalOnly();
-      s.overwrite(use.call.start, use.call.end, `[${info.get}, ${info.set}]`);
+      const signal = signalOnly();
+      s.overwrite(use.call.start, use.call.end, `[${signal.get}, ${signal.set}]`, {
+        contentOnly: true,
+      });
       break;
     }
     case '$refMemo': {
-      s.overwrite(use.call.start, use.call.end, info.get);
+      s.overwrite(use.call.start, use.call.end, info.get, { contentOnly: true });
       break;
     }
     case '$getter': {
@@ -142,11 +145,13 @@ function rewriteRefCtf(ctx: Ctx, info: ReactiveInfo, ref: Ref, use: RefCtfUse): 
         ctx.error(use.callee, '$getter must be used as an object property value');
       }
       const prop = use.property;
-      s.overwrite(prop.start, prop.end, `get ${keyText(ctx, prop)}() { return ${info.get}(); }`);
+      s.overwrite(prop.start, prop.end, `get ${keyText(ctx, prop)}() { return ${info.get}(); }`, {
+        contentOnly: true,
+      });
       break;
     }
     case '$setter': {
-      signalOnly();
+      const signal = signalOnly();
       if (!use.property) {
         ctx.error(use.callee, '$setter must be used as an object property value');
       }
@@ -155,7 +160,8 @@ function rewriteRefCtf(ctx: Ctx, info: ReactiveInfo, ref: Ref, use: RefCtfUse): 
       s.overwrite(
         prop.start,
         prop.end,
-        `set ${keyText(ctx, prop)}(${param}) { ${info.set}(() => ${param}); }`,
+        `set ${keyText(ctx, prop)}(${param}) { ${signal.set}(() => ${param}); }`,
+        { contentOnly: true },
       );
       break;
     }
@@ -166,11 +172,11 @@ function rewriteRefCtf(ctx: Ctx, info: ReactiveInfo, ref: Ref, use: RefCtfUse): 
       const prop = use.property;
       const key = keyText(ctx, prop);
       let text = `get ${key}() { return ${info.get}(); }`;
-      if (info.kind === 'signal' && info.set) {
+      if (info.kind === 'signal') {
         const param = ctx.parameter('param');
         text += `, set ${key}(${param}) { ${info.set}(() => ${param}); }`;
       }
-      s.overwrite(prop.start, prop.end, text);
+      s.overwrite(prop.start, prop.end, text, { contentOnly: true });
       break;
     }
     default:
@@ -179,30 +185,16 @@ function rewriteRefCtf(ctx: Ctx, info: ReactiveInfo, ref: Ref, use: RefCtfUse): 
 }
 
 /**
- * The range of the right side of an assignment, with the parentheses around
- * it. The parser drops them from the AST, so `a = (b)` has `b` as its right
- * side, and a rewrite of `b` alone would leave `)` behind.
+ * Text that closes a rewritten write after its right side. It is inserted
+ * after every other edit, so reads and nested rewrites inside the right side
+ * (which overwrite spans and add `()` at the same offset) cannot drop it or
+ * land after it.
  */
-function outerRange(
-  code: string,
-  right: Node,
-  operatorEnd: number,
-): { start: number; end: number } {
-  let start = operatorEnd;
-  while (/\s/.test(code[start] ?? '')) {
-    start++;
-  }
-  const opening = code.slice(start, right.start).split('(').length - 1;
-  let end = right.end;
-  for (let count = 0; count < opening; count++) {
-    while (/\s/.test(code[end] ?? '')) {
-      end++;
-    }
-    if (code[end] === ')') {
-      end++;
-    }
-  }
-  return { start, end };
+interface Closer {
+  /** Start of the assignment; inner writes close before outer ones. */
+  order: number;
+  at: number;
+  text: string;
 }
 
 const TS_WRAPPERS = new Set([
@@ -212,16 +204,56 @@ const TS_WRAPPERS = new Set([
   'TSTypeAssertion',
 ]);
 
+/** Parents that hold a list of statements, where several statements can replace one. */
+const STATEMENT_LISTS = new Set([
+  'BlockStatement',
+  'Program',
+  'StaticBlock',
+  'SwitchCase',
+  'TSModuleBlock',
+]);
+
+/**
+ * Offset of the operator that follows an assignment target, skipping
+ * whitespace, closing parentheses and comments (which may contain the
+ * operator text).
+ */
+function skipToOperator(code: string, from: number): number {
+  let i = from;
+  while (i < code.length) {
+    const ch = code[i];
+    if (ch === ' ' || ch === '\t' || ch === '\n' || ch === '\r' || ch === ')') {
+      i++;
+    } else if (ch === '/' && code[i + 1] === '*') {
+      const close = code.indexOf('*/', i + 2);
+      i = close === -1 ? code.length : close + 2;
+    } else if (ch === '/' && code[i + 1] === '/') {
+      const newline = code.indexOf('\n', i);
+      i = newline === -1 ? code.length : newline + 1;
+    } else {
+      break;
+    }
+  }
+  return i;
+}
+
 /**
  * Rewrites a write to a signal binding into a setter call:
- * `count++` compiles to `setCount(current => ++current)`, compound
+ * `++count` compiles to `setcount_1(current_1 => ++current_1)`, a postfix
+ * update whose value is used keeps the old value through a temporary, compound
  * assignment to the functional-update form, and plain `=` to
- * `setCount(() => value)`. Right-hand sides containing await/yield are
+ * `setcount_1(() => value)`. Right-hand sides containing await/yield are
  * split into a temporary first (statement or concise arrow body only) so the
  * setter never receives a promise.
  */
-function rewriteWrite(ctx: Ctx, binding: Binding, info: ReactiveInfo, ref: Ref): void {
-  if (info.kind !== 'signal' || !info.set) {
+function rewriteWrite(
+  ctx: Ctx,
+  binding: Binding,
+  info: ReactiveInfo,
+  ref: Ref,
+  closers: Closer[],
+): void {
+  if (info.kind !== 'signal') {
     ctx.error(ref.node, `Cannot assign to derived variable "${binding.name}"`);
   }
   const set = info.set;
@@ -240,63 +272,124 @@ function rewriteWrite(ctx: Ctx, binding: Binding, info: ReactiveInfo, ref: Ref):
       (grand?.type === 'ForStatement' && grand.update === parent);
     if (parent.prefix || unused) {
       const op = parent.operator === '++' ? `++${current}` : `--${current}`;
-      s.overwrite(parent.start, parent.end, `${set}(${current} => ${op})`);
+      s.overwrite(parent.start, parent.end, `${set}(${current} => ${op})`, { contentOnly: true });
       return;
     }
-    // A postfix update whose value is used evaluates to the old value.
+    // Postfix with a used value evaluates to the old value.
     const tmp = ctx.unique('tmp');
     const sign = parent.operator === '++' ? '+' : '-';
     s.overwrite(
       parent.start,
       parent.end,
       `(() => { let ${tmp}; ${set}(${current} => (${tmp} = ${current}) ${sign} 1); return ${tmp}; })()`,
+      { contentOnly: true },
     );
     return;
   }
-  if (parent?.type !== 'AssignmentExpression' || parent.left !== ref.node) {
+  // `x! = 1` and `(x as T) = 1` assign through the wrapper: replace it too.
+  if (parent?.type !== 'AssignmentExpression' || unwrap(parent.left) !== ref.node) {
     ctx.error(ref.node, `Unsupported write to reactive variable "${binding.name}"`);
   }
   const assign = parent;
-  const right = outerRange(
+  const target = assign.left;
+  const right = assign.right;
+  const compound = assign.operator !== '=';
+  // oxc drops parentheses, so find the real span of the right-hand side.
+  const [rightStart, rightEnd] = expandParens(
     code,
-    assign.right,
-    code.indexOf(assign.operator, ref.node.end) + assign.operator.length,
+    right.start,
+    right.end,
+    ref.node.end,
+    assign.end,
   );
-  if (assign.operator !== '=') {
-    // Compound assignment: functional update over the previous value.
-    const current = ctx.parameter('current');
-    s.overwrite(ref.node.start, ref.node.end, `${set}(${current} => ${current}`);
-    s.appendLeft(right.end, ')');
-    return;
-  }
-  if (containsAwaitOrYield(assign.right)) {
-    const tmp = ctx.unique('tmp');
-    const grand = ref.parents[ref.parents.length - 2];
-    if (grand?.type === 'ExpressionStatement') {
-      s.overwrite(ref.node.start, right.start, `const ${tmp} = `);
-      s.appendLeft(right.end, `;\n${set}(() => ${tmp})`);
-      return;
-    }
-    // Concise arrow body: `async () => (count = await value())`
+  if (containsAwaitOrYield(right)) {
+    // The setter callback is not async and cannot hold the `await` or `yield`,
+    // so the right side is evaluated into a temporary first. JS evaluates the
+    // left operand before the right side, so an arithmetic update reads the
+    // signal before it. A logical update runs the right side only when the
+    // signal does not decide the result.
+    const grand = ref.parents[top - 1];
     const arrowIndex = ref.parents.findIndex(
       (p) => p.type === 'ArrowFunctionExpression' && unwrap(p.body) === assign,
     );
-    if (arrowIndex !== -1) {
-      const arrow = ref.parents[arrowIndex];
-      const [bodyStart, bodyEnd] = expandParens(code, assign.start, assign.end, arrow.start);
-      s.overwrite(bodyStart, right.start, `{ const ${tmp} = `);
-      s.overwrite(right.end, bodyEnd, `; return ${set}(() => ${tmp}); }`);
+    const inStatement = grand?.type === 'ExpressionStatement';
+    if (!inStatement && arrowIndex === -1) {
+      ctx.error(
+        ref.node,
+        `Assignments with await/yield to "${binding.name}" are only supported as statements or arrow bodies`,
+      );
+    }
+    const read = `${info.get}()`;
+    const operator = assign.operator;
+    // A statement ends with the write. A concise arrow body becomes a block
+    // that returns the value the expression had.
+    let head: string;
+    let tail: string;
+    if (operator === '||=' || operator === '&&=' || operator === '??=') {
+      const old = ctx.unique('tmp');
+      const tmp = ctx.unique('tmp');
+      let test = `!${old}`;
+      if (operator === '&&=') {
+        test = old;
+      } else if (operator === '??=') {
+        test = `${old} == null`;
+      }
+      head = `const ${old} = ${read}; if (${test}) { const ${tmp} = `;
+      tail = inStatement
+        ? `;\n${set}(() => ${tmp}); }`
+        : `; return ${set}(() => ${tmp}); } return ${old};`;
+    } else if (compound) {
+      const old = ctx.unique('tmp');
+      const tmp = ctx.unique('tmp');
+      head = `const ${old} = ${read}; const ${tmp} = `;
+      const write = `${set}(() => ${old} ${operator.slice(0, -1)} ${tmp})`;
+      tail = inStatement ? `;\n${write}` : `; return ${write};`;
+    } else {
+      const tmp = ctx.unique('tmp');
+      head = `const ${tmp} = `;
+      const write = `${set}(() => ${tmp})`;
+      tail = inStatement ? `;\n${write}` : `; return ${write};`;
+    }
+    if (inStatement) {
+      // The output is several statements, so a statement that is the body of an
+      // `if`, a loop or a label needs braces.
+      const owner = ref.parents[top - 2];
+      const braces = !STATEMENT_LISTS.has(owner?.type ?? '');
+      s.overwrite(assign.start, rightStart, braces ? `{ ${head}` : head, { contentOnly: true });
+      closers.push({ order: assign.start, at: rightEnd, text: tail });
+      if (braces) {
+        // The brace closes after the statement's own `;`, so `do ... while` still parses.
+        closers.push({ order: assign.start - 0.5, at: grand.end, text: ' }' });
+      }
       return;
     }
-    ctx.error(
-      ref.node,
-      `Assignments with await/yield to "${binding.name}" are only supported as statements or arrow bodies`,
-    );
+    // Concise arrow body: `async () => (count = await value())`
+    const arrow = ref.parents[arrowIndex];
+    const [bodyStart, bodyEnd] = expandParens(code, assign.start, assign.end, arrow.start);
+    s.overwrite(bodyStart, rightStart, `{ ${head}`);
+    if (rightEnd < bodyEnd) {
+      s.overwrite(rightEnd, bodyEnd, `${tail} }`);
+    } else {
+      // An unparenthesized body ends with the right side: nothing to overwrite.
+      closers.push({ order: assign.start, at: rightEnd, text: `${tail} }` });
+    }
+    return;
   }
-  // An object literal needs parentheses to be the arrow's value.
-  const object = ctx.code[right.start] === '{';
-  s.overwrite(ref.node.start, right.start, `${set}(() => ${object ? '(' : ''}`);
-  s.appendLeft(right.end, object ? '))' : ')');
+  if (compound) {
+    // Compound assignment: functional update over the previous value.
+    const current = ctx.parameter('current');
+    const operator = skipToOperator(code, target.end);
+    s.overwrite(assign.start, operator, `${set}(${current} => ${current} `, {
+      contentOnly: true,
+    });
+    closers.push({ order: assign.start, at: right.end, text: ')' });
+    return;
+  }
+  const object = code[rightStart] === '{';
+  s.overwrite(assign.start, rightStart, `${set}(() => ${object ? '(' : ''}`, {
+    contentOnly: true,
+  });
+  closers.push({ order: assign.start, at: rightEnd, text: object ? '))' : ')' });
 }
 
 /**
@@ -308,10 +401,7 @@ function rewriteWrite(ctx: Ctx, binding: Binding, info: ReactiveInfo, ref: Ref):
  */
 export function rewriteReferences(ctx: Ctx): void {
   const { s } = ctx;
-  // Writes run after every read. A write closes its setter call at the end
-  // of the value, and a read at the same place, as in `open = !open`, must
-  // add its `()` first.
-  const writes: [Binding, ReactiveInfo, Ref][] = [];
+  const closers: Closer[] = [];
   for (const [binding, info] of ctx.reactive) {
     if (info.kind === 'raw') {
       continue;
@@ -339,7 +429,8 @@ export function rewriteReferences(ctx: Ctx): void {
       if (refresh) {
         // The name is the accessor, which `refresh` takes. Inside an effect
         // that also reads the value, the name is the value instead.
-        if (ctx.regionFor(binding, ref.node.start)?.captured.get(binding)?.get === 'value') {
+        const captured = ctx.regionFor(binding, ref.node.start)?.captured.get(binding);
+        if (captured?.kind === 'reactive' && captured.read === 'value') {
           ctx.error(
             refresh,
             '$refresh cannot be used on a variable that the effect callback also reads',
@@ -350,7 +441,8 @@ export function rewriteReferences(ctx: Ctx): void {
       }
       if (ref.mode === 'read') {
         const region = ctx.regionFor(binding, ref.node.start);
-        if (region?.captured.get(binding)?.get === 'value') {
+        const regionInfo = region?.captured.get(binding);
+        if (regionInfo?.kind === 'reactive' && regionInfo.read === 'value') {
           // Captured by an effect callback: the identifier resolves to the
           // destructured raw value parameter — leave it untouched. (An
           // 'accessor' capture keeps the normal `name()` rewrite below.)
@@ -367,10 +459,12 @@ export function rewriteReferences(ctx: Ctx): void {
       }
       // write / readwrite
       ctx.consumed.add(ref.node);
-      writes.push([binding, info, ref]);
+      rewriteWrite(ctx, binding, info, ref, closers);
     }
   }
-  for (const [binding, info, ref] of writes) {
-    rewriteWrite(ctx, binding, info, ref);
+  // Inner writes first, so they close before the writes that contain them.
+  closers.sort((a, b) => b.order - a.order);
+  for (const closer of closers) {
+    s.appendLeft(closer.at, closer.text);
   }
 }
