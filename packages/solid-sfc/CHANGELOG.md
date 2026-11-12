@@ -1,5 +1,17 @@
 # solid-sfc
 
+## 1.1.0
+
+### Minor Changes
+
+- 196f2ac: Stylesheets added in the browser get a CSP nonce. The nonce comes from the server rendered stylesheets, or from a `<meta property="csp-nonce">` tag. Before, a strict `style-src` blocked the styles of components that were not server rendered.
+- a633a3d: Add `@global { ... }` blocks in scoped `<style>` blocks. Their rules are not scoped. Before, the block was emitted as an unknown at-rule that browsers drop, with its selectors scoped.
+- e7dda0c: Adds the compile-time functions `$onFlush`, `$isDisposed`, `$observer`, `$from`, `$flatten`, `$useHead`, `$isWrappable`, `$until`, `$lazyModule`, `$clientOnly` and `$deferred`. Fixes writes to a signal after `await` in an async function, writes through `x!` and `(x as any)`, `s = t++` between two signals, a write in a concise async arrow, and `$memo` with a parenthesized argument in dev mode.
+
+### Patch Changes
+
+- a633a3d: A spread on a scoped element, such as `<p {...props}>`, keeps the `style` of its source when the styles have interpolations. The CSS variables used to replace that style.
+
 ## 1.0.1
 
 ### Patch Changes

@@ -1,5 +1,15 @@
 # @solid-sfc/language-core
 
+## 1.0.2
+
+### Patch Changes
+
+- Updated dependencies [196f2ac]
+- Updated dependencies [a633a3d]
+- Updated dependencies [a633a3d]
+- Updated dependencies [e7dda0c]
+  - solid-sfc@1.1.0
+
 ## 1.0.1
 
 ### Patch Changes
