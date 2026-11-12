@@ -26,6 +26,8 @@ export function mergeStyle(style: Style, variables: JSX.CSSProperties): Style {
  * returned as it is, so the keys of the spread do not change.
  */
 export function spreadStyle<T>(source: T, variables: () => JSX.CSSProperties): T {
+  // The key is checked once. A source that gains a `style` key later sets
+  // that style without the variables.
   if (source == null || typeof source !== 'object' || !('style' in source)) {
     return source;
   }

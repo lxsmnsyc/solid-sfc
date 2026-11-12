@@ -320,7 +320,12 @@ export function processStyles(options: ProcessStylesOptions): StyleResult {
     const block = blocks.find(
       (item) => offset !== undefined && offset >= item.contentStart && offset < item.contentEnd,
     );
-    return block !== undefined && block.attributes.global !== true && !inGlobalRule(offset!);
+    return (
+      offset !== undefined &&
+      block !== undefined &&
+      block.attributes.global !== true &&
+      !inGlobalRule(offset)
+    );
   };
 
   const attribute = getScopeAttribute(scope);
