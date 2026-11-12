@@ -100,6 +100,34 @@ A `<style global>` block is not scoped at all:
 </style>
 ```
 
+An `@global` block in a scoped `<style>` holds rules that are not scoped:
+
+```css
+@global {
+  body {
+    margin: 0;
+  }
+}
+
+.item {
+  color: white;
+}
+```
+
+```css
+body {
+  margin: 0;
+}
+
+.item[s-x1y2z3] {
+  color: white;
+}
+```
+
+- `@global` can be inside `@media` and other at-rules.
+- `@keyframes` inside `@global` keep their name.
+- `@global` takes no parameters, and its rules cannot have interpolations.
+
 A file can have scoped and global `<style>` blocks together.
 
 ## Keyframes
@@ -165,7 +193,8 @@ const __styleVariables = () => ({
 
 - Text that touches the interpolation, such as `px` in `${size}px` or `#` in `#${hex}`, becomes part of the variable value. `var()` cannot be joined with other text in CSS.
 - A `style` attribute on the element is merged with the variables. Its own values stay.
-- Interpolations are only allowed in declaration values. They are not allowed in selectors, at-rules, property names or `<style global>` blocks.
+- A spread such as `{...props}` keeps its `style`. A spread source with a `style` key gets the variables merged into that style.
+- Interpolations are only allowed in declaration values. They are not allowed in selectors, at-rules, property names, `<style global>` blocks or `@global` blocks.
 - The expression must not be empty.
 
 ## SCSS and Less
@@ -232,7 +261,7 @@ The editor shows the same warnings.
 
 - Only the scoped part of a selector is checked. In `.list .item`, the compiler checks `.item`, because `.list` can be an element of another component.
 - Classes from `class="a b"` and from the keys of `class={ active: on }` are known. A `class` or `id` set by an expression, or a spread such as `{...props}`, can be anything, so every class or id selector matches that element.
-- Selectors in `:global(...)` and `<style global>` blocks are not checked, and neither are selectors that a preprocessor builds, such as `.btn-#{$name}`.
+- Selectors in `:global(...)`, `@global` and `<style global>` blocks are not checked, and neither are selectors that a preprocessor builds, such as `.btn-#{$name}`.
 - A [dynamic tag](markup.md#dynamic-tags) such as `<{tag}>` can be any element, so every tag selector matches it.
 - Elements that a child component renders are not scoped, so they never count.
 
@@ -243,7 +272,8 @@ CSS syntax errors point at the line and column in the `.solid` file, for example
 | Message                                                 | Cause                                                     |
 | ------------------------------------------------------- | --------------------------------------------------------- |
 | `Interpolations are only allowed in declaration values` | `${...}` is in a selector, an at-rule or a property name. |
-| `A global style cannot have interpolations`             | `${...}` is in a `<style global>` block.                  |
+| `A global style cannot have interpolations`             | `${...}` is in a `<style global>` or `@global` block.     |
+| `@global takes no parameters`                           | `@global` has text before its `{`.                        |
 | `Empty interpolation`                                   | `${}` has no expression.                                  |
 | `All <style> blocks of a file must have the same lang`  | The blocks mix `css`, `scss` and `less`.                  |
 | `Unsupported style lang "x". Use css, scss or less`     | `lang` is another language.                               |
