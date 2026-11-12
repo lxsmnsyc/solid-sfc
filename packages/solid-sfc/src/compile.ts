@@ -87,6 +87,7 @@ const VARIABLES_IDENTIFIER = '__styleVariables';
 const STYLESHEET_IDENTIFIER = '__stylesheet';
 const USE_STYLE_IDENTIFIER = '__useStyle';
 const MERGE_STYLE_IDENTIFIER = '__mergeStyle';
+const SPREAD_STYLE_IDENTIFIER = '__spreadStyle';
 
 function getComponentName(filename: string | undefined): string {
   const base = filename?.split(/[\\/]/).pop()?.split('.')[0] ?? '';
@@ -151,6 +152,7 @@ export function compileStructure(source: string, options: StructureOptions = {})
         attribute: getScopeAttribute(scope),
         variables: css.variables.length > 0 ? VARIABLES_IDENTIFIER : undefined,
         mergeStyle: MERGE_STYLE_IDENTIFIER,
+        spreadStyle: SPREAD_STYLE_IDENTIFIER,
       }
     : undefined;
 
@@ -158,6 +160,7 @@ export function compileStructure(source: string, options: StructureOptions = {})
   const {
     markup,
     mergesStyle,
+    spreadsStyle,
     usesKey,
     usesListen,
     usesDynamic,
@@ -271,6 +274,7 @@ export function compileStructure(source: string, options: StructureOptions = {})
       usesKey && `key as ${KEY_IDENTIFIER}`,
       usesListen && `listen as ${LISTEN_IDENTIFIER}`,
       mergesStyle && `mergeStyle as ${MERGE_STYLE_IDENTIFIER}`,
+      spreadsStyle && `spreadStyle as ${SPREAD_STYLE_IDENTIFIER}`,
     ].filter(Boolean);
     if (runtime.length > 0) {
       addText(`import { ${runtime.join(', ')} } from 'solid-sfc/runtime';`);

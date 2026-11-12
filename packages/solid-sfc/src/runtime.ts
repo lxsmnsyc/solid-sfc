@@ -1,6 +1,6 @@
 import type { JSX } from '@solidjs/web';
 import { isServer, useHead } from '@solidjs/web';
-import { createMemo, onCleanup, untrack } from 'solid-js';
+import { createMemo, merge, onCleanup, untrack } from 'solid-js';
 import type { Accessor, Element } from 'solid-js';
 
 type Style = JSX.CSSProperties | string | null | undefined;
@@ -17,6 +17,24 @@ export function mergeStyle(style: Style, variables: JSX.CSSProperties): Style {
     }
   }
   return result;
+}
+
+/**
+ * Gives the `style` of a spread source the CSS variables of a component's
+ * styles. `{...props}` on a scoped element becomes
+ * `{...spreadStyle(props, variables)}`. A source without a `style` key is
+ * returned as it is, so the keys of the spread do not change.
+ */
+export function spreadStyle<T>(source: T, variables: () => JSX.CSSProperties): T {
+  if (source == null || typeof source !== 'object' || !('style' in source)) {
+    return source;
+  }
+  const styled = source as T & { style: Style };
+  return merge(styled, {
+    get style() {
+      return mergeStyle(styled.style, variables());
+    },
+  }) as T;
 }
 
 /**

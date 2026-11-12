@@ -36,6 +36,28 @@ describe('selectors', () => {
     expect(css(input)).toBe(output);
   });
 
+  it.each([
+    ['@global { body { margin: 0 } } a { color: red }', 'body { margin: 0 } a[s-x] { color: red }'],
+    ['@global { .a .b, p { margin: 0 } }', '.a .b, p { margin: 0 }'],
+    [
+      '@global { @keyframes spin { from { opacity: 0 } } } a { animation: spin 1s }',
+      '@keyframes spin { from { opacity: 0 } } a[s-x] { animation: spin 1s }',
+    ],
+    ['@media print { @global { body { margin: 0 } } }', '@media print { body { margin: 0 } }'],
+    ['@global {}', ''],
+  ])('does not scope the rules of %s', (input, output) => {
+    expect(css(input)).toBe(output);
+  });
+
+  it('rejects @global with parameters', () => {
+    expect(() => css('@global .a { b { color: red } }')).toThrow('@global takes no parameters');
+  });
+
+  it('does not report the selectors of @global as unused', () => {
+    const result = compile('<style>@global { body { margin: 0 } }</style><p />');
+    expect(result.warnings).toEqual([]);
+  });
+
   it('does not scope global blocks', () => {
     expect(css('body { margin: 0 }', ' global')).toBe('body { margin: 0 }');
   });
@@ -115,6 +137,33 @@ describe('variables', () => {
     ['a { color: red', 'Unclosed block'],
   ])('rejects %s', (input, message) => {
     expect(() => compile(`<style>${input}</style>`)).toThrow(message);
+  });
+
+  it('rejects interpolations in @global', () => {
+    expect(() => compile('<style>@global { a { color: ${c} } }</style>')).toThrow(
+      'A global style cannot have interpolations',
+    );
+  });
+
+  it.each([
+    [
+      '<a {...props} />',
+      '<a s-x style={__styleVariables()} {...__spreadStyle(props, __styleVariables)} />',
+    ],
+    [
+      '<a id="x" {...a} {...b} />',
+      '<a s-x id="x" style={__styleVariables()} {...__spreadStyle(a, __styleVariables)} {...__spreadStyle(b, __styleVariables)} />',
+    ],
+    [
+      '<a {...props} style="color: red" />',
+      '<a s-x {...__spreadStyle(props, __styleVariables)} style={__mergeStyle("color: red", __styleVariables())} />',
+    ],
+  ])('keeps the style of a spread in %s', (input, output) => {
+    expect(markup(`<style>a { color: \${c} }</style>${input}`)).toBe(output);
+  });
+
+  it('does not wrap spreads without CSS variables', () => {
+    expect(markup('<style>a { color: red }</style><a {...props} />')).toBe('<a s-x {...props} />');
   });
 
   it('rejects interpolations in global styles', () => {

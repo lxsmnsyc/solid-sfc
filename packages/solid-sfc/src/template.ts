@@ -44,6 +44,8 @@ export interface TemplateResult {
   markup: Range[];
   /** True if a `style` attribute is merged with the CSS variables. */
   mergesStyle: boolean;
+  /** True if a spread is wrapped so its `style` gets the CSS variables. */
+  spreadsStyle: boolean;
   /** True if a `#key` block is used. */
   usesKey: boolean;
   /** True if `<solid:window>` or `<solid:document>` is used. */
@@ -137,6 +139,8 @@ export interface TemplateScope {
   variables: string | undefined;
   /** Helper that merges a `style` value with the CSS variables. */
   mergeStyle: string;
+  /** Helper that merges the `style` of a spread source with the CSS variables. */
+  spreadStyle: string;
 }
 
 // The `solid:` elements. Solid components that a control flow block or
@@ -183,6 +187,7 @@ export class TemplateParser {
   private scope: TemplateScope | undefined;
   private readonly control: ControlFlowParser;
   private mergesStyle = false;
+  private spreadsStyle = false;
   private usesListen = false;
   private usesDynamic = false;
   private readonly elements: ElementInfo[] = [];
@@ -238,6 +243,7 @@ export class TemplateParser {
       blocks,
       markup,
       mergesStyle: this.mergesStyle,
+      spreadsStyle: this.spreadsStyle,
       usesKey: this.control.usesKey,
       usesListen: this.usesListen,
       usesDynamic: this.usesDynamic,
@@ -462,12 +468,10 @@ export class TemplateParser {
     if (scope) {
       this.output.appendLeft(nameEnd, ` ${scope.attribute}`);
     }
-    const { end, attributesEnd, selfClosing, hasStyle } = this.recoverTag(offset, () =>
+    const { end, attributesEnd, selfClosing, hasStyle, firstSpread } = this.recoverTag(offset, () =>
       this.parseAttributes(nameEnd, scope, element),
     );
-    if (scope?.variables && !hasStyle) {
-      this.output.appendLeft(attributesEnd, ` style={${scope.variables}()}`);
-    }
+    this.addVariablesStyle(scope, attributesEnd, hasStyle, firstSpread);
     if (selfClosing) {
       return end;
     }
@@ -569,10 +573,9 @@ export class TemplateParser {
       attributesEnd,
       selfClosing,
       hasStyle,
+      firstSpread,
     } = this.recoverTag(offset, () => this.parseAttributes(nameEnd, scope, element));
-    if (scope?.variables && !hasStyle) {
-      output.appendLeft(attributesEnd, ` style={${scope.variables}()}`);
-    }
+    this.addVariablesStyle(scope, attributesEnd, hasStyle, firstSpread);
     const after = `; })()${end}`;
     if (selfClosing) {
       this.appendAfter(tagEnd, after);
@@ -658,16 +661,45 @@ export class TemplateParser {
     return i + 1;
   }
 
+  /**
+   * Sets the CSS variables on an element without a `style` attribute. A
+   * later attribute wins in Solid, so with a spread the variables go before
+   * the first spread. A spread source with a `style` key then wins with its
+   * own style merged with the variables, and any other source keeps them.
+   */
+  private addVariablesStyle(
+    scope: TemplateScope | undefined,
+    attributesEnd: number,
+    hasStyle: boolean,
+    firstSpread: number | undefined,
+  ): void {
+    if (!scope?.variables || hasStyle) {
+      return;
+    }
+    if (firstSpread === undefined) {
+      this.output.appendLeft(attributesEnd, ` style={${scope.variables}()}`);
+    } else {
+      this.output.appendLeft(firstSpread, `style={${scope.variables}()} `);
+    }
+  }
+
   private parseAttributes(
     offset: number,
     scope: TemplateScope | undefined,
     element: ElementInfo,
-  ): { end: number; attributesEnd: number; selfClosing: boolean; hasStyle: boolean } {
+  ): {
+    end: number;
+    attributesEnd: number;
+    selfClosing: boolean;
+    hasStyle: boolean;
+    firstSpread: number | undefined;
+  } {
     const { source, output } = this;
     // The CSS variables are merged into the `style` attribute, if any.
     const variables = scope?.variables;
     const mergedStyle = `style={${scope?.mergeStyle}(style, ${variables}())}`;
     let hasStyle = false;
+    let firstSpread: number | undefined;
     let i = offset;
     while (true) {
       const attributesEnd = i;
@@ -681,10 +713,10 @@ export class TemplateParser {
         this.fail('Unexpected end of file inside a tag', offset);
       }
       if (char === '/' && source[i + 1] === '>') {
-        return { end: i + 2, attributesEnd, selfClosing: true, hasStyle };
+        return { end: i + 2, attributesEnd, selfClosing: true, hasStyle, firstSpread };
       }
       if (char === '>') {
-        return { end: i + 1, attributesEnd, selfClosing: false, hasStyle };
+        return { end: i + 1, attributesEnd, selfClosing: false, hasStyle, firstSpread };
       }
       if (char === '{') {
         // `{...spread}` is kept, `{name}` becomes `name={name}`.
@@ -703,6 +735,14 @@ export class TemplateParser {
           element.spread = true;
           element.dynamicClass = true;
           element.dynamicId = true;
+          if (variables) {
+            // `{...props}` becomes `{...__spreadStyle(props, __styleVariables)}`.
+            const spreadStart = source.indexOf('...', i + 1) + 3;
+            output.appendLeft(spreadStart, `${scope.spreadStyle}(`);
+            output.appendLeft(close, `, ${variables})`);
+            firstSpread ??= start;
+            this.spreadsStyle = true;
+          }
         } else {
           this.fail('Expected a spread or a shorthand attribute', i);
         }

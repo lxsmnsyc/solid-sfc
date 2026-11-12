@@ -302,11 +302,25 @@ export function processStyles(options: ProcessStylesOptions): StyleResult {
     throw error;
   }
 
+  // `@global { ... }` in a scoped block holds rules that are not scoped.
+  const globalRules: AtRule[] = [];
+  root.walkAtRules('global', (rule) => {
+    if (rule.params.trim()) {
+      fail('@global takes no parameters', rule.source?.start?.offset ?? 0);
+    }
+    globalRules.push(rule);
+  });
+  const inGlobalRule = (offset: number): boolean =>
+    globalRules.some(
+      (rule) =>
+        offset >= (rule.source?.start?.offset ?? 0) && offset < (rule.source?.end?.offset ?? 0),
+    );
+
   const isScoped = (offset: number | undefined): boolean => {
     const block = blocks.find(
       (item) => offset !== undefined && offset >= item.contentStart && offset < item.contentEnd,
     );
-    return block !== undefined && block.attributes.global !== true;
+    return block !== undefined && block.attributes.global !== true && !inGlobalRule(offset!);
   };
 
   const attribute = getScopeAttribute(scope);
@@ -374,6 +388,14 @@ export function processStyles(options: ProcessStylesOptions): StyleResult {
     }
   });
 
+  for (const rule of globalRules) {
+    rule.walkDecls((declaration) => {
+      if (hasPlaceholder(declaration.value)) {
+        fail('A global style cannot have interpolations', declaration.source?.start?.offset ?? 0);
+      }
+    });
+  }
+
   root.walkDecls((declaration) => {
     if (hasPlaceholder(declaration.value)) {
       let { value } = declaration;
@@ -383,6 +405,15 @@ export function processStyles(options: ProcessStylesOptions): StyleResult {
       declaration.value = value;
     }
   });
+
+  // The rules of a `@global` block take its place.
+  for (const rule of globalRules) {
+    if (rule.nodes && rule.nodes.length > 0) {
+      rule.replaceWith(rule.nodes);
+    } else {
+      rule.remove();
+    }
+  }
 
   // Drop the padding around the blocks.
   root.each((node, index) => {
