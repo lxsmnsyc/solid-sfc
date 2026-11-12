@@ -6,7 +6,7 @@ import {
   isWrapper,
   unwrap,
 } from './ast.ts';
-import type { CaptureInfo, Ctx } from './context.ts';
+import type { CaptureInfo, Ctx, ReactiveCapture } from './context.ts';
 import type { Binding, Ref } from './scope.ts';
 import { refreshCallee } from './reactive.ts';
 import { callArgs } from './variables.ts';
@@ -35,60 +35,60 @@ function analyzeCaptures(ctx: Ctx, call: Node, target: Node, body: Node): Captur
   const captured = new Map<Binding, CaptureInfo>();
   let blocked = false;
 
-  for (const binding of ctx.analysis.bindings) {
-    // Declared inside the callback: not free.
+  // Group the references inside the body by binding.
+  const byBinding = new Map<
+    Binding,
+    { tracked: boolean; untracked: boolean; writes: boolean; firstRef: number }
+  >();
+  for (const bindingRef of ctx.refsIn(body.start, body.end)) {
+    const binding = bindingRef.binding!;
     if (binding.node.start >= target.start && binding.node.end <= target.end) {
       continue;
     }
-    let tracked = false;
-    let untracked = false;
-    let writes = false;
-    let firstRef = -1;
-    for (const bindingRef of binding.refs) {
-      const pos = bindingRef.node.start;
-      if (pos < body.start || bindingRef.node.end > body.end) {
-        continue;
-      }
-      if (firstRef === -1 || pos < firstRef) {
-        firstRef = pos;
-      }
-      if (bindingRef.mode === 'read') {
-        // `$refresh(quote)` takes the accessor and does not track it.
-        if (insideUntrack(ctx, bindingRef.node) || refreshCallee(ctx, bindingRef)) {
-          untracked = true;
-        } else {
-          tracked = true;
-        }
+    let entry = byBinding.get(binding);
+    if (!entry) {
+      entry = { tracked: false, untracked: false, writes: false, firstRef: bindingRef.node.start };
+      byBinding.set(binding, entry);
+    }
+    if (bindingRef.mode === 'read') {
+      // `$refresh(quote)` takes the accessor and does not track it.
+      if (insideUntrack(ctx, bindingRef.node) || refreshCallee(ctx, bindingRef)) {
+        entry.untracked = true;
       } else {
-        // Compound updates read through the setter's functional form.
-        writes = true;
+        entry.tracked = true;
       }
+    } else {
+      entry.writes = true;
     }
-    if (firstRef === -1) {
-      continue;
-    }
+  }
+  // Declaration order, as when every binding was scanned.
+  const ordered = [...byBinding].sort(
+    (a, b) => ctx.bindingOrder.get(a[0])! - ctx.bindingOrder.get(b[0])!,
+  );
+  for (const [binding, { tracked, untracked, writes, firstRef }] of ordered) {
     const reactive = ctx.reactive.get(binding);
     if (reactive && reactive.kind !== 'raw') {
-      if (writes && !reactive.set) {
+      if (writes && reactive.kind !== 'signal') {
         ctx.error(binding.node, `Cannot assign to derived variable "${binding.name}"`);
       }
       // A read outside $untrack tracks the source; untracked-only reads pass
       // the accessor through instead so the source list omits the signal.
-      let get: CaptureInfo['get'] = false;
+      let read: ReactiveCapture['read'] = 'none';
       if (tracked) {
-        get = 'value';
+        read = 'value';
       } else if (untracked) {
-        get = 'accessor';
+        read = 'accessor';
       }
-      if (get === 'accessor') {
+      if (read === 'accessor') {
         // Inside an enclosing effect region that captured the raw value the
         // accessor no longer exists; the value is already untracked there.
         const outer = ctx.regionFor(binding, call.start);
-        if (outer?.captured.get(binding)?.get === 'value') {
-          get = 'value';
+        const outerInfo = outer?.captured.get(binding);
+        if (outerInfo?.kind === 'reactive' && outerInfo.read === 'value') {
+          read = 'value';
         }
       }
-      const info: CaptureInfo = { get, set: writes };
+      const info: CaptureInfo = { kind: 'reactive', read, write: writes };
       captured.set(binding, info);
       captures.push({ binding, info, firstRef });
       continue;
@@ -101,8 +101,7 @@ function analyzeCaptures(ctx: Ctx, call: Node, target: Node, body: Node): Captur
       continue;
     }
     if (binding.scope !== ctx.analysis.module || reactive) {
-      // Plain outer values are passed through as raw values.
-      const info: CaptureInfo = { get: 'value', set: false };
+      const info: CaptureInfo = { kind: 'plain' };
       captured.set(binding, info);
       captures.push({ binding, info, firstRef });
     }
@@ -115,20 +114,21 @@ function analyzeCaptures(ctx: Ctx, call: Node, target: Node, body: Node): Captur
   for (const capture of captures) {
     const { binding, info } = capture;
     const reactive = ctx.reactive.get(binding);
-    if (reactive && reactive.kind !== 'raw') {
-      if (info.get === 'value') {
+    if (reactive && reactive.kind !== 'raw' && info.kind === 'reactive') {
+      if (info.read === 'value') {
         // Inside an enclosing effect region the identifier is already a raw
         // captured value; read it plainly there.
         const outer = ctx.regionFor(binding, call.start);
-        const outerRaw = outer?.captured.get(binding)?.get === 'value';
+        const outerInfo = outer?.captured.get(binding);
+        const outerRaw = outerInfo?.kind === 'reactive' && outerInfo.read === 'value';
         entries.push(outerRaw ? binding.name : `${reactive.get}()`);
         params.push(binding.name);
-      } else if (info.get === 'accessor') {
+      } else if (info.read === 'accessor') {
         // The accessor itself rides along — stable identity, never triggers.
         entries.push(binding.name);
         params.push(binding.name);
       }
-      if (info.set && reactive.set) {
+      if (info.write && reactive.kind === 'signal') {
         entries.push(reactive.set);
         params.push(reactive.set);
       }
@@ -148,14 +148,14 @@ function analyzeCaptures(ctx: Ctx, call: Node, target: Node, body: Node): Captur
  */
 /** True when the node sits inside a `$untrack(...)` call span. */
 function insideUntrack(ctx: Ctx, node: Node): boolean {
-  return ctx.untrackSpans.some(([start, end]) => node.start >= start && node.end <= end);
+  return ctx.insideUntrack(node.start, node.end);
 }
 
 /**
  * Derives the hoisted callback's base name from the nearest enclosing named
  * scope — a named function, or a function expression bound to a variable,
  * property, method, or assignment — so the module-level function reads as
- * `AppEffect` instead of an anonymous `effectCallback`.
+ * `AppEffect_1` instead of an anonymous `effectCallback_1`.
  */
 function hoistBaseName(ref: Ref): string {
   const parents = ref.parents;
@@ -203,10 +203,15 @@ function isHoistable(ctx: Ctx, target: Node, blocked: boolean): boolean {
   const hasThis = ctx.analysis.thisSpans.some(
     ([start, end]) => start >= target.start && end <= target.end,
   );
-  const hasArguments = ctx.analysis.unresolved.some(
-    (r) => r.node.name === 'arguments' && r.node.start >= target.start && r.node.end <= target.end,
+  const hasArguments = ctx.argumentsRefs.some(
+    (r) => r.node.start >= target.start && r.node.end <= target.end,
   );
   return !(hasThis || hasArguments);
+}
+
+/** True when the expression would parse as a block, declaration or class at the start of a statement. */
+export function startsStatementBadly(text: string): boolean {
+  return /^(\{|function\b|class\b|async\s+function\b)/.test(text);
 }
 
 /**
@@ -262,7 +267,7 @@ export default function transformEffect(
     );
 
     const { entries, params, captured, blocked } = analyzeCaptures(ctx, call, target, body);
-    ctx.regions.push({ start: body.start, end: body.end, captured });
+    ctx.addRegion({ start: body.start, end: body.end, captured });
 
     ctx.consumed.add(ref.node);
     s.overwrite(ref.node.start, ref.node.end, ctx.importIdent(importName, 'solid-js'));
@@ -304,7 +309,7 @@ export default function transformEffect(
   );
 
   const { entries, params, captured, blocked } = analyzeCaptures(ctx, call, expr, expr);
-  ctx.regions.push({ start: expr.start, end: expr.end, captured });
+  ctx.addRegion({ start: expr.start, end: expr.end, captured });
 
   ctx.consumed.add(ref.node);
   s.overwrite(ref.node.start, ref.node.end, ctx.importIdent(importName, 'solid-js'));
@@ -323,7 +328,9 @@ export default function transformEffect(
       statement: true,
     });
   } else {
-    s.appendLeft(exprStart, `${computeText}([${params.join(', ')}]) => { `);
-    s.appendLeft(exprEnd, '; }');
+    // A statement cannot start with `{`, `function` or `class`.
+    const open = startsStatementBadly(code.slice(exprStart, exprEnd)) ? '(' : '';
+    s.appendLeft(exprStart, `${computeText}([${params.join(', ')}]) => { ${open}`);
+    s.appendLeft(exprEnd, `${open ? ')' : ''}; }`);
   }
 }

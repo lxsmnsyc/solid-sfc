@@ -3,7 +3,7 @@ import { unwrap } from './ast.ts';
 import transformComponent from './component.ts';
 import type { Ctx } from './context.ts';
 import { transformDestructure } from './destructure.ts';
-import transformEffect from './effect.ts';
+import transformEffect, { startsStatementBadly } from './effect.ts';
 import transformJSXComponents from './jsx.ts';
 import { REF_CTFS, rewriteReferences } from './reactive.ts';
 import { ACCESSOR_CTF, ARROW_CTF, AUTO_ALIAS, COMPONENTS } from './registry.ts';
@@ -35,10 +35,14 @@ function isStatementCall(ref: Ref, call: Node): boolean {
 function replaceAlias(ctx: Ctx, ref: Ref, name: string, source: string): void {
   const local = ctx.importIdent(name, source);
   ctx.consumed.add(ref.node);
+  // contentOnly keeps text attached to either edge: the `() => ` that an
+  // enclosing arrow CTF inserts at the start, or a dev name option at the end.
   if (ref.shorthand) {
-    ctx.s.overwrite(ref.node.start, ref.node.end, `${ref.node.name}: ${local}`);
+    ctx.s.overwrite(ref.node.start, ref.node.end, `${ref.node.name}: ${local}`, {
+      contentOnly: true,
+    });
   } else {
-    ctx.s.overwrite(ref.node.start, ref.node.end, local);
+    ctx.s.overwrite(ref.node.start, ref.node.end, local, { contentOnly: true });
   }
 }
 
@@ -60,13 +64,18 @@ export default function transformProgram(ctx: Ctx): void {
   const unresolved = [...ctx.analysis.unresolved].sort((a, b) => a.node.start - b.node.start);
   const effects: Ref[] = [];
 
-  for (const ref of unresolved) {
+  const done = new Set<Ref>();
+  function processRef(ref: Ref): void {
+    if (done.has(ref)) {
+      return;
+    }
+    done.add(ref);
     if (ctx.consumed.has(ref.node)) {
-      continue;
+      return;
     }
     const name = ref.node.name as string;
     if (ctx.disabled[name]) {
-      continue;
+      return;
     }
     if (name === '$effect' || name === '$renderEffect') {
       if (isCallee(ref)) {
@@ -74,7 +83,7 @@ export default function transformProgram(ctx: Ctx): void {
       } else {
         ctx.error(ref.node, `${name} must be called directly`);
       }
-      continue;
+      return;
     }
     if (name === '$signal') {
       const site = findDeclarator(ref);
@@ -82,7 +91,7 @@ export default function transformProgram(ctx: Ctx): void {
         ctx.error(ref.node, '$signal must initialize a variable declaration');
       }
       transformSignal(ctx, ref, site);
-      continue;
+      return;
     }
     if (name === '$memo') {
       const site = findDeclarator(ref);
@@ -90,19 +99,19 @@ export default function transformProgram(ctx: Ctx): void {
         ctx.error(ref.node, '$memo must initialize a variable declaration');
       }
       transformMemo(ctx, ref, site);
-      continue;
+      return;
     }
     if (name === '$') {
       const site = findDeclarator(ref);
       if (site) {
         transformMemo(ctx, ref, site);
-        continue;
+        return;
       }
       const call = isCallee(ref);
       if (call && isStatementCall(ref, call)) {
         // Compiled like $effect; deferred so every reactive binding is known.
         effects.push(ref);
-        continue;
+        return;
       }
       ctx.error(ref.node, '$ must initialize a variable declaration or be used as a statement');
     }
@@ -112,7 +121,7 @@ export default function transformProgram(ctx: Ctx): void {
         ctx.error(ref.node, '$derefSignal must initialize a variable declaration');
       }
       transformDerefSignal(ctx, ref, site);
-      continue;
+      return;
     }
     if (name === '$derefMemo') {
       const site = findDeclarator(ref);
@@ -120,7 +129,7 @@ export default function transformProgram(ctx: Ctx): void {
         ctx.error(ref.node, '$derefMemo must initialize a variable declaration');
       }
       transformDerefMemo(ctx, ref, site);
-      continue;
+      return;
     }
     if (name === '$destructure') {
       const site = findDeclarator(ref);
@@ -128,7 +137,7 @@ export default function transformProgram(ctx: Ctx): void {
         ctx.error(ref.node, '$destructure must initialize a variable declaration');
       }
       transformDestructure(ctx, ref, site);
-      continue;
+      return;
     }
     if (name in ACCESSOR_CTF) {
       const site = findDeclarator(ref);
@@ -137,7 +146,7 @@ export default function transformProgram(ctx: Ctx): void {
       }
       const [importName, source, maxArgs] = ACCESSOR_CTF[name];
       transformAccessorCtf(ctx, ref, site, importName, source, maxArgs);
-      continue;
+      return;
     }
     if (name === '$component') {
       const call = isCallee(ref);
@@ -145,7 +154,7 @@ export default function transformProgram(ctx: Ctx): void {
         ctx.error(ref.node, '$component must be called directly');
       }
       transformComponent(ctx, ref, call);
-      continue;
+      return;
     }
     if (name in ARROW_CTF) {
       const call = isCallee(ref);
@@ -154,20 +163,44 @@ export default function transformProgram(ctx: Ctx): void {
       }
       const [importName, source, maxArgs] = ARROW_CTF[name];
       transformArrowCtf(ctx, ref, call, importName, source, maxArgs);
-      continue;
+      return;
     }
     if (name in AUTO_ALIAS) {
       if (ref.exported) {
-        continue;
+        return;
       }
       const [importName, source] = AUTO_ALIAS[name];
       replaceAlias(ctx, ref, importName, source);
-      continue;
+      return;
     }
     if (name in COMPONENTS && !ref.exported) {
       const [importName, source] = COMPONENTS[name];
       replaceAlias(ctx, ref, importName, source);
     }
+  }
+
+  // Rendering a span to text (destructure defaults) needs the CTFs inside it
+  // rewritten first, so it can read the edited text back from the span.
+  ctx.processWithin = (start, end) => {
+    for (const ref of unresolved) {
+      if (ref.node.start >= start && ref.node.end <= end) {
+        processRef(ref);
+      }
+    }
+    // An effect callback may be hoisted out of its span, which is about to be
+    // replaced by text, so effects inside it are not supported.
+    for (const ref of effects) {
+      if (ref.node.start >= start && ref.node.end <= end) {
+        ctx.error(
+          ref.node,
+          `${ref.node.name} cannot be used inside a destructuring default; move the effect out of the default`,
+        );
+      }
+    }
+  };
+
+  for (const ref of unresolved) {
+    processRef(ref);
   }
 
   // Collected before effect analysis: reads inside $untrack(...) are
@@ -216,28 +249,30 @@ export default function transformProgram(ctx: Ctx): void {
 }
 
 /**
- * Moves hoistable effect callbacks to module level. Nested effect callbacks
- * land as sibling functions.
+ * Moves hoistable effect callbacks to module level. Bodies are extracted
+ * innermost-first so nested effect callbacks land as sibling functions.
  */
 function extractHoistedCallbacks(ctx: Ctx): void {
   if (ctx.pendingHoists.length === 0) {
     return;
   }
-  // `move` keeps the mappings of the body, so the source map points into the
-  // callback. Like `slice` and `overwrite`, it takes the inserts at both ends
-  // of the body along. Each body moves to the end in order. A nested body
-  // moves with its parent first, then out of it.
+  // Each body moves to the end of the output with its edits intact, so no
+  // span is re-read through MagicString#slice (linear in the chunk count).
   const end = ctx.code.length;
   for (const pending of ctx.pendingHoists) {
-    const { start, end: bodyEnd } = pending.body;
-    let header = `\nfunction ${pending.name}([${pending.params.join(', ')}]) `;
-    let footer = '\n';
+    const header = `\nfunction ${pending.name}([${pending.params.join(', ')}]) `;
     if (pending.concise) {
-      header += pending.statement ? '{\n  ' : '{\n  return ';
-      footer = ';\n}\n';
+      // A statement cannot start with `{`, `function` or `class`.
+      const wrap =
+        pending.statement &&
+        startsStatementBadly(ctx.code.slice(pending.body.start, pending.body.end));
+      const open = pending.statement ? '{\n  ' : '{\n  return ';
+      ctx.s.prependRight(pending.body.start, header + open + (wrap ? '(' : ''));
+      ctx.s.appendLeft(pending.body.end, `${wrap ? ')' : ''};\n}\n`);
+    } else {
+      ctx.s.prependRight(pending.body.start, header);
+      ctx.s.appendLeft(pending.body.end, '\n');
     }
-    ctx.s.prependRight(start, header);
-    ctx.s.appendLeft(bodyEnd, footer);
-    ctx.s.move(start, bodyEnd, end);
+    ctx.s.move(pending.body.start, pending.body.end, end);
   }
 }
