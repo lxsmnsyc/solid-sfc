@@ -1,5 +1,11 @@
 # @solid-sfc/typescript-plugin
 
+## 1.0.2
+
+### Patch Changes
+
+- @solid-sfc/language-core@1.0.2
+
 ## 1.0.1
 
 ### Patch Changes
