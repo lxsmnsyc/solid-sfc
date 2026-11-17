@@ -1,6 +1,6 @@
 {
   "name": "@solid-sfc/language-server",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Language server for solid-sfc",
   "keywords": [
     "language-server",
