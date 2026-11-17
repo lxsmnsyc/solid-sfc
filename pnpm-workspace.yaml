@@ -10,6 +10,7 @@ allowBuilds:
   # The tests use its JavaScript API, which works without its install script.
   esbuild: false
 minimumReleaseAgeExclude:
+  - terracotta@2.0.0
   - '@solidjs/compiler-darwin-arm64@2.0.0'
   - '@solidjs/compiler-darwin-x64@2.0.0'
   - '@solidjs/compiler-linux-arm64-gnu@2.0.0'
@@ -21,3 +22,4 @@ minimumReleaseAgeExclude:
   - '@solidjs/vite-plugin@3.0.0'
   - '@solidjs/web@2.0.0'
   - solid-js@2.0.0
+  - solid-use@1.0.0
